@@ -55,6 +55,7 @@ History:
 2004-08-25 ROwen	Added __all__.
 2004-10-14 ROwen	Changed default dataCut to 3.0 from 4.5.
 					No longer displays a 3rd ds9 frame (was smoothed data).
+2004-10-15 ROwen	No longer warns if RO.DS9 absent (unless you use the ds9 flag).
 """
 __all__ = ['ds9XYFromLocalIJ', 'findStars']
 
@@ -66,7 +67,7 @@ import ImUtil
 try:
 	import RO.DS9
 except ImportError:
-	print 'warning: RO.DS9 not available; cannot use ds9 flag'
+	pass
 _DS9Title = "FindStars"
 
 def _fmtList(alist):
@@ -112,7 +113,8 @@ def findStars(
 	- satLevel	The value at or above which a pixel is considered saturated (ADU)
 	- radMult	centroid radius = radMult * max(box x rad, box y rad)
 	- verbosity	0: no output, 1: print warnings, 2: print information
-	- ds9		if True, shows current image and other info in ds9 in current frame
+	- ds9		if True, shows current image and other info in ds9 in current frame.
+				For this to work, you must have the RO package installed.
 	
 	Returns two items:
 	- isSaturated	a flag indicating whether any stars were saturated

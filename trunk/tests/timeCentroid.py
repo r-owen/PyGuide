@@ -88,7 +88,7 @@ def runTests():
 	# settings for fake data
 	imWidth = 1024
 	fwhm = 2.5
-	ampl = 1000
+	ampl = 5000
 	
 	# generate fake data
 	imShape = (ImWidth, ImWidth)
