@@ -5,30 +5,49 @@ History:
 2004-04-07 ROwen	First release
 2004-04-12 ROwen	Modified to mask of all 0s (sense of mask changed).
 2004-08-03 ROwen	Modified to use fake data.
+2004-08-06 ROwen	Modified for new centroid.
 """
 import time
 import numarray as num
 import PyGuide
+
+# settings for fake data
+ImWidth = 1024	# image width
+Sky = 1000		# sky level, in ADU
+ReadNoise = 19	# read noise, in e-
+CCDGain = 2.1	# inverse ccd gain, in e-/ADU
+Bias = 2176		# image bias, in ADU
 
 def timeCentroid(data, mask, initGuess, niter, rad=20):
 	print "timeCentroid: initGuess=%3.0f, %3.0f; niter=%2d; rad=%3d;" % \
 		(initGuess[0], initGuess[1], niter, rad),
 	begTime = time.time()
 	for ii in range(niter):
-		PyGuide.centroid(data, mask, initGuess, rad)
+		PyGuide.centroid(
+			data = data,
+			mask = mask,
+			initGuess = initGuess,
+			rad = rad,
+			bias = Bias,
+			readNoise = ReadNoise,
+			ccdGain = CCDGain,
+		)
 	dTime = time.time() - begTime
 	print "time/iter=%.3f" % (dTime/niter,)
 
 
-def timeRadAsymm(data, mask, niter, rad=20):
+def timeRadAsymmWeighted(data, mask, niter, rad=20):
 	shape = data.getshape()
 	xc = shape[0]/2
 	yc = shape[1]/2
-	print "timeRadAsymm: niter=%2d; rad=%3d;" % (niter, rad),
+	print "timeRadAsymmWeighted: niter=%2d; rad=%3d;" % (niter, rad),
 	
 	begTime = time.time()
 	for ii in range(niter):
-		PyGuide.radProf.radAsymm(data, mask, (xc, yc), rad)
+		PyGuide.radProf.radAsymmWeighted(
+			data, mask, (xc, yc), rad,
+			Bias, ReadNoise, CCDGain,
+		)
 	dTime = time.time() - begTime
 	print "time/iter=%.3f" % (dTime/niter,)
 
@@ -70,22 +89,18 @@ def runTests():
 	imWidth = 1024
 	fwhm = 2.5
 	ampl = 1000
-	sky = 1000		# sky level, in ADU
-	readNoise = 19	# read noise, in e-
-	ccdGain = 2.1	# inverse ccd gain, in e-/ADU
-	bias = 2176		# image bias, in ADU
 	
 	# generate fake data
-	imShape = (imWidth, imWidth)
+	imShape = (ImWidth, ImWidth)
 	ctr = num.divide(imShape, 2.0)
 	sigma = fwhm / PyGuide.FWHMPerSigma
 	cleanData = PyGuide.FakeData.fakeStar(imShape, ctr, sigma, ampl)
 	data = PyGuide.FakeData.addNoise(
 		data = cleanData,
-		sky = sky,
-		readNoise = readNoise,
-		ccdGain = ccdGain,
-		bias = bias,
+		sky = Sky,
+		bias = Bias,
+		readNoise = ReadNoise,
+		ccdGain = CCDGain,
 	)
 	data = data.astype(num.Int16)
 	
@@ -95,16 +110,16 @@ def runTests():
 	print "Time various parts of centroiding as a function of radius"
 	print
 	print "Settings:"
-	print "CCD Size      =", imWidth, "x", imWidth, "pix"
+	print "CCD Size      =", ImWidth, "x", ImWidth, "pix"
 	print "Star center   = %d, %d pix" % (ctr[0], ctr[1])
 	print "Initial guess = %d, %d pix" % (initGuess[0], initGuess[1])
 	print
 	print "Amplitude  =", ampl, "ADU"
 	print "FWHM       =", fwhm, "pix"
-	print "Sky        =", sky, "ADU"
-	print "Read Noise =", readNoise, "e-"
-	print "CCD Gain   =", ccdGain, "e-/ADU"
-	print "Bias       =", bias, "ADU"
+	print "Sky        =", Sky, "ADU"
+	print "Bias       =", Bias, "ADU"
+	print "Read Noise =", ReadNoise, "e-"
+	print "CCD Gain   =", CCDGain, "e-/ADU"
 	
 	allZerosMask = data.astype(num.Bool)
 	allZerosMask[:] = 0
@@ -117,32 +132,47 @@ def runTests():
 	for mask, expl in maskData:
 		print
 		print expl
+		
+		radNiterList = (
+			( 10, 20),
+			( 20, 20),
+			( 40, 20),
+			( 80, 20),
+			(160, 20),
+			(320, 20),
+			(640, 10),
+		)
 	
 		print
-		timeRadProf(data, mask, 20, rad=10)
-		timeRadProf(data, mask, 20, rad=20)
-		timeRadProf(data, mask, 20, rad=40)
-		timeRadProf(data, mask, 20, rad=80)
-		timeRadProf(data, mask, 20, rad=160)
-		timeRadProf(data, mask, 20, rad=320)
-		timeRadProf(data, mask, 10, rad=640)
+		for rad, niter in radNiterList:
+			try:
+				timeRadProf(data, mask, niter, rad)
+			except Exception, e:
+				print "timeRadProf(niter=%s, rad=%s) failed: %s" % (niter, rad, e)
 		
 		print
-		timeRadAsymm(data, mask, 20, rad=10)
-		timeRadAsymm(data, mask, 20, rad=20)
-		timeRadAsymm(data, mask, 20, rad=40)
-		timeRadAsymm(data, mask, 20, rad=80)
-		timeRadAsymm(data, mask, 20, rad=160)
-		timeRadAsymm(data, mask, 20, rad=320)
-		timeRadAsymm(data, mask, 10, rad=640)
+		for rad, niter in radNiterList:
+			try:
+				timeRadAsymmWeighted(data, mask, niter, rad)
+			except Exception, e:
+				print "timeRadAsymmWeighted(niter=%s, rad=%s) failed: %s" % (niter, rad, e)
+
+		radNiterList = (
+			( 10, 10),
+			( 20, 10),
+			( 40, 10),
+			( 80, 10),
+			(160, 5),
+			(320, 2),
+			(640, 1),
+		)
 		
 		print
-		timeCentroid(data, mask, initGuess, 10, rad=10)
-		timeCentroid(data, mask, initGuess, 10, rad=20)
-		timeCentroid(data, mask, initGuess, 10, rad=40)
-		timeCentroid(data, mask, initGuess, 10, rad=80)
-		timeCentroid(data, mask, initGuess, 5, rad=160)
-		timeCentroid(data, mask, initGuess, 2, rad=320)
+		for rad, niter in radNiterList:
+			try:
+				timeCentroid(data, mask, initGuess, niter, rad)
+			except Exception, e:
+				print "timeCentroid(niter=%s, rad=%s) failed: %s" % (niter, rad, e)
 
 
 if __name__ == "__main__":

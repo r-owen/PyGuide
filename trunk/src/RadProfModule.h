@@ -39,6 +39,18 @@ long radAsymm(
 	Float64 *asymmPtr,
 	Float64 *totCountsPtr
 );
+long radAsymmWeighted(
+	long inLenI, long inLenJ,
+	UInt16 data[inLenI][inLenJ],
+	Bool mask[inLenI][inLenJ],
+	long iCtr, long jCtr,
+	long rad,
+	long bias,
+	Float64 readNoise,
+	Float64 ccdGain,
+	Float64 *asymmPtr,
+	Float64 *totCountsPtr
+);
 long radProf(
 	long inLenI, long inLenJ,
 	UInt16 data[inLenI][inLenJ],

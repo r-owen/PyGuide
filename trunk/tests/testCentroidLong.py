@@ -7,6 +7,7 @@ Limitations:
 
 History:
 2004-08-04 ROwen
+2004-08-06 ROwen	Modified for new centroid.
 """
 import numarray as num
 import numarray.random_array as num_random
@@ -79,17 +80,20 @@ for ampl in AmplValues:
 				data = PyGuide.FakeData.addNoise(
 					data = cleanData,
 					sky = Sky,
+					bias = Bias,
 					readNoise = ReadNoise,
 					ccdGain = CCDGain,
-					bias = Bias,
 				)
 
 				try:
 					ctrData = PyGuide.centroid(
 						data = data,
 						mask = mask,
-						initGuess = ctr,
+						initGuess = nomCtr,
 						rad = fwhm * 3.0,
+						bias = Bias,
+						readNoise = ReadNoise,
+						ccdGain = CCDGain,
 					)
 					iErr = ctrData.ctr[0] - ctr[0]
 					jErr = ctrData.ctr[1] - ctr[1]

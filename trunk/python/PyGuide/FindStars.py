@@ -48,9 +48,14 @@ History:
 					Modified to display masked data in ds9.
 2004-06-03 ROwen	Modified the module doc string.
 2004-08-03 ROwen	Modified for the Centroid module's new output format.
+2004-08-06 ROwen	Removed documentation for unused "rad" argument (thanks, Craig!).
+					Stopped importing unused math and os modules.
+					Fixed variable name error (only visible when ds9 True).
+2004-08-06-v2 ROwen	Updated for new centroid code. Requires additional inputs.
+2004-08-25 ROwen	Added __all__.
 """
-import os
-import math
+__all__ = ['ds9XYFromLocalIJ', 'findStars']
+
 import numarray as num
 import numarray.nd_image
 import numarray.ma
@@ -75,12 +80,16 @@ def _reversed(alist):
 	return retval
 
 def ds9XYFromLocalIJ(ijPos):
-	"""Returns ds9 x,y from local i,j, thus swapping and adding 0.5.
+	"""Return ds9 x,y from local i,j by swapping and adding 0.5.
 	"""
 	return [ijPos[ind] + 0.5 for ind in (1,0)]
 
-def findStars(data,
+def findStars(
+	data,
 	mask,
+	bias,
+	readNoise,
+	ccdGain,
 	dataCut = 4.5,
 	satLevel = 2**16,
 	radMult = 1.0,
@@ -93,7 +102,9 @@ def findStars(data,
 	- data		the image data [i,j]; this is converted to UInt16 if necessary
 	- mask		a mask [i,j] of 0's (valid data) or 1's (invalid); None if no mask.
 				If mask is specified, it must have the same shape as data.
-	- rad		radius of search (pixels)
+	- bias		ccd bias (ADU)
+	- readNoise	ccd read noise (e-)
+	- ccdGain	ccd inverse gain (e-/ADU)
 	- dataCut	determines the point above which pixels are considered data;
 				cut level = median + dataCut * standard deviation
 	- satLevel	The value at or above which a pixel is considered saturated (ADU)
@@ -128,6 +139,7 @@ def findStars(data,
 			# if not already available, open new DS9 with specified template
 			try:
 				ds9Win = RO.DS9.DS9Win(_DS9Title)
+				ds9Win.xpaset("tile frames")
 				ds9Win.xpaset("frame 1")
 				if mask != None:
 					ds9Win.showArray(data * (1-mask))
@@ -205,6 +217,9 @@ def findStars(data,
 				mask = mask,
 				initGuess = ijCtr,
 				rad = rad,
+				bias = bias,
+				readNoise = readNoise,
+				ccdGain = ccdGain,
 			)
 		except RuntimeError, e:
 			if verbosity >= 1:
@@ -214,7 +229,7 @@ def findStars(data,
 		
 		if ds9Win:
 			# display x showing centroid
-			args = ds9XYFromLocalIJ(ctr)
+			args = ds9XYFromLocalIJ(ctrData.ctr)
 			ds9Win.xpaset("regions", "image; x point %s # group=centroid" % _fmtList(args))
 	
 	# sort by decreasing counts

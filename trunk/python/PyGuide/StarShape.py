@@ -72,12 +72,11 @@ History:
 2004-08-04 ROwen	Improved calculation of ij pixel index and position.
 					Simplified final computation of minimum width parameter.
 					If shape computation fails, converts ArithmeticError into RuntimeError
+2004-08-06 ROwen	Fixed invalid variable reference when _FitRadProfIterDebug true. 
 """
-import bisect
 import math
 import numarray as num
 import radProf as RP
-import time
 from Constants import FWHMPerSigma
 
 # range of FWHM that is explored
@@ -177,14 +176,6 @@ def starShape(
 		print "starShape: ijCtr=%.2f, %.2f; ijOff=%.2f, %.2f; offSq=%.2f; rawFWHM=%.3f; corrFWHM=%.3f" % \
 			(ijCtr[0], ijCtr[1], ijOff[0], ijOff[1], offSq, rawFWHM, gsData.fwhm)
 		
-#	print "time iter"
-#	niter=100
-#	startTime = time.time()
-#	for ii in range(niter):
-#		_fitRadProfile(radProf, var, nPts, predFWHM)
-#	dtime = time.time() - startTime
-#	print "sec/iter =", dtime/niter
-		
 	return gsData
 
 
@@ -212,16 +203,16 @@ def _fitRadProfile(radProf, var, nPts, predFWHM):
 	chiSqByWPInd = num.zeros([ncell], num.Float)
 	npt = len(radProf)
 	
-	predWP = _wpFromFWHM(predFWHM)
-	wpInd = bisect.bisect_left(_WPArr, predWP)
-	# constrain wpInd to be at least 1 away from either edge
-	# so we can safely walk one step in either direction
+	# compute starting width parameter
+	# and constrain to be at least 1 away from either edge
+	# so we can safely walk one step in any direction
+	wpInd = int(_wpIndFromFWHM(predFWHM) + 0.5)
 	wpInd = max(1, wpInd)
 	wpInd = min(wpInd, len(_WPArr) - 2)
 
 	if _FitRadProfDebug:
 		print "_fitRadProfile: predFWHM=%s, predWP=%s, wpInd=%s" % \
-			(predFWHM, predWP, wpInd)
+			(predFWHM, _wpFromFWHM(predFWHM), wpInd)
 	
 	iterNum = 0
 	direc = 1
@@ -336,8 +327,8 @@ def _fitIter(radProf, nPts, radWeight, radSq, sumNPts, sumRadProf, seeProf, wp):
 		raise RuntimeError("Could not compute shape: %s" % e)
 
 	if _FitRadProfIterDebug:
-		print "_fitIter: iterNum=%s; ampl=%s; bkgnd=%s; wp=%s; chiSq=%.2f" % \
-			(iterNum, ampl, bkgnd, wp, chiSq)
+		print "_fitIter: ampl=%s; bkgnd=%s; wp=%s; chiSq=%.2f" % \
+			(ampl, bkgnd, wp, chiSq)
 	
 	return ampl, bkgnd, chiSq, seeProf
 

@@ -8,7 +8,7 @@ PyDir = "python"
 
 radProfExt = Extension(
 	"radProf",
-	sources = [os.path.join(SrcDir, "radProfModule.c")],
+	sources = [os.path.join(SrcDir, "RadProfModule.c")],
 )
 
 setup(name = PkgName,

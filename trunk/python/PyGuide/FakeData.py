@@ -5,6 +5,7 @@ History:
 2004-07-07 ROwen
 2004-07-29 ROwen	Added sky noise to addNoise; thanks to Connie Rockosi
 					for catching this important omission.
+2004-08-06 ROwen	Reordered the bias arg in addNoise for consistency.
 """
 import numarray as num
 import numarray.random_array as rand
@@ -46,18 +47,18 @@ def fakeStar(
 def addNoise(
 	data,
 	sky = 1000,
+	bias = 1000,
 	readNoise = 13,
 	ccdGain = 5,
-	bias = 1000,
 ):
 	"""Adds poisson noise and gaussian read noise to the specified data.
 	
 	Inputs:
 	- data		noiseless image, in ADU
 	- sky		sky level, in ADU
+	- bias		image bias, in ADU
 	- readNoise	ccd read noise, in e-
 	- ccdGain	ccd inverse gain, in e-/ADU
-	- bias		image bias, in ADU
 	"""
 	outData = num.add(data, sky).astype(num.Int32)
 	outData = rand.poisson(mean = outData * ccdGain) / ccdGain

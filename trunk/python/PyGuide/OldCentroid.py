@@ -1,8 +1,10 @@
 """Measure centroids.
 
 To do:
-- Improve the estimate of i,j centroid error.
-- Smooth the data before centroiding it to handle cosmic rays.
+- Get a better esimate of i,j centroid error.
+- Find a way to normalize the measure of asymmetry.
+  This is not necessary, but it should offer an additional sanity check.
+- Smooth the data before centroiding it? (To handle cosmic rays).
   Consider either a gaussian smoothing or a median filter.
   In either case, make sure to handle masked pixels correctly.
 
@@ -22,15 +24,7 @@ Hence the center of that pixel is (0.5, 0.5) and the center of a 1024x1024 CCD
 is (512.0, 512.0)
 
 The centroid is the point of mimimum radial asymmetry:
-  sum over rad of var(rad)^2 / weight(rad)
-where weight is the expected sigma of var(rad) due to pixel noise:
-  weight(rad) = pixNoise(rad) * sqrt(2(numPix(rad) - 1))/numPix(rad)
-  pixNoise(rad) = sqrt((readNoise/ccdGain)^2 + (meanVal(rad)-bias)/ccdGain)
-	
-Warning: asymm is supposed to be normalized, but it gets large
-for bright objects with lots of masked pixels. This may be
-simply because the value is only computed at the nearest integer pixel
-or because the noise is assumed gaussian, or some error.
+  radAsymm = sum over rad of (variance(rad) * numPts(rad))
 
 The minimum is found in two stages:
 1) Find the pixel with the minimum radAsymm.
@@ -44,8 +38,8 @@ are used for this fit; the diagonals are ignored.
 
 Acknowledgements:
 - The centroiding algorithm was invented by Jim Gunn
-- The code uses a new asymmetry weighting function
-  developed with help from Connie Rockosi
+- The error estimate algorithm was developed by Connie Rockosi
+  in collaboration with Jim Gunn.
 - This code is adapted from the SDSS centroiding code,
   which was written by Jim Gunn and cleaned up by Connie Rockosi.
   
@@ -60,22 +54,15 @@ History:
 					Bug fix: was converting to Int16 instead of UInt16.
 2004-06-03 ROwen	Modified to use the initial guess without modification.
 2004-08-03 ROwen	Finally added a measure of centroiding error.
-2004-08-06 ROwen	Weight asymmetry calculation by radial noise.
-2004-08-25 ROwen	Added _MinRad, to more reliably centroid small stars.
-					Added __all__.
+2004-08-05 ROwen	Fixed systematic error in estimate of centroiding error.
 """
-__all__ = ['centroid']
-
 import math
 import numarray as num
 import numarray.nd_image as nd_im
-import PyGuide
-
-# minimum radius
-_MinRad = 3.0
+import radProf
 
 # max # of iterations
-_MaxIter = 40
+_MAXITER = 40
 
 # debugging flags
 _CTRDEBUG = False
@@ -89,18 +76,10 @@ class CentroidData:
 	note: the following three values are computed for that radial profile
 	centered on the pixel nearest the centroid (NOT the true centroid):
 
-	- asymm		measure of asymmetry:
-				  sum over rad of var(rad)^2 / weight(rad)
-				where weight is the expected sigma of var(rad) due to pixel noise:
-				  weight(rad) = pixNoise(rad) * sqrt(2(numPix(rad) - 1))/numPix(rad)
-				  pixNoise(rad) = sqrt((readNoise/ccdGain)^2 + (meanVal(rad)-bias)/ccdGain)
+	- asymm		measure of asymmetry (NOT yet normalized)
+				= sum(var(rad) * numPts(rad))
 	- pix		the total number of unmasked pixels (ADU)
 	- counts	the total number of counts (ADU)
-	
-	Warning: asymm is supposed to be normalized, but it gets large
-	for bright objects with lots of masked pixels. This may be
-	simply because the value is only computed at the nearest integer pixel
-	or because the noise is assumed gaussian, or some error.
 	
 	other items of possible interest
 	- rad		radius used to find centroid (pixels)
@@ -128,9 +107,6 @@ def centroid(
 	mask,
 	initGuess,
 	rad,
-	bias,
-	readNoise,
-	ccdGain,
 ):
 	"""Compute a centroid.
 
@@ -139,11 +115,7 @@ def centroid(
 	- mask		a mask [i,j] of 0's (valid data) or 1's (invalid); None if no mask.
 				If mask is specified, it must have the same shape as data.
 	- initGuess	initial i,j guess for centroid
-	- rad		radius of search (pixels);
-				values less than _MinRad are treated as _MinRad
-	- bias		ccd bias (ADU)
-	- readNoise	ccd read noise (e-)
-	- ccdGain	ccd inverse gain (e-/ADU)
+	- rad		radius of search (pixels)
 		
 	Returns a CentroidData object (which see)
 	"""
@@ -164,7 +136,7 @@ def centroid(
 	if len(initGuess) != 2:
 		raise ValueError("initial guess=%r must have 2 elements" % (initGuess,))
 	initGuess = [int(val + 0.5) for val in initGuess]
-	rad = int(max(rad, _MinRad) + 0.5)
+	rad = int(rad + 0.5)
 	
 	# OK, use this as first guess at maximum. Extract radial profiles in
 	# a 3x3 gridlet about this, and walk to find minimum fitting error
@@ -173,15 +145,10 @@ def centroid(
 	asymmArr = num.zeros([3,3], num.Float64)
 	totPtsArr = num.zeros([3,3], num.Int32)
 	totCountsArr = num.zeros([3,3], num.Float64)
-	
-	radMean = num.zeros([rad+2], num.Float64)
-	radVar = num.zeros([rad+2], num.Float64)
-	radNPts = num.zeros([rad+2], num.Float64)
-	readNoiseSqADU = (readNoise / ccdGain)**2
 	niter = 0
 	while True:
 		niter += 1
-		if niter > _MaxIter:
+		if niter > _MAXITER:
 			raise RuntimeError("could not find a star in %s iterations" % (niter,))
 		
 		for i in range(3):
@@ -190,8 +157,7 @@ def centroid(
 				jj = maxj + j - 1
 				if totPtsArr[i, j] != 0:
 					continue
-				asymmArr[i, j], totCountsArr[i, j], totPtsArr[i, j] = PyGuide.radProf.radAsymmWeighted(
-					data, mask, (ii, jj), rad, bias, readNoise, ccdGain)
+				asymmArr[i, j], totCountsArr[i, j], totPtsArr[i, j] = radProf.radAsymm(data, mask, (ii, jj), rad)
 
 				if _CTRDEBUG and _CTRITERDEBUG:
 					print "centroid: asymm = %10.1f, totPts = %s, totCounts = %s" % \
@@ -249,8 +215,8 @@ def centroid(
 	
 	# crude error estime, based on measured asymmetry
 	# note: I also tried using the minimum along i,j but that sometimes is negative
-	# and this is already so crude that it's not likely to help
-	radAsymmSigma = asymmArr[1,1]
+	# and this is already so crude that it's not going to help
+	radAsymmSigma = math.sqrt(2.0 / totPtsArr[1,1]) * asymmArr[1,1]
 	iErr = math.sqrt(radAsymmSigma / ai)
 	jErr = math.sqrt(radAsymmSigma / aj)
 
@@ -259,6 +225,6 @@ def centroid(
 		err = (iErr, jErr),
 		counts = totCountsArr[1,1],
 		pix = totPtsArr[1,1],
-		asymm = asymmArr[1,1],
+		asymm = asymmArr[1, 1],
 		rad = rad,
 	)

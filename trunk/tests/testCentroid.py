@@ -6,12 +6,19 @@ History:
 2004-04-16 ROwen	Modified for centroid 2004-04-16.
 2004-07-07 ROwen	Added noise to the simulation. Added ds9 display.
 2004-08-03 ROwen	Modified for centroid 2004-08-03.
+2004-08-06 ROwen	Modified for new centroid.
+					Explicitly specifies values for noise components.
 """
 import sys
 import numarray as num
 import numarray.random_array as num_random
 import PyGuide
 import RO.DS9
+
+Sky = 1000		# sky level, in ADU
+Bias = 2176		# image bias, in ADU
+ReadNoise = 19	# read noise, in e-
+CCDGain = 2.1	# inverse ccd gain, in e-/ADU
 
 # test data format:
 # arrShape, ctr, sigma, ampl, scanRad factor, maskLim
@@ -43,11 +50,25 @@ for arrShape, ctr, sigma, ampl, scanRadFactor, maskLim in testData:
 
 	cleanData = PyGuide.FakeData.fakeStar(arrShape, ctr, sigma, ampl)
 	num_random.seed(1, 1000)
-	data = PyGuide.FakeData.addNoise(cleanData, bias=100)
+	data = PyGuide.FakeData.addNoise(
+		cleanData,
+		sky = Sky,
+		bias = Bias,
+		readNoise = ReadNoise,
+		ccdGain = CCDGain,
+	)
 
 	print "\nactual center = %6.2f, %6.2f, sigma = %.2f, scanRad = %d" % (ctr[0], ctr[1], sigma, scanRad)
 	mask = None
-	ctrData = PyGuide.centroid(data, mask, initGuess, scanRad)
+	ctrData = PyGuide.centroid(
+		data = data,
+		mask = mask,
+		initGuess = initGuess,
+		rad = scanRad,
+		bias = Bias,
+		readNoise = ReadNoise,
+		ccdGain = CCDGain,
+	)
 	measCtr = ctrData.ctr
 	nCounts = ctrData.counts
 	nPts = ctrData.pix
@@ -56,7 +77,15 @@ for arrShape, ctr, sigma, ampl, scanRadFactor, maskLim in testData:
 	mask = num.zeros(arrShape, num.Bool)
 	for row in range(maskLim[0], maskLim[1]+1):
 		mask[row,:] = 1
-	ctrData = PyGuide.centroid(data, mask, initGuess, scanRad)
+	ctrData = PyGuide.centroid(
+		data = data,
+		mask = mask,
+		initGuess = initGuess,
+		rad = scanRad,
+		bias = Bias,
+		readNoise = ReadNoise,
+		ccdGain = CCDGain,
+	)
 	measCtr = ctrData.ctr
 	nCounts = ctrData.counts
 	nPts = ctrData.pix

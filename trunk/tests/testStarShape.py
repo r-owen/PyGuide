@@ -11,11 +11,17 @@ History:
 2004-05-20 ROwen
 2004-07-02 ROwen	Added optional image input and ds9 display of data
 2004-08-04 ROwen	Modified to work with 2004-08-03 findStars.
+2004-08-06 ROwen	Modified to work with 2004-08-06 findStars.
 """
 import sys
 import numarray as num
 import PyGuide
 import pyfits
+
+# these values are probably wrong for the given test image
+Bias = 2176		# image bias, in ADU
+ReadNoise = 19	# read noise, in e-
+CCDGain = 2.1	# inverse ccd gain, in e-/ADU
 
 # to enable debugging output:
 PyGuide.StarShape._StarShapeDebug = True
@@ -42,7 +48,15 @@ mask = None
 #mask[64:101, 78:92] = 1
 
 print "searching for brightest star"
-isSat, ctrDataList = PyGuide.findStars(data, mask=mask, verbosity=0, ds9=False)
+isSat, ctrDataList = PyGuide.findStars(
+	data = data,
+	mask = mask,
+	bias = Bias,
+	readNoise = ReadNoise,
+	ccdGain = CCDGain,
+	verbosity = 0,
+	ds9 = False,
+)
 ctrData = ctrDataList[0]
 ijCtr = ctrData.ctr
 rad = ctrData.rad

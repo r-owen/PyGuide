@@ -4,6 +4,7 @@ History:
 2004-04-05 ROwen	First release.
 2004-04-16 ROwen	Added getQuartile, skyStats.
 2004-04-21 ROwen	Added verbosity arg to skyStats and removed _SkyStatsDebug.
+2004-08-04 ROwen	Removed documentation for nonexistent verbosity argument for getQuartile.
 """
 import numarray as num
 
@@ -18,7 +19,6 @@ def getQuartile(sortedData, qnum):
 	Inputs:
 	- sortedData	data sorted in ascending order
 	- qnum	which quartile? 1=Q1, 2=Q2=median, 3=Q3
-	- verbosity	0: no output, 1: print warnings, 2: print information
 	
 	If the position of the quartile is between two values,
 	uses linear interpolation to compute the value.
@@ -31,7 +31,7 @@ def getQuartile(sortedData, qnum):
 	dataLen = len(sortedData)
 	ratios = _QuartileResidRatios[((dataLen-1) * qnum) % 4]
 	ind0 = (dataLen-1) * qnum // 4
-	return (sortedData[ind0] * ratios[0] + sortedData[ind0+1] * ratios[1]) / (ratios[0] + ratios[1])
+	return ((sortedData[ind0] * ratios[0]) + (sortedData[ind0+1] * ratios[1])) / (ratios[0] + ratios[1])
 
 def skyStats(maskedData, verbosity=1):
 	"""Computes sky statistics.

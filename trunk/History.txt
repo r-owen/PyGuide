@@ -1,0 +1,27 @@
+2004-08-25
+
+Changes:
+- Modified centroid to have a minimum radius.
+
+Bug fixes:
+- doFindStars.py had not been updated for findStars 2004-08-06.
+Note that it now needs bias, read noise and ccd gain information.
+
+2004-08-06 v2
+
+Changes:
+- findStars and centroid require new inputs: bias, read noise and ccd gain.
+- The centroid error estimate is much improved (though still not perfect)
+and centroiding is somewhat improved. Warning: the new error estimate typically over-estimates the error.
+See tests/test results/testCentroidLong... for data.
+
+Bug fixes:
+- ImUtils.getQuartile doc string described nonexistent argument "verbosity".
+
+2004-08-06
+
+Bug fixes:
+- case error in setup.py (thanks to Craig Loomis)
+- FindStars.findStars doc string described nonexistent argument "rad" (thanks to Craig Loomis)
+- added checkPyGuide, which runs pychecker on PyGuide.
+- various bug fixes turned up by pychecker (most of which were only exposed by using the debug flags, but one of which was exposed by using ds9=True).

@@ -14,8 +14,26 @@ Once the package is installed, you can get help in the usual way:
 Before installation, you can read some information in:
 python/PyGuide/__init__.py
 
-To Do as of 2004-08-03:
-- Centroid has a mediocre error estimate. It is often too optimistic for large slits, and may sometimes be too pessimistic. I am working on a better estimate.
-- Depending on the final centroid error estimate, the various interfaces are likely to change. For instance it may be necessary to perform a star shape fit to get a good estimate of the centroid error. Or it may be necessary to know CCD characteristics such as read noise. Or it may be necessary to provide an estimate of star FWHM.
+The main routines are:
+PyGuide.findStars
+PyGuide.centroid
+PyGuide.starShape: fits a symmetrical double gaussian
+PyGuide.ImUtil: includes skyStats and subFrameCtr utilities
+PyGuide.FakeData: construct fake stars with realistic noise
+
+Other files of interest (these are not installed):
+- History.txt: version history
+- checkPyGuide: runs pychecker on PyGuide.
+  requires that pychecker be installed.
+- test/...: code to check the various routines and sample output.
+
+Known Limitations:
+- The centroid error estimate tends to over-esimate the error
+  but not in a linear enough fashion to be trivially fixed.
 - The star shape fitter does not fit ellipticity.
-- I am not happy having one object for centroid data (CentroidData) and another for star shape data (StarShapeData). At this point I have no idea if this will change.
+- FakeData does not add cosmic rays.
+- None of the routines deal with dark current. As long as dark current
+  is not a dominant source of noise this should be acceptable.
+- The asymmetry reported by centroid is probably not sufficiently well normalized
+  to be a useful measure of anything. It tends to get large for bright objects
+  that are mostly masked off.
