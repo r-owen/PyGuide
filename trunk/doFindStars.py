@@ -12,8 +12,10 @@ History:
 					Replaced arguments with globals to make it easier to change settings.
 					Bug fix: if starShape failed, shapeData was mis-set.
 2005-02-07 ROwen	Modified for findStars 1.2.
-2005-03-29 ROwen	Allowed one to specify a mask name to doFindStars;
-					modified the globals so im, not d, is the image array
+2005-03-31 ROwen	Allowed one to specify a mask name to doFindStars.
+					Modified doFindStars to allow specifying parameters as keyword arguments.
+					Added showDef() method to display current defaults.
+					Modified global vars so im, not d, is the image array.
 """
 import numarray as num
 import PyGuide
@@ -24,21 +26,28 @@ im = None
 imfits = None
 mask = None
 maskfits = None
-verbosity = 1
-ds9 = True
-dataCut = 3.0
-satLevel = 2**16
-radMult = 1.0
-ds9Win = RO.DS9.DS9Win(PyGuide.FindStars._DS9Title)
 
-# new NA2 guider
+# Default Parameters
+# these settings are for the new NA2 guider
 bias = 1780
 readNoise = 21.391
 ccdGain = 1.643 # e-/pixel
+# these are general settings
+dataCut = 3.0
+radMult = 1.0
+satLevel = 2**16
+verbosity = 1
+ds9 = True
+
+# set up a ds9 window
+ds9Win = RO.DS9.DS9Win(PyGuide.FindStars._DS9Title)
+
+ParamNames = ("bias", "readNoise", "ccdGain", "dataCut", "radMult", "satLevel", "verbosity", "ds9")
 
 def doFindStars(
 	imName = None,
 	maskName = None,
+	**kargs
 ):
 	global im, imfits, mask, maskfits, isSat, sd
 	if imName:
@@ -48,19 +57,22 @@ def doFindStars(
 		maskfits = pyfits.open(maskName)
 		mask = maskfits[0].data
 	
+	# check keyword arguments
+	for paramName in kargs:
+		if paramName not in ParamNames:
+			raise RuntimeError("Invalid argument: %s" % (paramName,))
+	
+	# fill in defaults
+	globalDict = globals()
+	for paramName in ParamNames:
+		if paramName not in kargs:
+			kargs[paramName] = globalDict[paramName]
+	
 	# find stars and centroid
 	isSat, posDataList = PyGuide.findStars(
 		data = im,
 		mask = mask,
-		bias = bias,
-		readNoise = readNoise,
-		ccdGain = ccdGain,
-		dataCut = dataCut,
-		satLevel = satLevel,
-		radMult = radMult,
-		verbosity = verbosity,
-		ds9 = ds9,
-	)
+	**kargs)
 
 	print "%s stars found; isSaturated = %s:" % (len(posDataList), isSat)
 	print "   xctr	   yctr	   xerr	   yerr		 ampl	  bkgnd	   fwhm	 |  rad	    pix	  chiSq"
@@ -85,18 +97,17 @@ def doFindStars(
 			posData.rad, posData.pix, shapeData.chiSq,
 		)
 
-print "global variables:"
-print "im =", im
-print "mask =", mask
-print "bias =", bias
-print "readNoise =", readNoise
-print "ccdGain =", ccdGain
-print "dataCut =", dataCut
-print "satLevel =", satLevel
-print "radMult =", radMult
-print "verbosity =", verbosity
-print "ds9 =", ds9
-print
+def showDef():
+	"""Show current value of various global variables
+	which are used as defaults for parameters of doFindStars.
+	"""
+	print "Global variables (defaults for doFindStars):"
+	globalDict = globals()
+	for paramName in ParamNames:
+		print "%s = %s" % (paramName, globalDict[paramName])
+	print
+
+showDef()
 print """ds9Win.showArray(arry) will display an array
 
 Computed values:

@@ -6,24 +6,23 @@ To do:
   Consider either a gaussian smoothing or a median filter.
   In either case, make sure to handle masked pixels correctly.
 
-WARNINGS:
+Warnings:
 - Will be thrown off by hot pixels. This could perhaps
 be improved by centroiding median-filtered data. The question
 is whether the median filtering would adversely affect
 centroids, especially for faint objects. This is especially
 a concern because at present I have no code to do a proper
 median filter of masked data.
+- The measure of asymmetry is supposed to be normalized,
+but it gets large for bright objects with lots of masked pixels.
+This may be simply because the value is only computed at the nearest
+integer pixel or because the noise is assumed gaussian, or some error.
 
 The centroid is the point of mimimum radial asymmetry:
   sum over rad of var(rad)^2 / weight(rad)
 where weight is the expected sigma of var(rad) due to pixel noise:
   weight(rad) = pixNoise(rad) * sqrt(2(numPix(rad) - 1))/numPix(rad)
   pixNoise(rad) = sqrt((readNoise/ccdGain)^2 + (meanVal(rad)-bias)/ccdGain)
-	
-Warning: asymm is supposed to be normalized, but it gets large
-for bright objects with lots of masked pixels. This may be
-simply because the value is only computed at the nearest integer pixel
-or because the noise is assumed gaussian, or some error.
 
 The minimum is found in two stages:
 1) Find the pixel with the minimum radAsymm.
@@ -59,6 +58,8 @@ History:
 2004-10-14 ROwen	Stopped computing several unused variables. Improved import of radProf.
 2005-02-07 ROwen	Changed centroid initGuess (i,j) argument to xyGuess.
 					Changed returned Centroid data object fields ctr (i,j) to xyCtr, err (i,j) to xyErr.
+2005-03-31 ROwen	Improved debug output and the efficiency of the "walked too far" test.
+					Noted that rad in CentroidData is integer.
 """
 __all__ = ['centroid']
 
@@ -101,7 +102,7 @@ class CentroidData:
 	or because the noise is assumed gaussian, or some error.
 	
 	other items of possible interest
-	- rad		radius used to find centroid (pixels)
+	- rad		radius used to find centroid (integer pixels)
 	"""
 	def __init__(self,
 		xyCtr,
@@ -187,6 +188,10 @@ def centroid(
 					continue
 				asymmArr[i, j], totCountsArr[i, j], totPtsArr[i, j] = radProf.radAsymmWeighted(
 					data, mask, (ii, jj), rad, bias, readNoise, ccdGain)
+# this version omits noise-based weighting
+# (warning: the error estimate will be invalid and chiSq will not be normalized)
+#				asymmArr[i, j], totCountsArr[i, j], totPtsArr[i, j] = radProf.radAsymm(
+#					data, mask, (ii, jj), rad)
 
 				if _CTRDEBUG and _CTRITERDEBUG:
 					print "centroid: asymm = %10.1f, totPts = %s, totCounts = %s" % \
@@ -204,18 +209,18 @@ def centroid(
 
 		if (ii != 0 or jj != 0):
 			# minimum error not in center; walk and try again
+			maxi += ii
+			maxj += jj
 			if _CTRDEBUG:
-				print "shift bj", -ii, -jj
+				print "shift by", -ii, -jj, "to", maxi, maxj
+
+			if ((maxi - ijIndGuess[0])**2 + (maxj - ijIndGuess[1])**2) >= radSq:
+				raise RuntimeError("could not find star within %r pixels" % (rad,))
 			
 			# shift asymmArr and totPtsArr to minimum is in center again
 			asymmArr = nd_im.shift(asymmArr, (-ii, -jj))
 			totCountsArr = nd_im.shift(totCountsArr, (-ii, -jj))
 			totPtsArr = nd_im.shift(totPtsArr, (-ii, -jj))
-
-			maxi += ii
-			maxj += jj
-			if ((maxi - ijIndGuess[0])**2 + (maxj - ijIndGuess[1])**2) >= radSq:
-				raise RuntimeError("could not find star within %r pixels" % (rad,))
 		else:
 			# Have minimum. Get out and go home.
 			break
@@ -245,7 +250,7 @@ def centroid(
 	)
 	xyCtr = ImUtil.xyPosFromIJPos(ijCtr)
 	
-	# crude error estime, based on measured asymmetry
+	# crude error estimate, based on measured asymmetry
 	# note: I also tried using the minimum along i,j but that sometimes is negative
 	# and this is already so crude that it's not likely to help
 	radAsymmSigma = asymmArr[1,1]

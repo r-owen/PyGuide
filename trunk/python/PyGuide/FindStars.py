@@ -4,11 +4,6 @@ WARNING: Python handles images as data[y,x]. This same index order is used
 for positions, sizes and such. In an attempt to reduce confusion, the code
 uses i,j instead of y,x.
 
-Pixel convention: The point 0,0 is at the corner of first pixel read out.
-Hence the center of that pixel is (0.5, 0.5) and the center of a 1024x1024 CCD
-is (512.0, 512.0). This does not match the iraf and ds9 convention,
-which has 0.5,0.5 as the corner and 1,1 as the center of the first pixel.
-
 Uses an algorithm developed by Jim Gunn with some changes of my own:
 - compute median and quartiles (Q1 & Q3) of the data
 - stdDev = 0.741 * (Q3-Q1)
@@ -22,11 +17,6 @@ Uses an algorithm developed by Jim Gunn with some changes of my own:
 - centroid each blob.
 
 This is an adaptation of code by Jim Gunn and Connie Rockosi.
-The original code does a clever thing to reduce memory requirements:
-instead of sorting the data to compute quartiles,
-it creates a histogram of the data. This allows it to
-allocate a single 65k array (for 16-bit data) and reuse that
-for all images. But locating the quartiles is a bit more work.
 
 To Do:
 - Make use of the centroid error and minimum asymmetry
@@ -34,6 +24,9 @@ To Do:
 - Detect and reject identical stars (one centroid within 1/2 pixel of another)?
   This isn't essential as duplicates will not hurt the guider.
   On the other hand, it's probably not terribly difficult to do, either.
+- Consider using a histogram to compute the quartiles (as the original
+  code did). Thus one can allocate a single 65k array (for 16-bit data)
+  and reuse that for all images. But locating the quartiles is a bit more work.
 
 History:
 2004-04-16 ROwen	First release. Still pretty basic.
@@ -58,7 +51,9 @@ History:
 2004-10-15 ROwen	No longer warns if RO.DS9 absent (unless you use the ds9 flag).
 2005-02-07 ROwen	Modified to use x,y position convention defined by
 					PyGuide.Constants.PosMinusIndex.
-2005-03-29 ROwen	Bug fix: mis-displayed masked data in ds9.
+2005-03-31 ROwen	Modified to show smoothed, masked data in ds9 in frame 3
+					if verbosity>=2 (and dS9 true), else no frame 3.
+					Bug fix: error in star data output when verbosity >= 2.
 """
 __all__ = ['findStars']
 
@@ -144,7 +139,7 @@ def findStars(
 				ds9Win.xpaset("tile frames")
 				ds9Win.xpaset("frame 1")
 				if mask != None:
-					ds9Win.showArray(data * mask)
+					ds9Win.showArray(data * (mask==0))
 				else:
 					ds9Win.showArray(data)
 				ds9Win.xpaset("frame 2")
@@ -164,10 +159,10 @@ def findStars(
 	# and apply a filter to get rid of speckle
 	smoothedData = maskedData.filled(med)
 	num.nd_image.median_filter(smoothedData, 3, output=smoothedData)
-#	if ds9Win:
-#		ds9Win.xpaset("frame 3")
-#		ds9Win.showArray(smoothedData)
-#		ds9Win.xpaset("frame 1")
+	if ds9Win and verbosity >= 2:
+		ds9Win.xpaset("frame 3")
+		ds9Win.showArray(smoothedData)
+		ds9Win.xpaset("frame 1")
 	
 	# look for points larger than median + dataCut * stdDev
 	dataCut = med + (dataCut * stdDev)
@@ -243,10 +238,10 @@ def findStars(
 		print "findStars returning data for %s stars:" % len(centroidList)
 		if isSaturated:
 			print "WARNING: some pixels are saturated!"
-		print "x ctr\ty ctr\tx err\ty err\t    counts\tpixels\tradius"
+		print "x ctr\ty ctr\tx err\ty err\t    pixels\tcounts\tradius"
 		for cd in centroidList:
-			print "%.1f\t%.1f\t%.1f\t%.1f\t%10.0f\t%6d\t%5.1f" % \
-				(cd.ctr[1], cd.ctr[0],
-				 cd.err[1], cd.err[2],
-				 cd.counts, cd.pix, cd.rad)
+			print "%5.1f\t%5.1f\t%5.1f\t%5.1f\t%10.0f\t%6d\t%6d" % \
+				(cd.xyCtr[0], cd.xyCtr[1],
+				 cd.xyErr[0], cd.xyErr[1],
+				 cd.pix, cd.counts, cd.rad)
 	return isSaturated, centroidList
