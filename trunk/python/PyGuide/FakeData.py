@@ -14,7 +14,7 @@ __all__ = ["fakeStar", "addNoise"]
 
 import numarray as num
 import numarray.random_array as rand
-from Constants import PosMinusIndex
+import ImUtil
 
 _MaxValUInt16 = 2**16 - 1
 

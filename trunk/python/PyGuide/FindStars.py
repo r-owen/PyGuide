@@ -71,7 +71,6 @@ try:
 except ImportError:
 	pass
 _DS9Title = "FindStars"
-from Constants import PosMinusIndex
 
 def _fmtList(alist):
 	"""Return "alist[0], alist[1], ..."

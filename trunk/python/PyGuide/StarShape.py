@@ -83,6 +83,7 @@ import math
 import numarray as num
 import radProf as RP
 from Constants import FWHMPerSigma, NaN
+import ImUtil
 
 # range of FWHM that is explored
 _FWHMMin = 1.0
