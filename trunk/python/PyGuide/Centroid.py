@@ -82,7 +82,7 @@ class CentroidData:
 	"""Centroid data, including the following fields:
 	- xyCtr		the x,y centroid (pixels); use the convention specified by
 				PyGuide.Constants.PosMinusIndex
-	- xyErr		the predicted x,y 1-sigma error (pixels)
+	- xyErr		the predicted 1-sigma uncertainty in xyCtr (pixels)
 
 	note: the following three values are computed for that radial profile
 	centered on the pixel nearest the centroid (NOT the true centroid):

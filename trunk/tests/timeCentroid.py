@@ -6,6 +6,7 @@ History:
 2004-04-12 ROwen	Modified to mask of all 0s (sense of mask changed).
 2004-08-03 ROwen	Modified to use fake data.
 2004-08-06 ROwen	Modified for new centroid.
+2005-02-07 ROwen	Modified for PyGuide 1.2.
 """
 import time
 import numarray as num
@@ -18,15 +19,15 @@ ReadNoise = 19	# read noise, in e-
 CCDGain = 2.1	# inverse ccd gain, in e-/ADU
 Bias = 2176		# image bias, in ADU
 
-def timeCentroid(data, mask, initGuess, niter, rad=20):
-	print "timeCentroid: initGuess=%3.0f, %3.0f; niter=%2d; rad=%3d;" % \
-		(initGuess[0], initGuess[1], niter, rad),
+def timeCentroid(data, mask, xyGuess, niter, rad=20):
+	print "timeCentroid: xyGuess=%3.0f, %3.0f; niter=%2d; rad=%3d;" % \
+		(xyGuess[0], xyGuess[1], niter, rad),
 	begTime = time.time()
 	for ii in range(niter):
 		PyGuide.centroid(
 			data = data,
 			mask = mask,
-			initGuess = initGuess,
+			xyGuess = xyGuess,
 			rad = rad,
 			bias = Bias,
 			readNoise = ReadNoise,
@@ -92,9 +93,9 @@ def runTests():
 	
 	# generate fake data
 	imShape = (ImWidth, ImWidth)
-	ctr = num.divide(imShape, 2.0)
+	xyCtr = num.divide(imShape, 2.0)
 	sigma = fwhm / PyGuide.FWHMPerSigma
-	cleanData = PyGuide.FakeData.fakeStar(imShape, ctr, sigma, ampl)
+	cleanData = PyGuide.FakeData.fakeStar(imShape, xyCtr, sigma, ampl)
 	data = PyGuide.FakeData.addNoise(
 		data = cleanData,
 		sky = Sky,
@@ -105,14 +106,14 @@ def runTests():
 	data = data.astype(num.Int16)
 	
 	# let centroiding walk a bit to find the center
-	initGuess = num.add(ctr, (2, -2))
+	xyGuess = num.add(xyCtr, (2, -2))
 	
 	print "Time various parts of centroiding as a function of radius"
 	print
 	print "Settings:"
 	print "CCD Size      =", ImWidth, "x", ImWidth, "pix"
-	print "Star center   = %d, %d pix" % (ctr[0], ctr[1])
-	print "Initial guess = %d, %d pix" % (initGuess[0], initGuess[1])
+	print "Star center   = %d, %d pix" % (xyCtr[0], xyCtr[1])
+	print "Initial guess = %d, %d pix" % (xyGuess[0], xyGuess[1])
 	print
 	print "Amplitude  =", ampl, "ADU"
 	print "FWHM       =", fwhm, "pix"
@@ -170,7 +171,7 @@ def runTests():
 		print
 		for rad, niter in radNiterList:
 			try:
-				timeCentroid(data, mask, initGuess, niter, rad)
+				timeCentroid(data, mask, xyGuess, niter, rad)
 			except Exception, e:
 				print "timeCentroid(niter=%s, rad=%s) failed: %s" % (niter, rad, e)
 

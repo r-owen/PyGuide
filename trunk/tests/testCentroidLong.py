@@ -8,6 +8,7 @@ Limitations:
 History:
 2004-08-04 ROwen
 2004-08-06 ROwen	Modified for new centroid.
+2005-02-07 ROwen	Modified for PyGuide 1.2.
 """
 import numarray as num
 import numarray.random_array as num_random
@@ -57,9 +58,9 @@ print "The centroids are randomly distributed over"
 print "a range of -FWHM/2, FWHM/2 with respect to the"
 print "center of the CCD = the center of the slit."
 print
-print "The slit is along i so the error along i should be smaller than j."
+print "The slit is along y so the error along y should be smaller than x."
 print
-print "fwhm	ampl	maskWid	iErr	jErr	iErrEst	jErrEst	asymm	totPix	totCts	rad"
+print "fwhm	ampl	maskWid	xErr	yErr	xUncert	yUncert	asymm	totPix	totCts	rad"
 
 nBad = 0
 for ampl in AmplValues:
@@ -74,9 +75,9 @@ for ampl in AmplValues:
 
 			num_random.seed(1, 1000)
 			for ii in range(NumTries):
-				ctr = num_random.uniform(-fwhm/2.0, fwhm/2.0, shape=(2,)) + nomCtr
+				actCtr = num_random.uniform(-fwhm/2.0, fwhm/2.0, shape=(2,)) + nomCtr
 
-				cleanData = PyGuide.FakeData.fakeStar(imShape, ctr, sigma, ampl)
+				cleanData = PyGuide.FakeData.fakeStar(imShape, actCtr, sigma, ampl)
 				data = PyGuide.FakeData.addNoise(
 					data = cleanData,
 					sky = Sky,
@@ -89,18 +90,17 @@ for ampl in AmplValues:
 					ctrData = PyGuide.centroid(
 						data = data,
 						mask = mask,
-						initGuess = nomCtr,
+						xyGuess = nomCtr,
 						rad = fwhm * 3.0,
 						bias = Bias,
 						readNoise = ReadNoise,
 						ccdGain = CCDGain,
 					)
-					iErr = ctrData.ctr[0] - ctr[0]
-					jErr = ctrData.ctr[1] - ctr[1]
+					xyMeasErr = [ctrData.xyCtr[ii] - actCtr[ii] for ii in (0,1)]
 					print "%s	%s	%s	%.3f	%.3f	%.3f	%.3f	%.3f	%s	%s	%s" % (
 						fwhm, ampl, maskWidth,
-						iErr, jErr,
-						ctrData.err[0], ctrData.err[1],
+						xyMeasErr[0], xyMeasErr[1],
+						ctrData.xyErr[0], ctrData.xyErr[1],
 						ctrData.asymm, ctrData.pix, ctrData.counts, ctrData.rad,
 					)
 					

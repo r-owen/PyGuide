@@ -182,8 +182,8 @@ def starShape(
 	gsData.fwhm = math.sqrt(corrSigSq) / FWHMPerSigma
 	
 	if _StarShapeDebug:
-		print "starShape: xyCtr=%.2f, %.2f; ijOff=%.2f, %.2f; offSq=%.2f; rawFWHM=%.3f; corrFWHM=%.3f" % \
-			(xyCtr[0], xyCtr[1], ijOff[0], ijOff[1], offSq, rawFWHM, gsData.fwhm)
+		print "starShape: ijOff=%.2f, %.2f; offSq=%.2f; rawFWHM=%.3f; corrFWHM=%.3f" % \
+			(ijOff[0], ijOff[1], offSq, rawFWHM, gsData.fwhm)
 		
 	return gsData
 

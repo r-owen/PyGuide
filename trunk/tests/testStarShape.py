@@ -12,6 +12,8 @@ History:
 2004-07-02 ROwen	Added optional image input and ds9 display of data
 2004-08-04 ROwen	Modified to work with 2004-08-03 findStars.
 2004-08-06 ROwen	Modified to work with 2004-08-06 findStars.
+2005-02-07 ROwen	Modified for PyGuide 1.2.
+					Modified to show shape info for all found stars.
 """
 import sys
 import numarray as num
@@ -19,9 +21,9 @@ import PyGuide
 import pyfits
 
 # these values are probably wrong for the given test image
-Bias = 2176		# image bias, in ADU
-ReadNoise = 19	# read noise, in e-
-CCDGain = 2.1	# inverse ccd gain, in e-/ADU
+bias = 200		# image bias, in ADU
+readNoise = 21.391
+ccdGain = 1.643 # e-/pixel
 
 # to enable debugging output:
 PyGuide.StarShape._StarShapeDebug = True
@@ -47,26 +49,30 @@ mask = None
 #mask = data < 0
 #mask[64:101, 78:92] = 1
 
-print "searching for brightest star"
+print "searching for stars"
 isSat, ctrDataList = PyGuide.findStars(
 	data = data,
 	mask = mask,
-	bias = Bias,
-	readNoise = ReadNoise,
-	ccdGain = CCDGain,
+	bias = bias,
+	readNoise = readNoise,
+	ccdGain = ccdGain,
 	verbosity = 0,
 	ds9 = False,
 )
-ctrData = ctrDataList[0]
-ijCtr = ctrData.ctr
-rad = ctrData.rad
-print "found star ijCtr=%.2f, %.2f, radius=%s" % (ijCtr[0], ijCtr[1], rad)
-
-gsData = PyGuide.starShape(
-	data,
-	mask = mask,
-	ijCtr = ijCtr,
-	predFWHM = rad/2.0,
-)
-print "star ampl=%.1f, fwhm=%.1f, bkgnd=%.1f, chiSq=%.2f" %\
-	(gsData.ampl, gsData.fwhm, gsData.bkgnd, gsData.chiSq)
+for ctrData in ctrDataList:
+	try:
+		xyCtr = ctrData.xyCtr
+		rad = ctrData.rad
+		print "star xyCtr=%.2f, %.2f, radius=%s" % (xyCtr[0], xyCtr[1], rad)
+		
+		gsData = PyGuide.starShape(
+			data,
+			mask = mask,
+			xyCtr = xyCtr,
+			predFWHM = rad/2.0,
+		)
+		print "star ampl=%.1f, fwhm=%.1f, bkgnd=%.1f, chiSq=%.2f" %\
+			(gsData.ampl, gsData.fwhm, gsData.bkgnd, gsData.chiSq)
+	except RuntimeError, e:
+		print "Failed:", e
+	print

@@ -8,6 +8,8 @@ History:
 2004-08-03 ROwen	Modified for centroid 2004-08-03.
 2004-08-06 ROwen	Modified for new centroid.
 					Explicitly specifies values for noise components.
+2005-02-07 ROwen	Modified for PyGuide 1.2.
+					Modified to show estimated error.
 """
 import sys
 import numarray as num
@@ -21,7 +23,7 @@ ReadNoise = 19	# read noise, in e-
 CCDGain = 2.1	# inverse ccd gain, in e-/ADU
 
 # test data format:
-# arrShape, ctr, sigma, ampl, scanRad factor, maskLim
+# arrShape, actual center, sigma, ampl, scanRad factor, maskLim
 testData = (
 	[(51, 51), (27.0, 28.6), 2, 1000, 3, (23,29)],
 	[(51, 51), (27.1, 28.6), 2, 1000, 3, (23,29)],
@@ -42,13 +44,14 @@ testData = (
 
 ds9Win = RO.DS9.DS9Win("testCentroid")
 
-for arrShape, ctr, sigma, ampl, scanRadFactor, maskLim in testData:
-	initGuess = [int(val) for val in ctr]
-	initGuess[0] -= 1
-	initGuess[1] += 1
+for arrShape, actCtr, sigma, ampl, scanRadFactor, maskLim in testData:
+	xyGuess = (
+		actCtr[0] - 1.0,
+		actCtr[1] + 1.0,
+	)
 	scanRad = scanRadFactor * sigma
 
-	cleanData = PyGuide.FakeData.fakeStar(arrShape, ctr, sigma, ampl)
+	cleanData = PyGuide.FakeData.fakeStar(arrShape, actCtr, sigma, ampl)
 	num_random.seed(1, 1000)
 	data = PyGuide.FakeData.addNoise(
 		cleanData,
@@ -58,39 +61,39 @@ for arrShape, ctr, sigma, ampl, scanRadFactor, maskLim in testData:
 		ccdGain = CCDGain,
 	)
 
-	print "\nactual center = %6.2f, %6.2f, sigma = %.2f, scanRad = %d" % (ctr[0], ctr[1], sigma, scanRad)
+	print "\nactual center = %6.2f, %6.2f, sigma = %.2f, scanRad = %d" % (actCtr[0], actCtr[1], sigma, scanRad)
 	mask = None
 	ctrData = PyGuide.centroid(
 		data = data,
 		mask = mask,
-		initGuess = initGuess,
+		xyGuess = xyGuess,
 		rad = scanRad,
 		bias = Bias,
 		readNoise = ReadNoise,
 		ccdGain = CCDGain,
 	)
-	measCtr = ctrData.ctr
+	measCtr = ctrData.xyCtr
 	nCounts = ctrData.counts
 	nPts = ctrData.pix
-	print "meas err   = %6.2f, %6.2f, center = %.2f, %.2f, nCounts = %.0f, nPts = %d" % \
-		(measCtr[0] - ctr[0], measCtr[1] - ctr[1], measCtr[0], measCtr[1], nCounts, nPts)
+	print "meas err   = %6.2f, %6.2f; est err = %.2f, %.2f; nCounts = %.0f; nPts = %d" % \
+		(measCtr[0] - actCtr[0], measCtr[1] - actCtr[1], ctrData.xyErr[0], ctrData.xyErr[1], nCounts, nPts)
 	mask = num.zeros(arrShape, num.Bool)
 	for row in range(maskLim[0], maskLim[1]+1):
 		mask[row,:] = 1
 	ctrData = PyGuide.centroid(
 		data = data,
 		mask = mask,
-		initGuess = initGuess,
+		xyGuess = xyGuess,
 		rad = scanRad,
 		bias = Bias,
 		readNoise = ReadNoise,
 		ccdGain = CCDGain,
 	)
-	measCtr = ctrData.ctr
+	measCtr = ctrData.xyCtr
 	nCounts = ctrData.counts
 	nPts = ctrData.pix
-	print "masked err = %6.2f, %6.2f, center = %.2f, %.2f, nCounts = %.0f, nPts = %d" % \
-		(measCtr[0] - ctr[0], measCtr[1] - ctr[1], measCtr[0], measCtr[1], nCounts, nPts)
+	print "masked err = %6.2f, %6.2f; est err = %.2f, %.2f; nCounts = %.0f; nPts = %d" % \
+		(measCtr[0] - actCtr[0], measCtr[1] - actCtr[1], ctrData.xyErr[0], ctrData.xyErr[1], nCounts, nPts)
 
 
 ds9Win.xpaset("tile frames")
