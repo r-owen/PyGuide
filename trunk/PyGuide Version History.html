@@ -14,14 +14,7 @@
 
 <h2>1.2 2005-02-08</h2>
 
-<p>Modified the main routines (listed below) to use x,y position instead of i,j array index-based position. x,y position has the axes swapped and a zero point defined by PyGuide.Constants.PosMinusIndex and thus can be adjusted. By default PyGuide.Constants.PosMinusIndex=0.5, meaning:
-<ul>
-	<li>(0,0) is the lower edge of the image,
-	<li>(0.5, 0.5) is the center of the corner pixel.
-	<li>(M,N) is the upper edge of an MxN image.
-</ul>
-
-<p>As a result, the following routines have modified arguments and the first two also have modified return data:
+<p>Modified the main routines (listed below) to use conventional xy position instead of ij array index-based position: the axes are swapped and the zero point is has changed (see the manual for more information). As a result, the following routines have modified arguments and the first two also have modified return data:
 <ul>
 	<li> findStars
 	<li> centroid
@@ -30,7 +23,7 @@
 	<li> ImUtil.subFrameCtr
 </ul>
 
-<p>Added coordinate conversion routines to ImUtil to convert between i,j position, x,y position and ds9 position.
+<p>Added coordinate conversion routines to ImUtil to convert between ij position, xy position and ds9 position.
 
 <h2>1.1.1 2005-01-31</h2>
 
