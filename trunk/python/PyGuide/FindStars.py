@@ -56,8 +56,10 @@ History:
 2004-10-14 ROwen	Changed default dataCut to 3.0 from 4.5.
 					No longer displays a 3rd ds9 frame (was smoothed data).
 2004-10-15 ROwen	No longer warns if RO.DS9 absent (unless you use the ds9 flag).
+2005-02-07 ROwen	Modified to use x,y position convention defined by
+					PyGuide.Constants.PosMinusIndex.
 """
-__all__ = ['ds9XYFromLocalIJ', 'findStars']
+__all__ = ['findStars']
 
 import numarray as num
 import numarray.nd_image
@@ -69,6 +71,7 @@ try:
 except ImportError:
 	pass
 _DS9Title = "FindStars"
+from Constants import PosMinusIndex
 
 def _fmtList(alist):
 	"""Return "alist[0], alist[1], ..."
@@ -81,11 +84,6 @@ def _reversed(alist):
 	retval = list(alist[:])
 	retval.reverse()
 	return retval
-
-def ds9XYFromLocalIJ(ijPos):
-	"""Return ds9 x,y from local i,j by swapping and adding 0.5.
-	"""
-	return [ijPos[ind] + 0.5 for ind in (1,0)]
 
 def findStars(
 	data,
@@ -187,26 +185,27 @@ def findStars(
 	for ind in range(len(slices)):
 		ijSlc = slices[ind]
 		ijSize = [slc.stop - slc.start for slc in ijSlc]
-		ijCtr = [(slc.stop + slc.start) / 2.0 for slc in ijSlc]
+		ijCtrInd = [(slc.stop + slc.start) / 2.0 for slc in ijSlc]
+		xyCtrGuess = ImUtil.xyPosFromIJPos(ijCtrInd)
 		
 		# reject regions only 1 pixel tall or wide
 		if 1 in ijSize:
 			# object is too small to be of interest
 			if verbosity >= 1:
-				print "findStars warning: candidate star at %s is too small; size=%s" % (ijCtr, ijSize)
+				print "findStars warning: candidate star at %s is too small; size=%s" % (xyCtrGuess, ijSize)
 			continue
 		
 		# reject saturated regions and set isSaturated flag
 		if num.nd_image.maximum(data, labels, ind) >= satLevel:
 			isSaturated = True
 			if verbosity >= 1:
-				print "findStars warning: candidate star at %s is saturated" % (ijCtr,)
+				print "findStars warning: candidate star at %s is saturated" % (xyCtrGuess,)
 			continue
 		
 		# region appears to be valid; centroid it
 		rad = max(ijSize[0], ijSize[1]) * radMult / 2.0
 		if ds9Win:
-			ds9BoxCtr = ds9XYFromLocalIJ(ijCtr)
+			ds9BoxCtr = ImUtil.ds9PosFromXYPos(xyCtrGuess)
 			# display box from find_objects
 			args = ds9BoxCtr + _reversed(ijSize) + [0]
 			ds9Win.xpaset("regions", "image; box %s # group=findbox" % _fmtList(args))
@@ -215,11 +214,11 @@ def findStars(
 			ds9Win.xpaset("regions", "image; circle %s # group=ctrcirc" % _fmtList(args))
 		try:
 			if verbosity >= 2:
-				print "findStars centroid ctr=%s with rad=%s" % (ijCtr, rad)
+				print "findStars centroid at %s with rad=%s" % (xyCtrGuess, rad)
 			ctrData = Centroid.centroid(
 				data = data,
 				mask = mask,
-				initGuess = ijCtr,
+				xyGuess = xyCtrGuess,
 				rad = rad,
 				bias = bias,
 				readNoise = readNoise,
@@ -227,13 +226,13 @@ def findStars(
 			)
 		except RuntimeError, e:
 			if verbosity >= 1:
-				print "findStars warning: centroid ctr=%s with rad=%s failed: %s" % (ijCtr, rad, e)
+				print "findStars warning: centroid at %s with rad=%s failed: %s" % (xyCtrGuess, rad, e)
 			continue
 		countsCentroidList.append((ctrData.counts, ctrData))
 		
 		if ds9Win:
 			# display x showing centroid
-			args = ds9XYFromLocalIJ(ctrData.ctr)
+			args = ImUtil.ds9PosFromXYPos(ctrData.xyCtr)
 			ds9Win.xpaset("regions", "image; x point %s # group=centroid" % _fmtList(args))
 	
 	# sort by decreasing counts

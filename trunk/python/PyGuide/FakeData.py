@@ -8,18 +8,19 @@ History:
 2004-08-06 ROwen	Reordered the bias arg in addNoise for consistency.
 2004-12-01 ROwen	Added __all__.
 2005-01-31 ROwen	Bug fix: used == instead of = for __all__.
+2005-02-07 ROwen	Changed fakeStar to accept xyCtr instead of (i,j) ctr.
 """
 __all__ = ["fakeStar", "addNoise"]
 
 import numarray as num
 import numarray.random_array as rand
+from Constants import PosMinusIndex
 
 _MaxValUInt16 = 2**16 - 1
 
-
 def fakeStar(
 	arrShape,
-	ctr,
+	xyCtr,
 	sigma,
 	ampl,
 ):
@@ -28,20 +29,20 @@ def fakeStar(
 	
 	Inputs:
 	- arrShape	desired array shape (2 integers)
-	- ctr		desired center (2 floats); uses the iraf/ds9 convention:
-				the center of the 0,0 pixel is (0.0, 0.0)
+	- xyCtr		desired x,y center
 	- sigma		desired sigma (float)
 	- ampl		desired amplitude (float)
 	"""
 	if len(arrShape) != 2:
 		raise ValueError("arrShape=%r must have 2 elements" % (arrShape,))
-	if len(ctr) != 2:
-		raise ValueError("ctr=%r must have 2 elements" % (ctr,))
+	if len(xyCtr) != 2:
+		raise ValueError("xyCtr=%r must have 2 elements" % (xyCtr,))
 	sigma = float(sigma)
 	ampl = float(ampl)
+	ijCtr = ImUtil.ijPosFromXYPos(xyCtr)
 
 	def peakFunc(i, j):
-		radSq = (i - ctr[0])**2 + (j - ctr[1])**2
+		radSq = (i - ijCtr[0])**2 + (j - ijCtr[1])**2
 		expArg = - radSq / (2.0 * sigma**2)
 		gauss = ampl * (num.exp(expArg)  + 0.1*num.exp(0.25*expArg))
 		gauss = num.where(gauss <= _MaxValUInt16, gauss, _MaxValUInt16)

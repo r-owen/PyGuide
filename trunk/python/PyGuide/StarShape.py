@@ -75,6 +75,7 @@ History:
 2004-08-06 ROwen	Fixed invalid variable reference when _FitRadProfIterDebug true. 
 2004-12-01 ROwen	Modified StarShapeData to use NaN as the default for each argument.
 					Added __all__.
+2005-02-07 ROwen	Changed starShape argument ctr (i,) to xyCtr.
 """
 __all__ = ["StarShapeData", "starShape"]
 
@@ -100,7 +101,6 @@ class StarShapeData:
 	"""Guide star fit data
 	
 	Attributes:
-	- pos(2)	position of centroid (x, y pix)
 	- ampl		profile amplitude (ADUs)
 	- bkgnd		background level (ADUs)
 	- fwhm		FWHM (pixels)
@@ -121,29 +121,31 @@ class StarShapeData:
 def starShape(
 	data,
 	mask,
-	ijCtr,
+	xyCtr,
 	predFWHM=2.0,
 ):
 	"""Fit a double gaussian profile to a star
 	
 	Inputs:
-	- data	a numarray array of signed integer data
-	- mask	a numarray boolean array, or None if no mask (all data valid).
-			If supplied, mask must be the same shape as data
-			and elements are True for masked (invalid data).
-	- ijCtr	center of star (x,y floating pixels)
+	- data		a numarray array of signed integer data
+	- mask		a numarray boolean array, or None if no mask (all data valid).
+				If supplied, mask must be the same shape as data
+				and elements are True for masked (invalid data).
+	- xyCtr		x,y center of star; use the convention specified by
+				PyGuide.Constants.PosMinusIndex
 	- predFWHM	predicted FWHM of star, in pixels
 	"""
 	if _StarShapeDebug:
-		print "starShape: data[%s,%s]; ijCtr=%.2f, %.2f; predFWHM=%.1f" % \
-			(data.shape[0], data.shape[1], ijCtr[0], ijCtr[1], predFWHM)
+		print "starShape: data[%s,%s]; xyCtr=%.2f, %.2f; predFWHM=%.1f" % \
+			(data.shape[0], data.shape[1], xyCtr[0], xyCtr[1], predFWHM)
 
-	# compute index of pixel nearest center
-	# and the position of the center of that pixel
-	# note that the center of pixel 0,0 has position 0.0,0.0
-	# (iraf and ds9 convention)
-	ijCtrPixInd = [int(pos + 0.5) for pos in ijCtr]
-	ijCtrPixPos = [float(pos) for pos in ijCtrPixInd]
+	# compute index of nearest pixel center (pixel whose center is nearest xyCtr)
+	ijCtrInd = ImUtil.ijIndFromXYPos(xyCtr)
+	
+	# compute offset of position from nearest pixel center
+	ijCtrFloat = ImUtil.ijPosFromXYPos(xyCtr)
+	ijOff = [abs(round(pos) - pos) for pos in ijCtrFloat]
+	offSq = ijOff[0]**2 + ijOff[1]**2
 	
 	# iterate to optimize the radius of the data used
 	for ii in range(2):
@@ -155,7 +157,7 @@ def starShape(
 		radProf = num.zeros([radIndArrLen], num.Float32)
 		var = num.zeros([radIndArrLen], num.Float32)
 		nPts = num.zeros([radIndArrLen], num.Long)
-		RP.radProf(data, mask, ijCtrPixInd, rad, radProf, var, nPts)
+		RP.radProf(data, mask, ijCtrInd, rad, radProf, var, nPts)
 		
 		# fit data
 		gsData = _fitRadProfile(radProf, var, nPts, predFWHM)
@@ -174,15 +176,13 @@ def starShape(
 	extremely compact stars.
 	"""
 	rawFWHM = gsData.fwhm
-	ijOff = num.subtract(ijCtr, ijCtrPixPos)
-	offSq = ijOff[0]**2 + ijOff[1]**2
 	rawSigSq = (FWHMPerSigma * rawFWHM)**2
 	corrSigSq = rawSigSq - (0.5 * offSq)
 	gsData.fwhm = math.sqrt(corrSigSq) / FWHMPerSigma
 	
 	if _StarShapeDebug:
-		print "starShape: ijCtr=%.2f, %.2f; ijOff=%.2f, %.2f; offSq=%.2f; rawFWHM=%.3f; corrFWHM=%.3f" % \
-			(ijCtr[0], ijCtr[1], ijOff[0], ijOff[1], offSq, rawFWHM, gsData.fwhm)
+		print "starShape: xyCtr=%.2f, %.2f; ijOff=%.2f, %.2f; offSq=%.2f; rawFWHM=%.3f; corrFWHM=%.3f" % \
+			(xyCtr[0], xyCtr[1], ijOff[0], ijOff[1], offSq, rawFWHM, gsData.fwhm)
 		
 	return gsData
 

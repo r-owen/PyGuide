@@ -11,6 +11,7 @@ History:
 2004-12-01 ROwen	Renamed function from starUtil to doFindStars to match module name.
 					Replaced arguments with globals to make it easier to change settings.
 					Bug fix: if starShape failed, shapeData was mis-set.
+2005-02-07 ROwen	Modified for findStars 1.2.
 """
 import numarray as num
 import PyGuide
@@ -62,7 +63,7 @@ def doFindStars(
 			shapeData = PyGuide.starShape(
 				data = d,
 				mask = mask,
-				ijCtr = posData.ctr,
+				xyCtr = posData.xyCtr,
 				predFWHM = posData.rad,
 			)
 		except RuntimeError, e:
@@ -71,8 +72,8 @@ def doFindStars(
 		
 		# print results
 		print "%7.2f	%7.2f	%7.2f	%7.2f	%13.1f	%7.1f	%7.1f	%7d	%7d	%7.1f" % (
-			posData.ctr[1], posData.ctr[0],
-			posData.err[1], posData.err[0],
+			posData.xyCtr[0], posData.xyCtr[1],
+			posData.xyErr[0], posData.xyErr[1],
 			shapeData.ampl, shapeData.bkgnd, shapeData.fwhm,
 			posData.rad, posData.pix, shapeData.chiSq,
 		)

@@ -1,25 +1,18 @@
 """Measure centroids.
 
 To do:
-- Improve the estimate of i,j centroid error.
+- Improve the estimate of centroid error.
 - Smooth the data before centroiding it to handle cosmic rays.
   Consider either a gaussian smoothing or a median filter.
   In either case, make sure to handle masked pixels correctly.
 
 WARNINGS:
-- Python handles images as data[y,x]. This same index order is used
-for positions, sizes and such. In an attempt to reduce confusion, the code
-uses i,j instead of y,x (i=y, j=x).
 - Will be thrown off by hot pixels. This could perhaps
 be improved by centroiding median-filtered data. The question
 is whether the median filtering would adversely affect
 centroids, especially for faint objects. This is especially
 a concern because at present I have no code to do a proper
 median filter of masked data.
-
-Pixel convention: The point 0,0 is at the corner of first pixel read out.
-Hence the center of that pixel is (0.5, 0.5) and the center of a 1024x1024 CCD
-is (512.0, 512.0)
 
 The centroid is the point of mimimum radial asymmetry:
   sum over rad of var(rad)^2 / weight(rad)
@@ -39,7 +32,7 @@ Each step is one pixel along x and/or y.
 
 2) Find the true centroid (to better than one pixel) by applying
 a quadratic fit to the 3x3 radAsymm matrix centered on the
-pixel of minimum radAsymm. Only the points along +-x and +-y
+pixel of minimum radAsymm. Only the points along +/-x and +/-y
 are used for this fit; the diagonals are ignored.
 
 Acknowledgements:
@@ -64,6 +57,8 @@ History:
 2004-08-25 ROwen	Added _MinRad, to more reliably centroid small stars.
 					Added __all__.
 2004-10-14 ROwen	Stopped computing several unused variables. Improved import of radProf.
+2005-02-07 ROwen	Changed centroid initGuess (i,j) argument to xyGuess.
+					Changed returned Centroid data object fields ctr (i,j) to xyCtr, err (i,j) to xyErr.
 """
 __all__ = ['centroid']
 
@@ -71,6 +66,7 @@ import math
 import numarray as num
 import numarray.nd_image as nd_im
 import radProf
+import ImUtil
 
 # minimum radius
 _MinRad = 3.0
@@ -84,8 +80,9 @@ _CTRITERDEBUG = False
 
 class CentroidData:
 	"""Centroid data, including the following fields:
-	- ctr		the i,j centroid (pixels)
-	- err		the predicted i,j 1-sigma error (pixels)
+	- xyCtr		the x,y centroid (pixels); use the convention specified by
+				PyGuide.Constants.PosMinusIndex
+	- xyErr		the predicted x,y 1-sigma error (pixels)
 
 	note: the following three values are computed for that radial profile
 	centered on the pixel nearest the centroid (NOT the true centroid):
@@ -107,15 +104,15 @@ class CentroidData:
 	- rad		radius used to find centroid (pixels)
 	"""
 	def __init__(self,
-		ctr,
-		err,
+		xyCtr,
+		xyErr,
 		asymm,
 		pix,
 		counts,
 		rad,
 	):
-		self.ctr = ctr
-		self.err = err
+		self.xyCtr = xyCtr
+		self.xyErr = xyErr
 		
 		self.asymm = asymm
 		self.pix = pix
@@ -127,7 +124,7 @@ class CentroidData:
 def centroid(
 	data,
 	mask,
-	initGuess,
+	xyGuess,
 	rad,
 	bias,
 	readNoise,
@@ -139,7 +136,8 @@ def centroid(
 	- data		image data [i,j]
 	- mask		a mask [i,j] of 0's (valid data) or 1's (invalid); None if no mask.
 				If mask is specified, it must have the same shape as data.
-	- initGuess	initial i,j guess for centroid
+	- xyGuess	initial x,y guess for centroid; use the convention specified by
+				PyGuide.Constants.PosMinusIndex
 	- rad		radius of search (pixels);
 				values less than _MinRad are treated as _MinRad
 	- bias		ccd bias (ADU)
@@ -149,7 +147,7 @@ def centroid(
 	Returns a CentroidData object (which see)
 	"""
 	if _CTRDEBUG:
-		print "centroid(data, %r)" % (initGuess,)
+		print "centroid(xyGuess=%s, rad=%s, bias=%s, readNoise=%s, ccdGain=%s)" % (xyGuess, rad, bias, readNoise, ccdGain)
 	
 	# convert input data to UInt16 and make contiguous, if necessary, to speed radProf call
 	if data.type() != num.UInt16:
@@ -162,14 +160,14 @@ def centroid(
 		data = data.copy()
 
 	# round the initial guess and radius to the nearest integer
-	if len(initGuess) != 2:
-		raise ValueError("initial guess=%r must have 2 elements" % (initGuess,))
-	initGuess = [int(val + 0.5) for val in initGuess]
+	if len(xyGuess) != 2:
+		raise ValueError("initial guess=%r must have 2 elements" % (xyGuess,))
+	ijIndGuess = ImUtil.ijIndFromXYPos(xyGuess)
 	rad = int(max(rad, _MinRad) + 0.5)
 	
 	# OK, use this as first guess at maximum. Extract radial profiles in
 	# a 3x3 gridlet about this, and walk to find minimum fitting error
-	maxi, maxj = initGuess
+	maxi, maxj = ijIndGuess
 	radSq = rad**2
 	asymmArr = num.zeros([3,3], num.Float64)
 	totPtsArr = num.zeros([3,3], num.Int32)
@@ -216,7 +214,7 @@ def centroid(
 
 			maxi += ii
 			maxj += jj
-			if ((maxi - initGuess[0])**2 + (maxj - initGuess[1])**2) >= radSq:
+			if ((maxi - ijIndGuess[0])**2 + (maxj - ijIndGuess[1])**2) >= radSq:
 				raise RuntimeError("could not find star within %r pixels" % (rad,))
 		else:
 			# Have minimum. Get out and go home.
@@ -241,8 +239,11 @@ def centroid(
 	
 	di = -0.5*bi/ai
 	dj = -0.5*bj/aj
-	iCentroid = maxi + di
-	jCentroid = maxj + dj
+	ijCtr = (
+		maxi + di,
+		maxj + dj,
+	)
+	xyCtr = ImUtil.xyPosFromIJPos(ijCtr)
 	
 	# crude error estime, based on measured asymmetry
 	# note: I also tried using the minimum along i,j but that sometimes is negative
@@ -252,8 +253,8 @@ def centroid(
 	jErr = math.sqrt(radAsymmSigma / aj)
 
 	return CentroidData(
-		ctr = (iCentroid, jCentroid),
-		err = (iErr, jErr),
+		xyCtr = xyCtr,
+		xyErr = (jErr, iErr),
 		counts = totCountsArr[1,1],
 		pix = totPtsArr[1,1],
 		asymm = asymmArr[1,1],

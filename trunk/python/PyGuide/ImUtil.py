@@ -6,10 +6,17 @@ History:
 2004-04-21 ROwen	Added verbosity arg to skyStats and removed _SkyStatsDebug.
 2004-08-04 ROwen	Removed documentation for nonexistent verbosity argument for getQuartile.
 2004-12-01 ROwen	Added __all__.
+2005-02-07 ROwen	Added ijIndFromXYPos, ijPosFromXYPos, xyPosFromIJPos, ds9PosFromXYPos, xyPosFromDS9Pos.
+					Changed subFrameCtr arguments ctr and size (i,j) to xyCtr and xySize.
 """
-__all__ = ["getQuartile", "skyStats", "subFrameCtr"]
+__all__ = ["getQuartile", "skyStats", "subFrameCtr",
+	"ijIndFromXYPos", "ijPosFromXYPos", "xyPosFromIJPos",
+	"ds9PosFromXYPos", "xyPosFromDS9Pos",
+]
 
+import math
 import numarray as num
+from Constants import PosMinusIndex
 
 _QuartileResidRatios = (
 	(1.0, 0.0),
@@ -75,16 +82,16 @@ def skyStats(maskedData, verbosity=1):
 	
 	return med, stdDev
 
-def subFrameCtr(data, ctr, size):
+def subFrameCtr(data, xyCtr, xySize):
 	"""Extract a subframe from a 2d array given a center and size.
 	
 	Return a pointer (not a copy).
 
 	Inputs:
-	- data	2-d array of data [i,j]
-	- ctr	desired i,j center of subframe (may be float)
-	- size	desired i,j size of subframe (may be float);
-			e.g. (5,7) returns a 5x7 subframe
+	- data		2-d array of data [i,j]
+	- xyCtr		desired x,y center of subframe (may be float)
+	- xySize	desired x,y size of subframe (may be float);
+				e.g. (5,7) returns a 5x7 subframe
 	
 	Returns two numarray arrays:
 	- offset	i,j index of start of subframe (int);
@@ -97,11 +104,47 @@ def subFrameCtr(data, ctr, size):
 	has been truncated by comparing its size to the requested size.
 	
 	If size is odd and the entire subframe fits in data without truncation,
-	then ctr is truly centered.
+	then xyCtr is truly centered.
 	"""
-	rad = num.array(size) / 2.0
-	begInd = num.maximum(ctr - rad, 0.0).astype(num.Int)
-	endInd = (ctr + rad).astype(num.Int)
+	ijCtr = ijPosFromXYPos(xyCtr)
+	ijRad = [xySize[ii] / 2.0 for ii in (1, 0)]
+
+	begInd = [int(max(ijCtr[ii] + 0.5 - ijRad[ii], 0.0)) for ii in (0, 1)]
+	endInd = [int(math.ceil(ijCtr[ii] + 0.5 + ijRad[ii])) for ii in (0, 1)]
 	
 	subframe = data[begInd[0]:endInd[0], begInd[1]:endInd[1]]
 	return begInd, subframe
+
+def ijIndFromXYPos(xyPos):
+	"""Return the integer index of the pixel whose center is nearest the specified position.
+	In other words, the same as ijPosFromXYPos but rounded to the nearest int.
+	
+	x,y position convention is defined by PyGuide.Constants.PosMinusIndex (which see).
+	"""
+	return [int(round(xyPos[ii] - PosMinusIndex)) for ii in (1, 0)]
+	
+def ijPosFromXYPos(xyPos):
+	"""Convert from x,y position to i,j position.
+	
+	x,y position convention is defined by PyGuide.Constants.PosMinusIndex (which see).
+	i,j position has the axes swapped and has (0,0) as the center of the (0,0) pixel.
+	"""
+	return [float(xyPos[ii] - PosMinusIndex) for ii in (1, 0)]
+	
+def xyPosFromIJPos(ijInd):
+	"""Return the x,y position corresponding to the specified i,j position.
+	
+	x,y position is defined by PyGuide.Constants.PosMinusIndex (which see).
+	i,j position has the axes swapped and has (0,0) as the center of the (0,0) pixel.
+	"""
+	return [float(ijInd[ii] + PosMinusIndex) for ii in (1, 0)]
+	
+def ds9PosFromXYPos(xyPos):
+	"""Convert from PyGuide's x,y position to ds9 x,y position.
+	"""
+	return [float(pos - PosMinusIndex + 1.0) for pos in xyPos]
+
+def xyPosFromDS9Pos(ds9Pos):
+	"""Convert from ds9 x,y position to PyGuide's x,y position.
+	"""
+	return [float(pos + PosMinusIndex - 1.0) for pos in ds9Pos]
