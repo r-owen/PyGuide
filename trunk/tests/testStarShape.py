@@ -69,7 +69,7 @@ for ctrData in ctrDataList:
 			data,
 			mask = mask,
 			xyCtr = xyCtr,
-			predFWHM = rad/2.0,
+			rad = rad,
 		)
 		print "star ampl=%.1f, fwhm=%.1f, bkgnd=%.1f, chiSq=%.2f" %\
 			(gsData.ampl, gsData.fwhm, gsData.bkgnd, gsData.chiSq)

@@ -85,7 +85,7 @@ for ampl in AmplValues:
 						data = data,
 						mask = mask,
 						xyCtr = xyCtr,
-						predFWHM = fwhm,
+						rad = fwhm * 2,
 					)
 					bkgnd = Sky + Bias
 					fwhmErr = pctErr(shapeData.fwhm, fwhm)

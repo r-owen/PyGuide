@@ -76,6 +76,9 @@ History:
 2004-12-01 ROwen	Modified StarShapeData to use NaN as the default for each argument.
 					Added __all__.
 2005-02-07 ROwen	Changed starShape argument ctr (i,) to xyCtr.
+2005-04-01 ROwen	Changed starShape argument predFWHM to rad.
+					The data is now constrained to this rad.
+					Added constant _MinRad to constrain the minimum radius.
 """
 __all__ = ["StarShapeData", "starShape"]
 
@@ -84,6 +87,9 @@ import numarray as num
 import radProf as RP
 from Constants import FWHMPerSigma, NaN
 import ImUtil
+
+# minimum radius
+_MinRad = 3.0
 
 # range of FWHM that is explored
 _FWHMMin = 1.0
@@ -123,7 +129,7 @@ def starShape(
 	data,
 	mask,
 	xyCtr,
-	predFWHM=2.0,
+	rad,
 ):
 	"""Fit a double gaussian profile to a star
 	
@@ -134,11 +140,12 @@ def starShape(
 				and elements are True for masked (invalid data).
 	- xyCtr		x,y center of star; use the convention specified by
 				PyGuide.Constants.PosMinusIndex
-	- predFWHM	predicted FWHM of star, in pixels
+	- rad		radius of data to fit (pixels);
+				values less than _MinRad are treated as _MinRad
 	"""
 	if _StarShapeDebug:
-		print "starShape: data[%s,%s]; xyCtr=%.2f, %.2f; predFWHM=%.1f" % \
-			(data.shape[0], data.shape[1], xyCtr[0], xyCtr[1], predFWHM)
+		print "starShape: data[%s,%s]; xyCtr=%.2f, %.2f; rad=%.1f" % \
+			(data.shape[0], data.shape[1], xyCtr[0], xyCtr[1], rad)
 
 	# compute index of nearest pixel center (pixel whose center is nearest xyCtr)
 	ijCtrInd = ImUtil.ijIndFromXYPos(xyCtr)
@@ -147,25 +154,23 @@ def starShape(
 	ijCtrFloat = ImUtil.ijPosFromXYPos(xyCtr)
 	ijOff = [abs(round(pos) - pos) for pos in ijCtrFloat]
 	offSq = ijOff[0]**2 + ijOff[1]**2
+
+	# adjust radius as required
+	rad = int(round(max(rad, _MinRad)))
+
+	# compute radial profile and associated data
+	radIndArrLen = rad + 2 # radial index arrays need two extra points
+	radProf = num.zeros([radIndArrLen], num.Float32)
+	var = num.zeros([radIndArrLen], num.Float32)
+	nPts = num.zeros([radIndArrLen], num.Long)
+	RP.radProf(data, mask, ijCtrInd, rad, radProf, var, nPts)
 	
-	# iterate to optimize the radius of the data used
-	for ii in range(2):
-		# compute array lengths
-		rad = int((predFWHM * 3.0) + 0.5)
-		
-		# compute radial profile and associated data
-		radIndArrLen = rad + 2 # radial index arrays need two extra points
-		radProf = num.zeros([radIndArrLen], num.Float32)
-		var = num.zeros([radIndArrLen], num.Float32)
-		nPts = num.zeros([radIndArrLen], num.Long)
-		RP.radProf(data, mask, ijCtrInd, rad, radProf, var, nPts)
-		
-		# fit data
-		gsData = _fitRadProfile(radProf, var, nPts, predFWHM)
-		predFWHM = gsData.fwhm
-		if _StarShapeDebug:
-			print "starShape: iter=%s; ampl=%.1f; fwhm=%.1f; bkgnd=%.1f; chiSq=%.2f" % \
-				(ii, gsData.ampl, gsData.fwhm, gsData.bkgnd, gsData.chiSq)
+	# fit data
+	predFWHM = float(rad)
+	gsData = _fitRadProfile(radProf, var, nPts, predFWHM)
+	if _StarShapeDebug:
+		print "starShape: predFWHM=%.1f; ampl=%.1f; fwhm=%.1f; bkgnd=%.1f; chiSq=%.2f" % \
+			(predFWHM, gsData.ampl, gsData.fwhm, gsData.bkgnd, gsData.chiSq)
 	
 	"""Adjust the width for the fact that the centroid
 	is not exactly on the center of a pixel

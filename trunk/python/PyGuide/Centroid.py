@@ -60,6 +60,7 @@ History:
 					Changed returned Centroid data object fields ctr (i,j) to xyCtr, err (i,j) to xyErr.
 2005-03-31 ROwen	Improved debug output and the efficiency of the "walked too far" test.
 					Noted that rad in CentroidData is integer.
+2005-04-01 ROwen	Modified to use round to round the radius instead of adding 0.5 and truncating.
 """
 __all__ = ['centroid']
 
@@ -164,7 +165,7 @@ def centroid(
 	if len(xyGuess) != 2:
 		raise ValueError("initial guess=%r must have 2 elements" % (xyGuess,))
 	ijIndGuess = ImUtil.ijIndFromXYPos(xyGuess)
-	rad = int(max(rad, _MinRad) + 0.5)
+	rad = int(round(max(rad, _MinRad)))
 	
 	# OK, use this as first guess at maximum. Extract radial profiles in
 	# a 3x3 gridlet about this, and walk to find minimum fitting error
