@@ -1,0 +1,65 @@
+Time various parts of centroiding as a function of radius
+
+Settings:
+CCD Size      = 1024 x 1024 pix
+Star center   = 512, 512 pix
+Initial guess = 514, 510 pix
+
+Amplitude  = 1000 ADU
+FWHM       = 2.5 pix
+Sky        = 1000 ADU
+Bias       = 2176 ADU
+Read Noise = 19 e-
+CCD Gain   = 2.1 e-/ADU
+
+No mask
+
+timeRadProf: niter=20; rad= 10; radSqProf time/iter=0.0216; radProf time/iter=0.0213
+timeRadProf: niter=20; rad= 20; radSqProf time/iter=0.0216; radProf time/iter=0.0215
+timeRadProf: niter=20; rad= 40; radSqProf time/iter=0.0225; radProf time/iter=0.0221
+timeRadProf: niter=20; rad= 80; radSqProf time/iter=0.0240; radProf time/iter=0.0230
+timeRadProf: niter=20; rad=160; radSqProf time/iter=0.0442; radProf time/iter=0.0318
+timeRadProf: niter=20; rad=320; radSqProf time/iter=0.1625; radProf time/iter=0.0615
+timeRadProf: niter=10; rad=640; radSqProf time/iter=0.5948; radProf time/iter=0.1755
+
+timeRadAsymmWeighted: niter=20; rad= 10; time/iter=0.021
+timeRadAsymmWeighted: niter=20; rad= 20; time/iter=0.021
+timeRadAsymmWeighted: niter=20; rad= 40; time/iter=0.022
+timeRadAsymmWeighted: niter=20; rad= 80; time/iter=0.023
+timeRadAsymmWeighted: niter=20; rad=160; time/iter=0.028
+timeRadAsymmWeighted: niter=20; rad=320; time/iter=0.056
+timeRadAsymmWeighted: niter=10; rad=640; time/iter=0.162
+
+timeCentroid: initGuess=514, 510; niter=10; rad= 10; time/iter=0.027
+timeCentroid: initGuess=514, 510; niter=10; rad= 20; time/iter=0.028
+timeCentroid: initGuess=514, 510; niter=10; rad= 40; time/iter=0.035
+timeCentroid: initGuess=514, 510; niter=10; rad= 80; time/iter=0.062
+timeCentroid: initGuess=514, 510; niter= 5; rad=160; time/iter=0.244
+timeCentroid: initGuess=514, 510; niter= 2; rad=320; time/iter=0.936
+timeCentroid: initGuess=514, 510; niter= 1; rad=640; time/iter=3.183
+
+Mask of all zeros
+
+timeRadProf: niter=20; rad= 10; radSqProf time/iter=0.0215; radProf time/iter=0.0211
+timeRadProf: niter=20; rad= 20; radSqProf time/iter=0.0216; radProf time/iter=0.0218
+timeRadProf: niter=20; rad= 40; radSqProf time/iter=0.0225; radProf time/iter=0.0218
+timeRadProf: niter=20; rad= 80; radSqProf time/iter=0.0243; radProf time/iter=0.0234
+timeRadProf: niter=20; rad=160; radSqProf time/iter=0.0438; radProf time/iter=0.0330
+timeRadProf: niter=20; rad=320; radSqProf time/iter=0.1425; radProf time/iter=0.0578
+timeRadProf: niter=10; rad=640; radSqProf time/iter=0.6010; radProf time/iter=0.1667
+
+timeRadAsymmWeighted: niter=20; rad= 10; time/iter=0.021
+timeRadAsymmWeighted: niter=20; rad= 20; time/iter=0.021
+timeRadAsymmWeighted: niter=20; rad= 40; time/iter=0.022
+timeRadAsymmWeighted: niter=20; rad= 80; time/iter=0.026
+timeRadAsymmWeighted: niter=20; rad=160; time/iter=0.042
+timeRadAsymmWeighted: niter=20; rad=320; time/iter=0.058
+timeRadAsymmWeighted: niter=10; rad=640; time/iter=0.174
+
+timeCentroid: initGuess=514, 510; niter=10; rad= 10; time/iter=0.027
+timeCentroid: initGuess=514, 510; niter=10; rad= 20; time/iter=0.028
+timeCentroid: initGuess=514, 510; niter=10; rad= 40; time/iter=0.036
+timeCentroid: initGuess=514, 510; niter=10; rad= 80; time/iter=0.064
+timeCentroid: initGuess=514, 510; niter= 5; rad=160; time/iter=0.202
+timeCentroid: initGuess=514, 510; niter= 2; rad=320; time/iter=0.744
+timeCentroid: initGuess=514, 510; niter= 1; rad=640; time/iter=2.812
