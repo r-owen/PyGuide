@@ -6,7 +6,11 @@ History:
 2004-07-29 ROwen	Added sky noise to addNoise; thanks to Connie Rockosi
 					for catching this important omission.
 2004-08-06 ROwen	Reordered the bias arg in addNoise for consistency.
+2004-12-01 ROwen	Added __all__.
+2005-01-31 ROwen	Bug fix: used == instead of = for __all__.
 """
+__all__ = ["fakeStar", "addNoise"]
+
 import numarray as num
 import numarray.random_array as rand
 

@@ -73,11 +73,15 @@ History:
 					Simplified final computation of minimum width parameter.
 					If shape computation fails, converts ArithmeticError into RuntimeError
 2004-08-06 ROwen	Fixed invalid variable reference when _FitRadProfIterDebug true. 
+2004-12-01 ROwen	Modified StarShapeData to use NaN as the default for each argument.
+					Added __all__.
 """
+__all__ = ["StarShapeData", "starShape"]
+
 import math
 import numarray as num
 import radProf as RP
-from Constants import FWHMPerSigma
+from Constants import FWHMPerSigma, NaN
 
 # range of FWHM that is explored
 _FWHMMin = 1.0
@@ -92,7 +96,6 @@ _StarShapeDebug = False
 _FitRadProfDebug = False
 _FitRadProfIterDebug = False
 
-
 class StarShapeData:
 	"""Guide star fit data
 	
@@ -103,7 +106,12 @@ class StarShapeData:
 	- fwhm		FWHM (pixels)
 	- chiSq		chi squared of fit
 	"""
-	def __init__(self, ampl, fwhm, bkgnd, chiSq):
+	def __init__(self,
+		ampl = NaN,
+		fwhm = NaN,
+		bkgnd = NaN,
+		chiSq = NaN,
+	):
 		self.ampl = float(ampl)
 		self.bkgnd = float(bkgnd)
 		self.fwhm = float(fwhm)

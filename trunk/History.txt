@@ -1,4 +1,24 @@
-1.0 2004-10-29
+1.1.1 2005-01-31
+
+Bug fixes:
+- FakeData.py had __all__ == instead of __all__ =.
+
+1.1 2004-12-01
+
+Visible Changes:
+- doFindStars:
+	- Renamed function from starUtil to doFindStars to match module name.
+	- Replaced arguments with globals to make it easier to change settings.
+- Constants: added NaN
+- StarShape: StarShapeData: made NaN the default for all arguments.
+
+Bug fixes:
+- doFindStars: if starShape failed, crashed trying to set starData.
+
+Internal Changes:
+- Added __all__ to StarShape.py, ImUtil.py, FakeData.py
+
+
+1.0 2004-10-22
 
 First public release.
-Rereleased to test home svn.

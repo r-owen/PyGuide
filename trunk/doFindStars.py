@@ -8,12 +8,17 @@ History:
 2004-05-18 ROwen	Modified to set up ds9Win and to use fewer globals.
 2004-08-25 ROwen	Modified for 2004-08-06 PyGuide.
 2004-10-14 ROwen	Modified to measure starShape.
+2004-12-01 ROwen	Renamed function from starUtil to doFindStars to match module name.
+					Replaced arguments with globals to make it easier to change settings.
+					Bug fix: if starShape failed, shapeData was mis-set.
 """
 import numarray as num
 import PyGuide
 import pyfits
 import RO.DS9
 
+im = None
+d = None
 mask = None
 verbosity = 1
 ds9 = True
@@ -27,20 +32,12 @@ bias = 1780
 readNoise = 21.391
 ccdGain = 1.643 # e-/pixel
 
-def starUtil(
-	filename,
-	mask=mask,
-	bias = bias,
-	readNoise = readNoise,
-	ccdGain = ccdGain,
-	dataCut=dataCut,
-	satLevel=satLevel,
-	radMult=radMult,
-	verbosity=verbosity,
-	ds9=ds9,
+def doFindStars(
+	filename = None,
 ):
 	global im, d, isSat, sd
-	im = pyfits.open(filename)
+	if filename:
+		im = pyfits.open(filename)
 	d = im[0].data
 	
 	# find stars and centroid
@@ -70,21 +67,18 @@ def starUtil(
 			)
 		except RuntimeError, e:
 			print "starShape failed: %s" % (e,)
-			nan = float("nan")
-			shapeData.ampl = nan
-			shapeData.bkgnd = nan
-			shapeData.fwhm = nan
-			shapeData.chiSq = nan
+			shapeData = PyGuide.StarShapeData()
 		
 		# print results
 		print "%7.2f	%7.2f	%7.2f	%7.2f	%13.1f	%7.1f	%7.1f	%7d	%7d	%7.1f" % (
 			posData.ctr[1], posData.ctr[0],
 			posData.err[1], posData.err[0],
 			shapeData.ampl, shapeData.bkgnd, shapeData.fwhm,
-			posData.rad, posData.pix,	shapeData.chiSq,
+			posData.rad, posData.pix, shapeData.chiSq,
 		)
 
-print "Defaults for starUtil:"
+print "global variables:"
+print "im =", im
 print "mask =", mask
 print "bias =", bias
 print "readNoise =", readNoise
@@ -98,7 +92,8 @@ print
 print """ds9Win.showArray(arry) will display an array
 
 Computed values:
-im: the fits image (including header and data)
+im: a fits image; if filename is specified, im is loaded from that file;
+    if filename is omitted, the current im is used
 d: the data from the image (a numarray array)
 sd: star data returned by PyGuide.findStars
 
@@ -113,6 +108,6 @@ Notes:
   you must set bias, readNoise and ccdGain correctly for your image.
 
 Function call:
-starUtil(filename, ...)
+doFindStars(filename=None); if you omit filename then the current im is used
 """
 

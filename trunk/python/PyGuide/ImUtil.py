@@ -5,7 +5,10 @@ History:
 2004-04-16 ROwen	Added getQuartile, skyStats.
 2004-04-21 ROwen	Added verbosity arg to skyStats and removed _SkyStatsDebug.
 2004-08-04 ROwen	Removed documentation for nonexistent verbosity argument for getQuartile.
+2004-12-01 ROwen	Added __all__.
 """
+__all__ = ["getQuartile", "skyStats", "subFrameCtr"]
+
 import numarray as num
 
 _QuartileResidRatios = (
