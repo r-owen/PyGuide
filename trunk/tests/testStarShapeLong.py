@@ -9,6 +9,7 @@ History:
 2004-08-04 ROwen
 2005-02-07 ROwen	Modified for PyGuide 1.2.
 2005-04-01 ROwen	Modified for new StarShape; modified to print statistics.
+2005-04-04 ROwen	Modified for fixed StarShape.
 """
 import numarray as num
 import numarray.random_array as num_random
@@ -97,11 +98,11 @@ for fitBkgnd in (False, True):
 					)
 					
 					if fitBkgnd:
-						bkgnd = None
+						givenBkgnd = None
 					else:
 						maskedData = num.ma.array(data, mask=mask)
 						med, stdDev = PyGuide.ImUtil.skyStats(maskedData)
-						bkgnd = med
+						givenBkgnd = med
 	
 					try:
 						shapeData = PyGuide.starShape(
@@ -109,7 +110,7 @@ for fitBkgnd in (False, True):
 							mask = mask,
 							xyCtr = xyCtr,
 							rad = fwhm * 2,
-							bkgnd = bkgnd,
+							givenBkgnd = givenBkgnd,
 						)
 						bkgnd = Sky + Bias
 						fwhmErr = pctErr(shapeData.fwhm, fwhm)
