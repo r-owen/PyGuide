@@ -80,6 +80,7 @@ History:
 					No longer iterate the fit with an updated predFWHM because
 					it doesn't seem to help when the data radius is fixed.
 					Added constant _MinRad to constrain the minimum radius.
+2005-04-04 ROwen	Bug fix: mis-handled case of bkgnd not specified.
 """
 __all__ = ["StarShapeData", "starShape"]
 
@@ -132,7 +133,7 @@ def starShape(
 	mask,
 	xyCtr,
 	rad,
-	bkgnd = None,
+	givenBkgnd = None,
 	predFWHM = None,
 ):
 	"""Fit a double gaussian profile to a star
@@ -147,8 +148,8 @@ def starShape(
 				PyGuide.Constants.PosMinusIndex
 	- rad		radius of data to fit (pixels);
 				values less than _MinRad are treated as _MinRad
-	- bkgnd	the background level, e.g. the median. if omitted then starShape fits it.
-				Supplying the median typically gives better results than having starShape
+	- givenBkgnd	the background level, e.g. the median. if omitted then starShape fits it.
+				Supplying the median may give better results than having starShape
 				fit the background, especially if the radius is small
 				compared to the FWHM or much of the region is masked out.
 	- predFWHM	predicted FWHM; if omitted then rad/2 is used.
@@ -181,7 +182,7 @@ def starShape(
 	# fit data
 	if predFWHM == None:
 		predFWHM = float(rad)
-	gsData = _fitRadProfile(radProf, var, nPts, bkgnd, predFWHM)
+	gsData = _fitRadProfile(radProf, var, nPts, givenBkgnd, predFWHM)
 	if _StarShapeDebug:
 		print "starShape: predFWHM=%.1f; ampl=%.1f; fwhm=%.1f; bkgnd=%.1f; chiSq=%.2f" % \
 			(predFWHM, gsData.ampl, gsData.fwhm, gsData.bkgnd, gsData.chiSq)
@@ -211,7 +212,7 @@ if _StarShapeDebug:
 	print "_WPArr =", _WPArr
 
 	
-def _fitRadProfile(radProf, var, nPts, bkgnd, predFWHM):
+def _fitRadProfile(radProf, var, nPts, givenBkgnd, predFWHM):
 	"""Fit in profile space to determine the width,	amplitude, and background.
 	Returns the sum square error.
 	
@@ -219,15 +220,14 @@ def _fitRadProfile(radProf, var, nPts, bkgnd, predFWHM):
 	- radProf	radial profile around center pixel by radial index
 	- var		variance as a function of radius
 	- nPts		number of points contributing to profile by radial index
-	- bkgnd	the background level, e.g. the median. if omitted then
-				starShape tries to fit it
+	- givenBkgnd	the background level, e.g. the median. if None then fit it
 	- predFWHM	predicted FWHM
 	
 	Returns a StarShapeData object
 	"""
 	if _FitRadProfDebug:
-		print "_fitRadProfile radProf[%s]=%s\n   nPts[%s]=%s\n   predFWHM=%r" % \
-			(len(radProf), radProf, len(nPts), nPts, predFWHM)
+		print "_fitRadProfile radProf[%s]=%s\n   nPts[%s]=%s\n   givenBkgnd=%r\n   predFWHM=%r" % \
+			(len(radProf), radProf, len(nPts), nPts, givenBkgnd, predFWHM)
 	ncell = len(_WPArr)
 
 	chiSqByWPInd = num.zeros([ncell], num.Float)
@@ -269,7 +269,7 @@ def _fitRadProfile(radProf, var, nPts, bkgnd, predFWHM):
 		wp = _WPArr[wpInd]
 		
 		# fit data
-		ampl, bkgnd, chiSq, seeProf = _fitIter(radProf, nPts, radWeight, radSq, sumNPts, sumRadProf, seeProf, wp, bkgnd)
+		ampl, bkgnd, chiSq, seeProf = _fitIter(radProf, nPts, radWeight, radSq, sumNPts, sumRadProf, seeProf, wp, givenBkgnd)
 		chiSqByWPInd[wpInd] = chiSq
 
 		if iterNum == 0:
@@ -307,7 +307,7 @@ def _fitRadProfile(radProf, var, nPts, bkgnd, predFWHM):
 	wpMin = _wpFromFWHM(fwhmMin)
 			
 	# compute final answers at wpMin
-	ampl, bkgnd, chiSq, seeProf = _fitIter(radProf, nPts, radWeight, radSq, sumNPts, sumRadProf, seeProf, wpMin, bkgnd)
+	ampl, bkgnd, chiSq, seeProf = _fitIter(radProf, nPts, radWeight, radSq, sumNPts, sumRadProf, seeProf, wpMin, givenBkgnd)
 			
 	if _FitRadProfDebug:
 		print "_fitRadProfile: wpInd=%s; iterNum=%s" % (wpInd, iterNum)
@@ -329,7 +329,7 @@ def _fitRadProfile(radProf, var, nPts, bkgnd, predFWHM):
 	)
 
 
-def _fitIter(radProf, nPts, radWeight, radSq, sumNPts, sumRadProf, seeProf, wp, bkgnd):
+def _fitIter(radProf, nPts, radWeight, radSq, sumNPts, sumRadProf, seeProf, wp, givenBkgnd):
 	# compute the seeing profile for the specified width parameter
 	seeProf = _seeProf(radSq, wp, seeProf)
 	
@@ -349,7 +349,9 @@ def _fitIter(radProf, nPts, radWeight, radSq, sumNPts, sumRadProf, seeProf, wp, 
 	try:
 		disc = (sumNPts * sumSeeProfSq) - sumSeeProf**2
 		ampl  = ((sumNPts * sumSeeProfRadProf) - (sumRadProf * sumSeeProf)) / disc
-		if bkgnd == None:
+		if givenBkgnd != None:
+			bkgnd = givenBkgnd
+		else:
 			bkgnd = ((sumSeeProfSq * sumRadProf) - (sumSeeProf * sumSeeProfRadProf)) / disc
 		# diff is the weighted difference between the data and the model
 		diff = radProf - (ampl * seeProf) - bkgnd

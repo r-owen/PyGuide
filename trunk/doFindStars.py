@@ -85,7 +85,7 @@ def doFindStars(
 				mask = mask,
 				xyCtr = posData.xyCtr,
 				rad = posData.rad,
-				bkgnd = med,
+#				bkgnd = med,
 			)
 		except RuntimeError, e:
 			print "starShape failed: %s" % (e,)
