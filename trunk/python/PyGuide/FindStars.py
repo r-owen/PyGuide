@@ -54,6 +54,7 @@ History:
 2005-03-31 ROwen	Modified to show smoothed, masked data in ds9 in frame 3
 					if verbosity>=2 (and dS9 true), else no frame 3.
 					Bug fix: error in star data output when verbosity >= 2.
+2005-04-01 ROwen	Modified to return the median of the unmasked data.
 """
 __all__ = ['findStars']
 
@@ -117,6 +118,7 @@ def findStars(
 		- err		the predicted i,j 1-sigma error (pixels)
 		- asymm		measure of asymmetry (dimensionless)
 		(see PyGuide.CentroidData for more information)
+	- med			median of masked data
 	
 	Note: the found "stars" are not required to look star-like and so
 	are not fit to a stellar profile. This routine was designed to handle
@@ -244,4 +246,4 @@ def findStars(
 				(cd.xyCtr[0], cd.xyCtr[1],
 				 cd.xyErr[0], cd.xyErr[1],
 				 cd.pix, cd.counts, cd.rad)
-	return isSaturated, centroidList
+	return isSaturated, centroidList, med

@@ -51,23 +51,28 @@ print "Each try is a star whose center is randomly distributed over"
 print "a range of -FWHM/2, FWHM/2 with respect to the"
 print "center of the CCD = the center of the slit."
 print
-print "The slit is along y."
+print "Reported errors and statistics on these errors are in percent:"
+print "reported error (%) = 100 * (meas value - act value) / act value"
 print
-print "fwhm	ampl	bg	xCtr	yCtr	maskWid	fitFWHM	fitAmpl	fitBg	chiSq	fwhmErr	amplErr	bgErr"
+print "The slit is along y."
 
 def pctErr(meas, act):
 	return (meas - act) * 100.0 / float(act)
 
-fwhmStats = Stats()
-amplStats = Stats()
-bkgndStats = Stats()
-
-nBad = 0
 for fitBkgnd in (False, True):
+	print
 	if fitBkgnd:
-		print "***** Do fit background"
+		print "***** Fit the background"
 	else:
-		print "***** Do not fit background; use median as background"
+		print "***** Do not fit the background; use median instead"
+
+	fwhmStats = Stats()
+	amplStats = Stats()
+	bkgndStats = Stats()
+	nBad = 0
+
+	print
+	print "fwhm	ampl	bg	xCtr	yCtr	maskWid	fitFWHM	fitAmpl	fitBg	chiSq	fwhmErr	amplErr	bgErr"
 	for ampl in AmplValues:
 		for fwhm in FWHMValues:
 			sigma = fwhm / PyGuide.FWHMPerSigma
@@ -129,8 +134,7 @@ for fitBkgnd in (False, True):
 	print "fwhm  %8.1f %8.1f %8.1f %8.1f" % (fwhmStats.min(), fwhmStats.max(), fwhmStats.mean(), fwhmStats.stdDev())
 	print "ampl  %8.1f %8.1f %8.1f %8.1f" % (amplStats.min(), amplStats.max(), amplStats.mean(), amplStats.stdDev())
 	print "bkgnd %8.1f %8.1f %8.1f %8.1f" % (bkgndStats.min(), bkgndStats.max(), bkgndStats.mean(), bkgndStats.stdDev())
-	print
 
 	if nBad > 0:
-		print "number of failures =", nBad
 		print
+		print "number of failures =", nBad

@@ -16,7 +16,7 @@ History:
 					Modified doFindStars to allow specifying parameters as keyword arguments.
 					Added showDef() method to display current defaults.
 					Modified global vars so im, not d, is the image array.
-2005-04-01 ROwen	Updated for modified starShape arg.
+2005-04-01 ROwen	Updated for modified FindStars and StarShape.
 """
 import numarray as num
 import PyGuide
@@ -70,7 +70,7 @@ def doFindStars(
 			kargs[paramName] = globalDict[paramName]
 	
 	# find stars and centroid
-	isSat, posDataList = PyGuide.findStars(
+	isSat, posDataList, med = PyGuide.findStars(
 		data = im,
 		mask = mask,
 	**kargs)
@@ -85,6 +85,7 @@ def doFindStars(
 				mask = mask,
 				xyCtr = posData.xyCtr,
 				rad = posData.rad,
+				bkgnd = med,
 			)
 		except RuntimeError, e:
 			print "starShape failed: %s" % (e,)
