@@ -1,3 +1,4 @@
-1.0 2004-10-22
+1.0 2004-10-29
 
 First public release.
+Rereleased to test home svn.
