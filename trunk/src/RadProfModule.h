@@ -1,10 +1,15 @@
 #ifndef __radprofmodule__
 #define __radprofmodule__
 
-// see RadProfModule.c for information.
+/*
+Header file for RadProfModule.c, which see for information.
 
-#include <Python.h>
-#include <numarray/libnumarray.h>
+History:
+2004-10-13 ROwen	modified libnumarray.h include to match numarray 1.1 docs.
+*/
+
+#include "Python.h"
+#include "libnumarray.h"
 
 #ifdef __cplusplus
 extern "C" {

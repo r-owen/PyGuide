@@ -1,3 +1,18 @@
+2004-10-14
+
+Note:
+- This version has been tested with numarray 1.1. Like all C extensions that use numarray
+  you must rebuild PyGuide if you upgrade numarray from 0.9 or 1.0.
+
+Changes:
+- findStars: changed the default dataCut to 3.0 from 4.5.
+- findStars no longer displays a 3rd frame in ds9 (formerly it was the smoothed image).
+  The old code is commented out in case you still want it.
+- doFindStars (not installed, but a handy test function) now reports star shape.
+- Minor changes to includes in the C code and to setup.py. These changes make
+  the code look more like the numarray 1.1 examples and may allow PyGuide
+  to be installed even if numarray was not installed in the usual location.
+
 2004-08-25
 
 Changes:

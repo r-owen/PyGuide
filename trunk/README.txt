@@ -9,10 +9,8 @@ or, if that fails due to permission errors:
 % sudo python setup.py install
 
 Once the package is installed, you can get help in the usual way:
->>>import PyGuide
->>>help(PyGuide)
-Before installation, you can read some information in:
-python/PyGuide/__init__.py
+>>> import PyGuide
+>>> help(PyGuide)
 
 The main routines are:
 PyGuide.findStars
@@ -25,6 +23,8 @@ Other files of interest (these are not installed):
 - History.txt: version history
 - checkPyGuide: runs pychecker on PyGuide.
   requires that pychecker be installed.
+- doFindStars.py: scan an image file, display in ds9
+  and report star centroids and shape info.
 - test/...: code to check the various routines and sample output.
 
 Known Limitations:

@@ -63,13 +63,14 @@ History:
 2004-08-06 ROwen	Weight asymmetry calculation by radial noise.
 2004-08-25 ROwen	Added _MinRad, to more reliably centroid small stars.
 					Added __all__.
+2004-10-14 ROwen	Stopped computing several unused variables. Improved import of radProf.
 """
 __all__ = ['centroid']
 
 import math
 import numarray as num
 import numarray.nd_image as nd_im
-import PyGuide
+import radProf
 
 # minimum radius
 _MinRad = 3.0
@@ -174,10 +175,6 @@ def centroid(
 	totPtsArr = num.zeros([3,3], num.Int32)
 	totCountsArr = num.zeros([3,3], num.Float64)
 	
-	radMean = num.zeros([rad+2], num.Float64)
-	radVar = num.zeros([rad+2], num.Float64)
-	radNPts = num.zeros([rad+2], num.Float64)
-	readNoiseSqADU = (readNoise / ccdGain)**2
 	niter = 0
 	while True:
 		niter += 1
@@ -190,7 +187,7 @@ def centroid(
 				jj = maxj + j - 1
 				if totPtsArr[i, j] != 0:
 					continue
-				asymmArr[i, j], totCountsArr[i, j], totPtsArr[i, j] = PyGuide.radProf.radAsymmWeighted(
+				asymmArr[i, j], totCountsArr[i, j], totPtsArr[i, j] = radProf.radAsymmWeighted(
 					data, mask, (ii, jj), rad, bias, readNoise, ccdGain)
 
 				if _CTRDEBUG and _CTRITERDEBUG:

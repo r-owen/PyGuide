@@ -53,6 +53,8 @@ History:
 					Fixed variable name error (only visible when ds9 True).
 2004-08-06-v2 ROwen	Updated for new centroid code. Requires additional inputs.
 2004-08-25 ROwen	Added __all__.
+2004-10-14 ROwen	Changed default dataCut to 3.0 from 4.5.
+					No longer displays a 3rd ds9 frame (was smoothed data).
 """
 __all__ = ['ds9XYFromLocalIJ', 'findStars']
 
@@ -90,7 +92,7 @@ def findStars(
 	bias,
 	readNoise,
 	ccdGain,
-	dataCut = 4.5,
+	dataCut = 3.0,
 	satLevel = 2**16,
 	radMult = 1.0,
 	verbosity = 1,
@@ -162,10 +164,10 @@ def findStars(
 	# and apply a filter to get rid of speckle
 	smoothedData = maskedData.filled(med)
 	num.nd_image.median_filter(smoothedData, 3, output=smoothedData)
-	if ds9Win:
-		ds9Win.xpaset("frame 3")
-		ds9Win.showArray(smoothedData)
-		ds9Win.xpaset("frame 1")
+#	if ds9Win:
+#		ds9Win.xpaset("frame 3")
+#		ds9Win.showArray(smoothedData)
+#		ds9Win.xpaset("frame 1")
 	
 	# look for points larger than median + dataCut * stdDev
 	dataCut = med + (dataCut * stdDev)
