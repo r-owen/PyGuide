@@ -6,7 +6,7 @@ History:
 2004-04-21 ROwen	Added verbosity arg to skyStats and removed _SkyStatsDebug.
 2004-08-04 ROwen	Removed documentation for nonexistent verbosity argument for getQuartile.
 2004-12-01 ROwen	Added __all__.
-2005-02-07 ROwen	Added ijIndFromXYPos, ijPosFromXYPos, xyPosFromIJPos, ds9PosFromXYPos, xyPosFromDS9Pos.
+2005-02-08 ROwen	Added ijIndFromXYPos, ijPosFromXYPos, xyPosFromIJPos, ds9PosFromXYPos, xyPosFromDS9Pos.
 					Changed subFrameCtr arguments ctr and size (i,j) to xyCtr and xySize.
 """
 __all__ = ["getQuartile", "skyStats", "subFrameCtr",
@@ -99,6 +99,14 @@ def subFrameCtr(data, xyCtr, xySize):
 				matches location subloc + offset in data
 	- subframe	the subframe as a pointer into data (NOT a copy)
 	
+	With ctr in the middle of a pixel:
+	- a size of 0.0 to 1.999... returns 1 pixel
+	- a size of 2.0 to 3.999... returns 3 pixels
+	
+	With ctr at the boundary between two pixels:
+	- A size of 0.0 to 0.999... returns 0 pixels
+	- A size of 1.0 to 2.999... returns 2 pixels
+	
 	If the requested subframe extends outside the boundaries of data,
 	the subframe is truncated without warning. You can tell if it
 	has been truncated by comparing its size to the requested size.
@@ -109,8 +117,10 @@ def subFrameCtr(data, xyCtr, xySize):
 	ijCtr = ijPosFromXYPos(xyCtr)
 	ijRad = [xySize[ii] / 2.0 for ii in (1, 0)]
 
-	begInd = [int(max(ijCtr[ii] + 0.5 - ijRad[ii], 0.0)) for ii in (0, 1)]
-	endInd = [int(math.ceil(ijCtr[ii] + 0.5 + ijRad[ii])) for ii in (0, 1)]
+	begInd = [int(max(math.ceil(ijCtr[ii] - ijRad[ii]), 0.0)) for ii in (0, 1)]
+	endInd = [int(math.floor(ijCtr[ii] + ijRad[ii])) + 1 for ii in (0, 1)]
+	
+	print "subFrameCtr: xyCtr=%s; xySize=%s; ijCtr=%s; ijRad=%s; begInd=%s; endInd=%s" % (xyCtr, xySize, ijCtr, ijRad, begInd, endInd)
 	
 	subframe = data[begInd[0]:endInd[0], begInd[1]:endInd[1]]
 	return begInd, subframe
@@ -121,7 +131,9 @@ def ijIndFromXYPos(xyPos):
 	
 	x,y position convention is defined by PyGuide.Constants.PosMinusIndex (which see).
 	"""
-	return [int(round(xyPos[ii] - PosMinusIndex)) for ii in (1, 0)]
+	# use floor(0.5 + x) instead of round(x) because round(-0.5) is -1, not 0,
+	# making (0.0, 0,0) convert to (-1,-1) instead of (0,0)
+	return [int(math.floor(0.5 + xyPos[ii] - PosMinusIndex)) for ii in (1, 0)]
 	
 def ijPosFromXYPos(xyPos):
 	"""Convert from x,y position to i,j position.
