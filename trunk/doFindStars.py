@@ -12,6 +12,8 @@ History:
 					Replaced arguments with globals to make it easier to change settings.
 					Bug fix: if starShape failed, shapeData was mis-set.
 2005-02-07 ROwen	Modified for findStars 1.2.
+2005-03-29 ROwen	Allowed one to specify a mask name to doFindStars;
+					modified the globals so im, not d, is the image array
 """
 import numarray as num
 import PyGuide
@@ -19,8 +21,9 @@ import pyfits
 import RO.DS9
 
 im = None
-d = None
+imfits = None
 mask = None
+maskfits = None
 verbosity = 1
 ds9 = True
 dataCut = 3.0
@@ -34,16 +37,20 @@ readNoise = 21.391
 ccdGain = 1.643 # e-/pixel
 
 def doFindStars(
-	filename = None,
+	imName = None,
+	maskName = None,
 ):
-	global im, d, isSat, sd
-	if filename:
-		im = pyfits.open(filename)
-	d = im[0].data
+	global im, imfits, mask, maskfits, isSat, sd
+	if imName:
+		imfits = pyfits.open(imName)
+		im = imfits[0].data
+	if maskName:
+		maskfits = pyfits.open(maskName)
+		mask = maskfits[0].data
 	
 	# find stars and centroid
 	isSat, posDataList = PyGuide.findStars(
-		data = d,
+		data = im,
 		mask = mask,
 		bias = bias,
 		readNoise = readNoise,
@@ -61,7 +68,7 @@ def doFindStars(
 		# measure star shape
 		try:
 			shapeData = PyGuide.starShape(
-				data = d,
+				data = im,
 				mask = mask,
 				xyCtr = posData.xyCtr,
 				predFWHM = posData.rad,
@@ -93,9 +100,8 @@ print
 print """ds9Win.showArray(arry) will display an array
 
 Computed values:
-im: a fits image; if filename is specified, im is loaded from that file;
-    if filename is omitted, the current im is used
-d: the data from the image (a numarray array)
+im: image data array
+mask: mask data array, or None if no mask
 sd: star data returned by PyGuide.findStars
 
 Reported values include::
@@ -109,6 +115,9 @@ Notes:
   you must set bias, readNoise and ccdGain correctly for your image.
 
 Function call:
-doFindStars(filename=None); if you omit filename then the current im is used
+doFindStars(imName=None, maskName=None)
+where:
+- imName is the file name of a fits image; if omitted then the current im array is used
+- maskName is the file name of a fits mask; if omitted then the current mask array is used
 """
 

@@ -58,6 +58,7 @@ History:
 2004-10-15 ROwen	No longer warns if RO.DS9 absent (unless you use the ds9 flag).
 2005-02-07 ROwen	Modified to use x,y position convention defined by
 					PyGuide.Constants.PosMinusIndex.
+2005-03-29 ROwen	Bug fix: mis-displayed masked data in ds9.
 """
 __all__ = ['findStars']
 
@@ -143,7 +144,7 @@ def findStars(
 				ds9Win.xpaset("tile frames")
 				ds9Win.xpaset("frame 1")
 				if mask != None:
-					ds9Win.showArray(data * (1-mask))
+					ds9Win.showArray(data * mask)
 				else:
 					ds9Win.showArray(data)
 				ds9Win.xpaset("frame 2")
