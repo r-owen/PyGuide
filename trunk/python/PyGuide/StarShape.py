@@ -76,14 +76,16 @@ History:
 2004-12-01 ROwen	Modified StarShapeData to use NaN as the default for each argument.
 					Added __all__.
 2005-02-07 ROwen	Changed starShape argument ctr (i,) to xyCtr.
-2005-04-01 ROwen	Changed starShape argument predFWHM to rad.
-					The data is now constrained to this rad.
+2005-04-01 ROwen	Added required argument rad and optional argument bkgnd.
+					No longer iterate the fit with an updated predFWHM because
+					it doesn't seem to help when the data radius is fixed.
 					Added constant _MinRad to constrain the minimum radius.
 """
 __all__ = ["StarShapeData", "starShape"]
 
 import math
 import numarray as num
+import numarray.ma
 import radProf as RP
 from Constants import FWHMPerSigma, NaN
 import ImUtil
@@ -93,7 +95,7 @@ _MinRad = 3.0
 
 # range of FWHM that is explored
 _FWHMMin = 1.0
-_FWHMMax = 20.0
+_FWHMMax = 30.0
 _FWHMDelta = 0.25
 
 # constants that may want to be ditched
@@ -130,6 +132,8 @@ def starShape(
 	mask,
 	xyCtr,
 	rad,
+	bkgnd = None,
+	predFWHM = None,
 ):
 	"""Fit a double gaussian profile to a star
 	
@@ -138,10 +142,19 @@ def starShape(
 	- mask		a numarray boolean array, or None if no mask (all data valid).
 				If supplied, mask must be the same shape as data
 				and elements are True for masked (invalid data).
+	- med		median (used as the background)
 	- xyCtr		x,y center of star; use the convention specified by
 				PyGuide.Constants.PosMinusIndex
 	- rad		radius of data to fit (pixels);
 				values less than _MinRad are treated as _MinRad
+	- bkgnd	the background level, e.g. the median. if omitted then starShape fits it.
+				Supplying the median typically gives better results than having starShape
+				fit the background, especially if the radius is small
+				compared to the FWHM or much of the region is masked out.
+	- predFWHM	predicted FWHM; if omitted then rad/2 is used.
+				You can usually omit this because the final results are not very sensitive
+				to predFWHM. However, if the predicted FWHM is much too small
+				then starShape may fail or give bad results.
 	"""
 	if _StarShapeDebug:
 		print "starShape: data[%s,%s]; xyCtr=%.2f, %.2f; rad=%.1f" % \
@@ -166,8 +179,9 @@ def starShape(
 	RP.radProf(data, mask, ijCtrInd, rad, radProf, var, nPts)
 	
 	# fit data
-	predFWHM = float(rad)
-	gsData = _fitRadProfile(radProf, var, nPts, predFWHM)
+	if predFWHM == None:
+		predFWHM = float(rad)
+	gsData = _fitRadProfile(radProf, var, nPts, bkgnd, predFWHM)
 	if _StarShapeDebug:
 		print "starShape: predFWHM=%.1f; ampl=%.1f; fwhm=%.1f; bkgnd=%.1f; chiSq=%.2f" % \
 			(predFWHM, gsData.ampl, gsData.fwhm, gsData.bkgnd, gsData.chiSq)
@@ -197,7 +211,7 @@ if _StarShapeDebug:
 	print "_WPArr =", _WPArr
 
 	
-def _fitRadProfile(radProf, var, nPts, predFWHM):
+def _fitRadProfile(radProf, var, nPts, bkgnd, predFWHM):
 	"""Fit in profile space to determine the width,	amplitude, and background.
 	Returns the sum square error.
 	
@@ -205,6 +219,8 @@ def _fitRadProfile(radProf, var, nPts, predFWHM):
 	- radProf	radial profile around center pixel by radial index
 	- var		variance as a function of radius
 	- nPts		number of points contributing to profile by radial index
+	- bkgnd	the background level, e.g. the median. if omitted then
+				starShape tries to fit it
 	- predFWHM	predicted FWHM
 	
 	Returns a StarShapeData object
@@ -253,7 +269,7 @@ def _fitRadProfile(radProf, var, nPts, predFWHM):
 		wp = _WPArr[wpInd]
 		
 		# fit data
-		ampl, bkgnd, chiSq, seeProf = _fitIter(radProf, nPts, radWeight, radSq, sumNPts, sumRadProf, seeProf, wp)
+		ampl, bkgnd, chiSq, seeProf = _fitIter(radProf, nPts, radWeight, radSq, sumNPts, sumRadProf, seeProf, wp, bkgnd)
 		chiSqByWPInd[wpInd] = chiSq
 
 		if iterNum == 0:
@@ -291,7 +307,7 @@ def _fitRadProfile(radProf, var, nPts, predFWHM):
 	wpMin = _wpFromFWHM(fwhmMin)
 			
 	# compute final answers at wpMin
-	ampl, bkgnd, chiSq, seeProf = _fitIter(radProf, nPts, radWeight, radSq, sumNPts, sumRadProf, seeProf, wpMin)
+	ampl, bkgnd, chiSq, seeProf = _fitIter(radProf, nPts, radWeight, radSq, sumNPts, sumRadProf, seeProf, wpMin, bkgnd)
 			
 	if _FitRadProfDebug:
 		print "_fitRadProfile: wpInd=%s; iterNum=%s" % (wpInd, iterNum)
@@ -313,7 +329,7 @@ def _fitRadProfile(radProf, var, nPts, predFWHM):
 	)
 
 
-def _fitIter(radProf, nPts, radWeight, radSq, sumNPts, sumRadProf, seeProf, wp):
+def _fitIter(radProf, nPts, radWeight, radSq, sumNPts, sumRadProf, seeProf, wp, bkgnd):
 	# compute the seeing profile for the specified width parameter
 	seeProf = _seeProf(radSq, wp, seeProf)
 	
@@ -333,7 +349,8 @@ def _fitIter(radProf, nPts, radWeight, radSq, sumNPts, sumRadProf, seeProf, wp):
 	try:
 		disc = (sumNPts * sumSeeProfSq) - sumSeeProf**2
 		ampl  = ((sumNPts * sumSeeProfRadProf) - (sumRadProf * sumSeeProf)) / disc
-		bkgnd = ((sumSeeProfSq * sumRadProf) - (sumSeeProf * sumSeeProfRadProf)) / disc
+		if bkgnd == None:
+			bkgnd = ((sumSeeProfSq * sumRadProf) - (sumSeeProf * sumSeeProfRadProf)) / disc
 		# diff is the weighted difference between the data and the model
 		diff = radProf - (ampl * seeProf) - bkgnd
 		chiSq = num.sum(radWeight * diff**2) / sumNPts
