@@ -1,0 +1,67 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+
+<html lang="en">
+<head>
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+	<title>PyGuide Version History</title>
+	<meta name="generator" content="Pepper">
+	<meta name="author" content="Russell Owen">
+	<!-- Date:		 Monday February 07 2005 -->
+</head>
+<body>
+
+<h1>PyGuide Version History</h1>
+
+<h2>1.2prerelease 2005-02-07</h2>
+
+<p>Modified the main routines (listed below) to use x,y position instead of i,j array index-based position. x,y position has the axes swapped and a zero point defined by PyGuide.Constants.PosMinusIndex and thus can be adjusted. By default PyGuide.Constants.PosMinusIndex=0.5, meaning:
+<ul>
+	<li>(0,0) is the lower edge of the image,
+	<li>(0.5, 0.5) is the center of the corner pixel.
+	<li>(M,N) is the upper edge of an MxN image.
+</ul>
+
+<p>As a result, the following routines have modified arguments and the first two also have modified return data:
+<ul>
+	<li> findStars
+	<li> centroid
+	<li> starShape
+	<li> FakeData.fakeStar
+	<li> ImUtil.subFrameCtr
+</ul>
+
+<p>Added coordinate conversion routines to ImUtil to convert between i,j position, x,y position and ds9 position.
+
+<h2>1.1.1 2005-01-31</h2>
+
+<p>Bug fixes:
+<ul>
+	<li>FakeData.py had __all__ == instead of __all__ =.
+</ul>
+
+<h2>1.1 2004-12-01</h2>
+
+<p>Visible Changes:
+<ul>
+	<li>doFindStars:
+	<ul>
+		<li>Renamed function from starUtil to doFindStars to match module name.
+		<li>Replaced arguments with globals to make it easier to change settings.
+	</ul>
+	<li>Constants: added NaN
+	<li>StarShape: StarShapeData: made NaN the default for all arguments.
+</ul>
+
+Bug fixes:
+- doFindStars: if starShape failed, crashed trying to set starData.
+
+Internal Changes:
+- Added __all__ to StarShape.py, ImUtil.py, FakeData.py
+
+
+<h2>1.0 2004-10-22</h2>
+
+<p>First public release.
+
+</body>
+</html>
