@@ -10,6 +10,7 @@ History:
 2005-02-07 ROwen	Modified for PyGuide 1.2.
 2005-04-01 ROwen	Modified for new StarShape; modified to print statistics.
 2005-04-04 ROwen	Modified for fixed StarShape.
+2005-04-05 ROwen	Modified to show failed cases (with NaN for the shape data).
 """
 import numarray as num
 import numarray.random_array as num_random
@@ -127,6 +128,10 @@ for fitBkgnd in (False, True):
 						bkgndStats.append(bkgndErr)
 						
 					except RuntimeError, e:
+						print "%.1f	%.1f	%.1f	%.2f	%.2f	%.2f	NaN	NaN	NaN	NaN	NaN	NaN	NaN" % (
+							fwhm, ampl, bkgnd,
+							xyCtr[0], xyCtr[1], maskWidth,
+						)
 						nBad += 1
 	
 	print

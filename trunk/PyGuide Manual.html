@@ -94,7 +94,7 @@
 
 <h3><a name="Coordinates"></a>Coordinate Systems</h3>
 
-<p>PyGuide uses x to mean the rows of a CCD (parallel to the shift register) and y the columns. Also:
+<p>PyGuide uses x to mean the rows of a CCD (parallel to the shift register) and y the columns. Also, by default:
 <ul>
 	<li>The center of the lower-left corner pixel has xy position (0.5, 0.5), and thus:
 	<li>The lower-left edge of the image has xy position (0,0)
@@ -102,13 +102,11 @@
 	<li>The center of an MxN image has xy position (M/2.0, N/2.0)
 </ul>
 
-<p>Another common convention is that used by iraf and ds9: the center of the lower left pixel is (1.0, 1.0) and the lower left corner of the image is (0.5, 0.5). PyGuide.ImUtil includes converters between ds9 position and xy position: ds9PosFromXYPos and xyPosFromDS9Pos.
+<p>Another common convention is that used by iraf and ds9: the center of the lower left pixel is (1.0, 1.0) and the lower left corner of the image is (0.5, 0.5). PyGuide.ImUtil includes converters between ds9 position and xy position: ds9PosFromXYPos and xyPosFromDS9Pos. In addition, if you really dislike the zero-point convention for xy position, you can change it. The zero point is defined by PyGuide.Constants.PosMinusIndex: the difference between the position of the center of a pixel and the zero-based index of that pixel. To modify PosMinusIndex, edit PyGuide/python/PyGuide/Constants.py and reinstall the software. PyGuide ships with PosMinusIndex = 0.5; to use the ds9 convention, change it to 1.0.
 
 <p>In addition to xy position, PyGuide internally makes use of ij position, the natural units for numarray arrays. Rounding ij position to the nearest integer gives the array index of the pixel containing that position. The main reason for ij position is because numarray swaps indices (just like C): the x axis is the second axis of a numarray array. Thus conversion between ij and xy position involves swapping axes and a small offset.
 
-<p>PyGuide.ImUtil offers routines to convert between xy position, ij position and ij index. If you are doing any array manipulation in your own code, you will probably find these very useful.
-
-<p>Note: if you really dislike the zero-point convention for xy position, you can change it. The zero point is defined by PyGuide.Constants.PosMinusIndex: the difference between the position of the center of a pixel and the zero-based index of that pixel. To modify PosMinusIndex, edit PyGuide/python/PyGuide/Constants.py and reinstall the software. PyGuide ships with PosMinusIndex = 0.5; to use the ds9 convention, change it to 1.0.
+<p>PyGuide.ImUtil offers routines to convert between ds9 position, xy position, ij position and ij index. If you are doing any array manipulation in your own code, you will probably find these very useful.
 
 <h3><a name="Limitations"></a>Limitations</h3>
 
