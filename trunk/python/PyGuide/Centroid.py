@@ -61,6 +61,7 @@ History:
 2005-03-31 ROwen	Improved debug output and the efficiency of the "walked too far" test.
 					Noted that rad in CentroidData is integer.
 2005-04-01 ROwen	Modified to use round to round the radius instead of adding 0.5 and truncating.
+2005-04-11 CLoomis	Added ds9 flag (as per FindStars).
 """
 __all__ = ['centroid']
 
@@ -68,7 +69,18 @@ import math
 import numarray as num
 import numarray.nd_image as nd_im
 import radProf
+import Constants
 import ImUtil
+try:
+	import RO.DS9
+except ImportError:
+	print 'warning: RO.DS9 not available; cannot use ds9 flag'
+
+def _fmtList(alist):
+	"""Return "alist[0], alist[1], ..."
+	"""
+	return str(alist)[1:-1]
+
 
 # minimum radius
 _MinRad = 3.0
@@ -131,6 +143,7 @@ def centroid(
 	bias,
 	readNoise,
 	ccdGain,
+	ds9 = False,
 ):
 	"""Compute a centroid.
 
@@ -167,6 +180,33 @@ def centroid(
 	ijIndGuess = ImUtil.ijIndFromXYPos(xyGuess)
 	rad = int(round(max(rad, _MinRad)))
 	
+	if ds9:
+		if "RO" not in globals():
+			print 'RO.DS9 not available; ignoring ds9 flag'
+			ds9Win = None
+		else:
+			# if not already available, open new DS9 window
+			try:
+				ds9Win = RO.DS9.DS9Win(Constants.DS9Title)
+				ds9Win.xpaset("frame 1")
+				if mask != None:
+					ds9Win.showArray(data * (1-mask))
+				else:
+					ds9Win.showArray(data)
+				ds9Win.xpaset("frame 2")
+				ds9Win.showArray(data)
+				ds9Win.xpaset("frame 1")
+			except RuntimeError, e:
+				print "Error communicating with ds9: %s" % (e,)
+				ds9Win = None
+	else:
+		ds9Win = None
+
+	if ds9Win:
+		# display circle showing the centroider input
+		args = list(xyGuess) + [rad]
+		ds9Win.xpaset("regions", "image; circle %s # group=ctrcirc" % _fmtList(args))
+
 	# OK, use this as first guess at maximum. Extract radial profiles in
 	# a 3x3 gridlet about this, and walk to find minimum fitting error
 	maxi, maxj = ijIndGuess
@@ -257,6 +297,11 @@ def centroid(
 	radAsymmSigma = asymmArr[1,1]
 	iErr = math.sqrt(radAsymmSigma / ai)
 	jErr = math.sqrt(radAsymmSigma / aj)
+
+	if ds9Win:
+		# display x at centroid
+		ds9Win.xpaset("regions", "image; x point %s # group=centroid" % \
+			      _fmtList(xyCtr))
 
 	return CentroidData(
 		xyCtr = xyCtr,

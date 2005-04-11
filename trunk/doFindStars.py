@@ -17,6 +17,7 @@ History:
 					Added showDef() method to display current defaults.
 					Modified global vars so im, not d, is the image array.
 2005-04-01 ROwen	Updated for modified FindStars and StarShape.
+2005-04-11 ROwen	Modified to use PyGuide.Constants.DS9Title.
 """
 import numarray as num
 import PyGuide
@@ -41,7 +42,7 @@ verbosity = 1
 ds9 = True
 
 # set up a ds9 window
-ds9Win = RO.DS9.DS9Win(PyGuide.FindStars._DS9Title)
+ds9Win = RO.DS9.DS9Win(PyGuide.Constants.DS9Title)
 
 ParamNames = ("bias", "readNoise", "ccdGain", "dataCut", "radMult", "satLevel", "verbosity", "ds9")
 

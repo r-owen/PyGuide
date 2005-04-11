@@ -23,3 +23,5 @@ PosMinusIndex = 0.5
 # Constants (do not touch)
 FWHMPerSigma = 2 * math.sqrt(2 * math.log(2))
 NaN = float("nan")
+
+DS9Title = "PyGuide"

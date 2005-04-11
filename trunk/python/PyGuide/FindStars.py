@@ -55,6 +55,7 @@ History:
 					if verbosity>=2 (and dS9 true), else no frame 3.
 					Bug fix: error in star data output when verbosity >= 2.
 2005-04-01 ROwen	Modified to return the median of the unmasked data.
+2005-04-11 ROwen	Modified to use Constants.DS9Title.
 """
 __all__ = ['findStars']
 
@@ -62,12 +63,12 @@ import numarray as num
 import numarray.nd_image
 import numarray.ma
 import Centroid
+import Constants
 import ImUtil
 try:
 	import RO.DS9
 except ImportError:
 	pass
-_DS9Title = "FindStars"
 
 def _fmtList(alist):
 	"""Return "alist[0], alist[1], ..."
@@ -106,7 +107,8 @@ def findStars(
 				cut level = median + dataCut * standard deviation
 	- satLevel	The value at or above which a pixel is considered saturated (ADU)
 	- radMult	centroid radius = radMult * max(box x rad, box y rad)
-	- verbosity	0: no output, 1: print warnings, 2: print information
+	- verbosity	0: no output, 1: print warnings, 2: print information and
+				(if ds9 true) show smoothed image in ds9 frame 3.
 	- ds9		if True, shows current image and other info in ds9 in current frame.
 				For this to work, you must have the RO package installed.
 	
@@ -135,9 +137,9 @@ def findStars(
 		if "RO" not in globals():
 			print 'RO.DS9 not available; ignoring ds9 flag'
 		else:
-			# if not already available, open new DS9 with specified template
+			# if not already available, open new DS9 window
 			try:
-				ds9Win = RO.DS9.DS9Win(_DS9Title)
+				ds9Win = RO.DS9.DS9Win(Constants.DS9Title)
 				ds9Win.xpaset("tile frames")
 				ds9Win.xpaset("frame 1")
 				if mask != None:
