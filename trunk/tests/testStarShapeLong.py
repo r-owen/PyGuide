@@ -11,6 +11,7 @@ History:
 2005-04-01 ROwen	Modified for new StarShape; modified to print statistics.
 2005-04-04 ROwen	Modified for fixed StarShape.
 2005-04-05 ROwen	Modified to show failed cases (with NaN for the shape data).
+2005-04-06 ROwen	Removed unnecessary float("NaN").
 """
 import numarray as num
 import numarray.random_array as num_random
@@ -27,7 +28,6 @@ Bias = 2176		# image bias, in ADU
 imShape = (ImWidth, ImWidth)
 nomCtr = (ImWidth // 2, ImWidth // 2)
 mask = num.zeros(imShape, num.Bool)
-NaN = float("NaN")
 
 # settings
 AmplValues = (100, 1000, 10000)
