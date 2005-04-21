@@ -8,11 +8,21 @@
 
 <h1>PyGuide Version History</h1>
 
-<h2>1.3 prerelease 2005-04-05</h2>
+<h2>1.3 prerelease 2005-04-15</h2>
 
-<p>Improved starShape. One must now must specify the radius of the data to explore. One may also specify the background level (e.g. the median) if you prefer not to have starShape fit it.
+<p>Incompatible changes:
 
-<p>Modified findStars to also return the median of the unmasked data. This makes it easy to specify the median as the background for starShape.
+<ul>
+	<li>findStars returns the median of the unmasked data. This makes it practical to estimate signal to noise ratio for centroided stars. Warning: I will probably modify it to return std dev, as well.
+
+	<li>starShape now requires that you specify the radius of the data to explore. One may also specify the background level (e.g. the median) if you prefer not to have starShape fit it. However, in practice that does not seem to help, so this feature may be eliminated.
+</ul>
+
+<p>Other changes:
+
+<ul>
+	<li>starShape is more reliable about fitting images that look as if they ought to be fittable. Warning: further work is wanted this area. Meanwhile, chiSq is not even remotedly normalized.
+</ul>
 
 <h2>1.2.1 2005-03-31</h2>
 
