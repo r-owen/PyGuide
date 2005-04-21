@@ -81,6 +81,8 @@ History:
 					it doesn't seem to help when the data radius is fixed.
 					Added constant _MinRad to constrain the minimum radius.
 2005-04-04 ROwen	Bug fix: mis-handled case of bkgnd not specified.
+2005-04-15 ROwen	Temporarily hacked the weighting function to see if it makes things better.
+					Added pylab (matplotlib) debugging graphs.
 """
 __all__ = ["StarShapeData", "starShape"]
 
@@ -106,6 +108,7 @@ _DMax = 4096
 _StarShapeDebug = False
 _FitRadProfDebug = False
 _FitRadProfIterDebug = False
+_StarShapePyLab = False
 
 class StarShapeData:
 	"""Guide star fit data
@@ -178,6 +181,15 @@ def starShape(
 	var = num.zeros([radIndArrLen], num.Float32)
 	nPts = num.zeros([radIndArrLen], num.Long)
 	RP.radProf(data, mask, ijCtrInd, rad, radProf, var, nPts)
+	
+	if _StarShapePyLab:
+		global pylab
+		import pylab
+		pylab.close()
+		pylab.subplot(3,1,1)
+		pylab.plot(radProf)
+		pylab.subplot(3,1,2)
+		pylab.plot(nPts)
 	
 	# fit data
 	if predFWHM == None:
@@ -256,9 +268,16 @@ def _fitRadProfile(radProf, var, nPts, givenBkgnd, predFWHM):
 	radWeight = nPts**2 / num.where(var>0, var, 1)
 	radWeight[0] = radWeight[1]
 	
+	radWeight[:] = nPts > 0
+	
 	# compute fixed sums
 	sumNPts = num.sum(nPts)
 	sumRadProf = num.sum(nPts*radProf)
+	
+	if _StarShapePyLab:
+		pylab.subplot(3,1,3)
+		pylab.plot(radWeight)
+		pylab.subplot(3,1,1)
 	
 	# fit star shape
 	while True:
@@ -271,6 +290,9 @@ def _fitRadProfile(radProf, var, nPts, givenBkgnd, predFWHM):
 		# fit data
 		ampl, bkgnd, chiSq, seeProf = _fitIter(radProf, nPts, radWeight, radSq, sumNPts, sumRadProf, seeProf, wp, givenBkgnd)
 		chiSqByWPInd[wpInd] = chiSq
+		
+		if _StarShapePyLab:
+			pylab.plot((ampl * seeProf) + bkgnd)
 
 		if iterNum == 0:
 			wpInd += direc
@@ -327,7 +349,6 @@ def _fitRadProfile(radProf, var, nPts, givenBkgnd, predFWHM):
 		bkgnd = bkgnd,
 		chiSq = chiSq,
 	)
-
 
 def _fitIter(radProf, nPts, radWeight, radSq, sumNPts, sumRadProf, seeProf, wp, givenBkgnd):
 	# compute the seeing profile for the specified width parameter
@@ -417,16 +438,19 @@ def _seeProf(radSq, wp, seeProf=None):
 	"""
 	norm = float(_DMax)/1.1
 	
-	# create the output array, if necessary
-	if seeProf == None:
-		seeProf = num.zeros([len(radSq)], num.Int)
-
-	# compute seeprofile; the index is radial index
-	for ind in range(len(radSq)):
-		rsq = radSq[ind]
-		x = -0.5 * rsq * wp
-		seeProf[ind] = int(norm*(math.exp(x) + 0.1*math.exp(0.25*x)) + 0.5)
+#	# create the output array, if necessary
+#	if seeProf == None:
+#		seeProf = num.zeros([len(radSq)], num.Int)
+#
+#	# compute seeprofile; the index is radial index
+#	for ind in range(len(radSq)):
+#		rsq = radSq[ind]
+#		x = -0.5 * rsq * wp
+#		seeProf[ind] = int(norm*(math.exp(x) + 0.1*math.exp(0.25*x)) + 0.5)
 	
+	x = radSq * (-0.5 * wp)
+	seeProf = ((num.exp(x) + 0.1*num.exp(0.25*x)) * norm + 0.5).astype(num.Int32)
+
 	return seeProf
 
 _WPArr = _makeWPArr()
