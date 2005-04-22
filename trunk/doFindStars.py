@@ -18,6 +18,7 @@ History:
 					Modified global vars so im, not d, is the image array.
 2005-04-01 ROwen	Updated for modified FindStars and StarShape.
 2005-04-11 ROwen	Modified to use PyGuide.Constants.DS9Title.
+2005-04-22 ROwen	Added support for the rad argument.
 """
 import numarray as num
 import PyGuide
@@ -37,6 +38,7 @@ ccdGain = 1.643 # e-/pixel
 # these are general settings
 dataCut = 3.0
 radMult = 1.0
+rad = None
 satLevel = 2**16
 verbosity = 1
 ds9 = True
@@ -44,7 +46,7 @@ ds9 = True
 # set up a ds9 window
 ds9Win = RO.DS9.DS9Win(PyGuide.Constants.DS9Title)
 
-ParamNames = ("bias", "readNoise", "ccdGain", "dataCut", "radMult", "satLevel", "verbosity", "ds9")
+ParamNames = ("bias", "readNoise", "ccdGain", "dataCut", "radMult", "rad", "satLevel", "verbosity", "ds9")
 
 def doFindStars(
 	imName = None,
