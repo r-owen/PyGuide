@@ -56,6 +56,7 @@ History:
 					Bug fix: error in star data output when verbosity >= 2.
 2005-04-01 ROwen	Modified to return the median of the unmasked data.
 2005-04-11 ROwen	Modified to use Constants.DS9Title.
+2005-04-22 ROwen	Added rad argument (overrides radMult).
 """
 __all__ = ['findStars']
 
@@ -91,6 +92,7 @@ def findStars(
 	dataCut = 3.0,
 	satLevel = 2**16,
 	radMult = 1.0,
+	rad = None,
 	verbosity = 1,
 	ds9 = False,
 ):
@@ -106,7 +108,9 @@ def findStars(
 	- dataCut	determines the point above which pixels are considered data;
 				cut level = median + dataCut * standard deviation
 	- satLevel	The value at or above which a pixel is considered saturated (ADU)
-	- radMult	centroid radius = radMult * max(box x rad, box y rad)
+	- radMult	centroid radius = radMult * max(box x rad, box y rad);
+				ignored if rad specified
+	- rad		centroid radius; if specified, overrides radMult
 	- verbosity	0: no output, 1: print warnings, 2: print information and
 				(if ds9 true) show smoothed image in ds9 frame 3.
 	- ds9		if True, shows current image and other info in ds9 in current frame.
@@ -202,7 +206,8 @@ def findStars(
 			continue
 		
 		# region appears to be valid; centroid it
-		rad = max(ijSize[0], ijSize[1]) * radMult / 2.0
+		if rad == None:
+			rad = max(ijSize[0], ijSize[1]) * radMult / 2.0
 		if ds9Win:
 			ds9BoxCtr = ImUtil.ds9PosFromXYPos(xyCtrGuess)
 			# display box from find_objects

@@ -8,12 +8,14 @@
 
 <h1>PyGuide Version History</h1>
 
-<h2>1.3 prerelease 2005-04-15</h2>
+<h2>1.3 prerelease 2005-04-22</h2>
 
 <p>Incompatible changes:
 
 <ul>
 	<li>findStars returns the median of the unmasked data. This makes it practical to estimate signal to noise ratio for centroided stars. Warning: I will probably modify it to return std dev, as well.
+	
+	<li>findStars: added rad argument (if specified, overrides radMult).
 
 	<li>starShape now requires that you specify the radius of the data to explore. One may also specify the background level (e.g. the median) if you prefer not to have starShape fit it. However, in practice that does not seem to help, so this feature may be eliminated.
 </ul>

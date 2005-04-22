@@ -83,6 +83,9 @@ History:
 2005-04-04 ROwen	Bug fix: mis-handled case of bkgnd not specified.
 2005-04-15 ROwen	Temporarily hacked the weighting function to see if it makes things better.
 					Added pylab (matplotlib) debugging graphs.
+2005-04-22 ROwen	Modified to use nPts as the weighting function.
+					This seems to work slightly better than nPts > 1
+					and just as well as a combination of nPts and a very crude estimate of S/N.
 """
 __all__ = ["StarShapeData", "starShape"]
 
@@ -265,10 +268,26 @@ def _fitRadProfile(radProf, var, nPts, givenBkgnd, predFWHM):
 	# sigma = var/nPts (this is the error in estimating the mean)
 	# note that var[0] is unknown,
 	# so fudge it by setting radWeight[0] = radWeight[1]
-	radWeight = nPts**2 / num.where(var>0, var, 1)
-	radWeight[0] = radWeight[1]
+# this radial weight did not work out well
+# some normal-looking stars could not be fit
+#	radWeight = nPts**2 / num.where(var>0, var, 1)
+#	radWeight[0] = radWeight[1]
 	
-	radWeight[:] = nPts > 0
+# this radial weight seems to work pretty well
+#	radWeight = nPts > 0
+#	radWeight = radWeight.asType(num.Long)
+
+# this radial weight is the one used by Jim Gunn
+# it seems to produce results very similar to radWeight = nPts>0
+	radWeight = nPts
+
+# this is an approximation to sqrt(n) s/n
+# it seems to produce results very similar to radWeight = nPts>0
+#	estBkgnd = radProf[-1]
+#	radWeight = num.sqrt(nPts) * radProf / estBkgnd
+
+# but what radial weight really makes sense from a signal/noise consideration?
+# and how can one normalize the resulting chiSq?
 	
 	# compute fixed sums
 	sumNPts = num.sum(nPts)
