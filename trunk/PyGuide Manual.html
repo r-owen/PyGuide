@@ -84,12 +84,17 @@
 
 <ul>
 	<li>Specify realistic bias, read noise and ccd gain. In particular, if the bias is too large (e.g. larger than the background of the image), you'll get NaN for the centroid error estimate and nonsense for the centroid.
+
 	<li>If you are centroiding a slit image or other partially obscured image:
 	<ul>
 		<li>Specify a good <a href=#Masks">mask</a>. It must be big enough to include the transitional area of the slit (where the light is partially dimmed).
+
 		<li>Use a radius large enough to include the whole star. This is crucial with a slit viewer, because the star will usually be seen as two blobs (one on either side of the slit), and if the radius is too small, the centroider will jump to the center of one of those blobs.
 	</ul>
+
 	<li>Do not try to centroid on a star that has nearby bright neighbors. You must be especially careful of this if your star will be partially obscured, because the relative brightness of the neighbors increases as the main star's light is lost.
+
+	<li>centroid may return a result even on plain noise. Thus you need some way to verify that you have given it usable signal. We are still working on this. We have tried rejecting stars that starShape cannot fit, but this does not work terribly well. On the other hand, findStars does a good job of distinguishing signal from noise and the approach we are working on now is to call findStars on a smallish portion of the image, and have findStars call centroid.
 </ul>
 
 <h3><a name="Coordinates"></a>Coordinate Systems</h3>
@@ -112,6 +117,7 @@
 
 <ul>
 	<li>PyGuide.centroid's error estimate tend to over-estimate the error (but not in a sufficiently predictable fashion to be trivially fixed). You can see my test results at PyGuide/tests/test results/testCentroidLong <i>date</i>.txt
+	<li>PyGuide.centroid seems capable of returning a "centroid" on plain noise. To be safe, verify that you are sending it a decent signal.
 	<li>PyGuide.centroid's measure of asymmetry is not well normalized, so it is unlikely to be useful outside of the centroider. This measure tends to get large for bright objects that are mostly masked off.
 	<li>PyGuide.starShape assumes a symmetrical star, and so does not fit ellipticity.
 	<li>PyGuide in general does not deal with dark current. As long as dark current is not a dominant source of noise this should be acceptable.
