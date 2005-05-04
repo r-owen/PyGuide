@@ -13,7 +13,10 @@ History:
 2005-04-05 ROwen	Modified to show failed cases (with NaN for the shape data).
 2005-04-06 ROwen	Removed unnecessary float("NaN").
 2005-04-25 ROwen	Modified for new starShape (now always fit background).
+2005-04-29 ROwen	Modified to write all errors to stderr.
 """
+import sys
+import traceback
 import numarray as num
 import numarray.random_array as num_random
 import PyGuide
@@ -69,6 +72,7 @@ nBad = 0
 
 print
 print "fwhm	ampl	bg	xCtr	yCtr	maskWid	fitFWHM	fitAmpl	fitBg	chiSq	fwhmErr	amplErr	bgErr"
+bkgnd = Sky + Bias
 for ampl in AmplValues:
 	for fwhm in FWHMValues:
 		sigma = fwhm / PyGuide.FWHMPerSigma
@@ -99,9 +103,8 @@ for ampl in AmplValues:
 						data = data,
 						mask = mask,
 						xyCtr = xyCtr,
-						rad = fwhm * 2,
+						rad = fwhm * 3,
 					)
-					bkgnd = Sky + Bias
 					fwhmErr = pctErr(shapeData.fwhm, fwhm)
 					amplErr = pctErr(shapeData.ampl, ampl)
 					bkgndErr = pctErr(shapeData.bkgnd, bkgnd)
@@ -114,13 +117,21 @@ for ampl in AmplValues:
 					fwhmStats.append(fwhmErr)
 					amplStats.append(amplErr)
 					bkgndStats.append(bkgndErr)
-					
-				except RuntimeError, e:
+				
+				except (SystemExit, KeyboardInterrupt):
+					raise
+				except Exception, e:
+					sys.stderr.write("Failed on %.1f	%.1f	%.1f	%.2f	%.2f	%.2f: %s\n" % (
+						fwhm, ampl, bkgnd,
+						xyCtr[0], xyCtr[1], maskWidth,
+						e,
+					))
 					print "%.1f	%.1f	%.1f	%.2f	%.2f	%.2f	NaN	NaN	NaN	NaN	NaN	NaN	NaN" % (
 						fwhm, ampl, bkgnd,
 						xyCtr[0], xyCtr[1], maskWidth,
 					)
 					nBad += 1
+					traceback.print_exc(file=sys.stderr)
 
 print
 print "Error statistics (for %d points)" % fwhmStats.nPoints()

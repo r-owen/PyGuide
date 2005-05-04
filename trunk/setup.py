@@ -16,13 +16,14 @@ radProfExt = NumarrayExtension(
 	sources = [os.path.join(SrcDir, "RadProfModule.c")],
 )
 
-setup(name = PkgName,
-	version = "1.0",
+setup(
+	name = PkgName,
+	version = "1.3",
 	description = "support for telescope guiding",
 	author = "Russell Owen",
 #	url = "http://astro.washington.edu/owen/",
 	ext_package = PkgName,
 	ext_modules = [radProfExt],
-	package_dir = {'': PyDir},
+	package_dir = {'PyGuide': PyDir},
 	packages = [PkgName],
 )

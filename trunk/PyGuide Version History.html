@@ -8,7 +8,7 @@
 
 <h1>PyGuide Version History</h1>
 
-<h2>1.3 prerelease 2005-04-25</h2>
+<h2>1.3 prerelease 2005-05-04</h2>
 
 <p>Incompatible changes:
 
@@ -23,7 +23,13 @@
 <p>Other changes:
 
 <ul>
-	<li>starShape now uses Jim Gunn's original weighting function. This seems to give somewhat better its and fewer surprising failures (at least for the test code). However, chiSq is no longer even remotely normalized.
+	<li>starShape algorithm tweaked as described below. The net result of all these changes is that starShape appears to be pickier about what it will fit, but often seems to give a better answer for reasonable data.
+	<ul>
+		<li>Modified to use Jim Gunn's original weighting function. This seems to give somewhat better its and fewer surprising failures (at least for the test code). However, chiSq is no longer even remotely normalized.
+		<li>The initial guess has been greatly improved (at the expense of speed). It explores a wide range of possible fwhm (from 1 to rad*1.5 pixels).
+		<li>Uses Brent's method to fit. Note: the implementation of Brent's method was borrowed from scipy, but is built into PyGuide.
+	</ul>
+	<li>Moved the python source code up one level (and modifies setup.py accordingly) to make the layout more logical.
 </ul>
 
 <h2>1.2.1 2005-03-31</h2>
