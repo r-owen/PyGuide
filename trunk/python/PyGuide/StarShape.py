@@ -8,9 +8,10 @@ Uses an algorithm developed by Jim Gunn:
 plus a small contribution from a gaussian of 1/10 the amplitude
 and twice the sigma. (When we speak of sigma or fwhm we mean
 the sigma or fwhm of the main gaussian.)
-- Try different widths by walking along a table that spans
-the space fwhm = [1, 1.5, ... 20] pixels. Note that the table
-actually contains width parameter values, where wp = 1 / sigma**2.
+- Try different fwhms.
+  - Fit bkgnd and ampl at each one using linear least squares (I think).
+  - Compute a chiSq based on the actual profile - the model profile.
+  - Iterate to find the fwhm that minimizes chiSq.
 
 Note: the gaussian function is:
 C * e**-(x-xo)**2/(2 * sigma**2)
@@ -72,24 +73,21 @@ History:
 					and just as well as a combination of nPts and a very crude estimate of S/N.
 2005-04-25 ROwen	Updated doc string to state that nPts is the weighting function.
 					Removed givenBkgnd argument; it only causes trouble.
-2005-04-28 ROwen	Modified to fit using Scientific python's implementation of the
-					Levenberg-Marquardt method. Still to do: rewrite doc strings,
-					redo pylab plot of results, remove superfluous debugging constants,
-					consider using scipy instead of Scientific Python
-					(especially if it gives error estimates on parameters!),
-					and test this on the usual batch of test code
-					(which should be modified to stress the problem the old code showed)
+2005-05-03 ROwen	Modified to use Brent's method to minimize chiSq.
+					This requires a somewhat messy first pass to bracket fwhm.
+					Also ditched all use of width parameter.
 """
 __all__ = ["StarShapeData", "starShape"]
 
 import math
+import sys
+import traceback
 import numarray as num
 import numarray.ma
 import radProf as RP
 from Constants import FWHMPerSigma, NaN
 import ImUtil
-from Scientific.Functions.LeastSquares import leastSquaresFit
-import Numeric
+import FitUtil
 
 # minimum radius
 _MinRad = 3.0
@@ -98,9 +96,6 @@ _MinRad = 3.0
 _FWHMMin = 1.0
 _FWHMMax = 30.0
 _FWHMDelta = 0.25
-
-# constants that may want to be ditched
-_DMax = 4096
 
 # debugging flags
 _StarShapeDebug = False
@@ -148,10 +143,7 @@ def starShape(
 				PyGuide.Constants.PosMinusIndex
 	- rad		radius of data to fit (pixels);
 				values less than _MinRad are treated as _MinRad
-	- predFWHM	predicted FWHM; if omitted then rad is used.
-				You can usually omit this because the final results are not very sensitive
-				to predFWHM. However, if the predicted FWHM is much too small
-				then starShape may fail or give bad results.
+	- predFWHM	predicted FWHM. Ignored!
 	"""
 	if _StarShapeDebug:
 		print "starShape: data[%s,%s]; xyCtr=%.2f, %.2f; rad=%.1f" % \
@@ -175,91 +167,179 @@ def starShape(
 	nPts = num.zeros([radIndArrLen], num.Long)
 	RP.radProf(data, mask, ijCtrInd, rad, radProf, var, nPts)
 	
-	if _StarShapePyLab:
-		global pylab
-		import pylab
-		pylab.close()
-		pylab.subplot(3,1,1)
-		pylab.plot(radProf)
-		pylab.subplot(3,1,3)
-		pylab.plot(nPts)
-		pylab.subplot(3,1,1)
-	
 	# fit data
-	if predFWHM == None:
-		predFWHM = float(rad)
+	gsData = _fitRadProfile(radProf, var, nPts, rad)
+	if _StarShapeDebug:
+		print "starShape: predFWHM=%.1f; ampl=%.1f; fwhm=%.1f; bkgnd=%.1f; chiSq=%.2f" % \
+			(predFWHM, gsData.ampl, gsData.fwhm, gsData.bkgnd, gsData.chiSq)
+	
+	"""Adjust the width for the fact that the centroid
+	is not exactly on the center of a pixel
+	
+	The equivalent sigma^2 of a profile displaced by d from its center
+	is sig^2 + d^2/2, so we need to subtract d^2/2 from the sigma^2
+	of an offcenter extracted profile to get the true sigma^2.
+	Note that this correction is negligable for anything except
+	extremely compact stars.
+	"""
+	rawFWHM = gsData.fwhm
+	rawSigSq = (FWHMPerSigma * rawFWHM)**2
+	corrSigSq = rawSigSq - (0.5 * offSq)
+	gsData.fwhm = math.sqrt(corrSigSq) / FWHMPerSigma
+	
+	if _StarShapeDebug:
+		print "starShape: ijOff=%.2f, %.2f; offSq=%.2f; rawFWHM=%.3f; corrFWHM=%.3f" % \
+			(ijOff[0], ijOff[1], offSq, rawFWHM, gsData.fwhm)
 		
-	# generate data array for leastSquaresFit function
-	# each point is a tuple of:
-	# - radSq
-	# - meas(radSq)
-	# - variance of data point
-	radSq = RP.radSqByRadInd(radIndArrLen)
-	radSq = [float(rs) for rs in radSq]
-	modVar = numarray.where(var<0.5, 9.9e99, var)
-	dataArr = zip(radSq, radProf, modVar)
-	if _StarShapeDebug:
-		print "starShape dataArr=", dataArr
-	for ii in range(radIndArrLen):
-		if nPts[ii] > 0:
-			predAmpl = radProf[ii]
-			break
-	else:
-		raise ValueError("no data")
-	
-	for ii in range(radIndArrLen-1, 0-1, -1):
-		if nPts[ii] > 0:
-			predBkgnd = radProf[ii]
-			break
-	else:
-		raise ValueError("no data")
-
-	predBkgnd = radProf[-1]
-	predWP = _wpFromFWHM(predFWHM)
-	
-	predAmpl = radProf[0] - predBkgnd
-	initGuess = (predBkgnd, predAmpl, predWP)
-	if _StarShapeDebug:
-		print "starShape initGuess=", initGuess
-	(bkgnd, ampl, wp), chiSq = leastSquaresFit(_sciModel, initGuess, dataArr)
-
-	if _StarShapePyLab:
-		# plot fit profile on top of radial profile
-		pylab.subplot(3,1,1)
-		# plot fit profile on top of radial profile
-		pylab.subplot(3,1,2)
-		# plot error graph here
-		pylab.subplot(3,1,1)
-
-	gsData = StarShapeData(
-		ampl = ampl,
-		bkgnd = bkgnd,
-		fwhm = _fwhmFromWP(wp),
-		chiSq = chiSq
-	)
 	return gsData
 
-def _fwhmFromWP(wp):
-	"""Converts width parameter to fwhm in pixels.
-	wp is the width parameter: 1/sig**2
-	"""
-	return FWHMPerSigma / math.sqrt(wp)
 
-
-def _wpFromFWHM(fwhm):
-	"""Converts fwhm in pixels to width parameter in 1/pix^2 (???).
-	wp is the width parameter 1/sig^2.
-	"""
-	return (FWHMPerSigma / fwhm)**2
-
-
-def _sciModel(params, radSq):
-	"""Computes the predicted star profile for the set of parameters.
+def _fitRadProfile(radProf, var, nPts, rad):
+	"""Fit in profile space to determine the width,	amplitude, and background.
+	Returns the sum square error.
 	
 	Inputs:
-	- params	background, amplitude and width parameter
-	- radSq		radius squared
-	"""
-	bkgnd, ampl, wp = params
+	- radProf	radial profile around center pixel by radial index
+	- var		variance as a function of radius
+	- nPts		number of points contributing to profile by radial index
+	- rad		radius of data to fit (pixels)
 	
-	return bkgnd + (ampl * (Numeric.exp(-0.5 * wp * radSq) + 0.1 * Numeric.exp(-0.125 * wp * radSq)) / 1.1)
+	Returns a StarShapeData object
+	"""
+	if _FitRadProfDebug:
+		print "_fitRadProfile radProf[%s]=%s\n   nPts[%s]=%s\n   predFWHM=%r" % \
+			(len(radProf), radProf, len(nPts), nPts, predFWHM)
+
+	radSq = RP.radSqByRadInd(len(radProf))
+	totPnts = num.sum(nPts)
+	totCounts = num.sum(nPts*radProf)
+	
+	# This radial weight is the one used by Jim Gunn and it seems to do as well
+	# as anything else I tried. however, it results in a chiSq that is not normalized.
+#	radWeight = nPts
+
+	# try a simple normalization
+	meanVar = num.sum(var) / float(num.sum(nPts > 1))
+	radWeight = nPts / meanVar
+
+	if _StarShapePyLab:
+		import pylab
+		pylab.close()
+		pylab.subplot(4,1,1)
+		pylab.plot(radProf)
+		pylab.subplot(4,1,2)
+		pylab.plot(nPts)
+		pylab.subplot(4,1,3)
+		pylab.plot(radWeight)
+	
+	def myfunc(fwhm):
+		ampl, bkgnd, chiSq, seeProf = _fitIter(radProf, nPts, radWeight, radSq, totPnts, totCounts, fwhm)
+		return chiSq
+		
+	# brute-force check a lot of values to find a good starting place
+	fwhmArr = []
+	fwhm = 1.0
+	while fwhm < rad*1.5:
+		fwhmArr.append(fwhm)
+		fwhm += fwhm * 0.1
+	nTrials = len(fwhmArr)
+#	amplArr = num.zeros([nTrials], num.Float32)
+#	bkgndArr = num.zeros([nTrials], num.Float32)
+	chiSqArr = num.zeros([nTrials], num.Float32)
+	
+	minInd = 0
+	BadChiSq = 9.9e99
+	minChiSq = BadChiSq
+	
+	for ind in range(nTrials):
+		fwhm = fwhmArr[ind]
+		ampl, bkgnd, chiSq, seeProf = _fitIter(radProf, nPts, radWeight, radSq, totPnts, totCounts, fwhm)
+#		amplArr[ind] = ampl
+#		bkgndArr[ind] = bkgnd
+		chiSqArr[ind] = chiSq
+		
+		if ampl > 0 and chiSq < minChiSq:
+			minChiSq = chiSq
+			minInd = ind
+
+	if _StarShapePyLab:
+		pylab.subplot(4,1,4)
+		try:
+			pylab.plot(fwhmArr, chiSqArr)
+		except Exception:
+			pass
+
+	if minInd in (0, nTrials-1):
+		raise RuntimeError("Could not find bracketing values for fwhm")
+			
+	firstInd = max(0, minInd - 2)
+	lastInd = min(nTrials-1, minInd + 2)
+	
+	fwhmFirst = fwhmArr[firstInd]
+	fwhmMin = fwhmArr[minInd]
+	fwhmLast = fwhmArr[lastInd]
+	fwhmBracket = (fwhmFirst, fwhmMin, fwhmLast)	
+
+	fwhmMin = FitUtil.brent(myfunc, brack=fwhmBracket)
+
+	# compute final answers at fwhmMin
+	ampl, bkgnd, chiSq, seeProf = _fitIter(radProf, nPts, radWeight, radSq, totPnts, totCounts, fwhmMin)
+
+	if _StarShapePyLab:
+		pylab.subplot(4,1,1)
+		fitCurve = (seeProf * ampl) + bkgnd
+		pylab.plot(fitCurve)
+			
+	# return StarShapeData containing fit data
+	return StarShapeData(
+		ampl  = ampl,
+		fwhm = fwhmMin,
+		bkgnd = bkgnd,
+		chiSq = chiSq,
+	)
+
+def _fitIter(radProf, nPts, radWeight, radSq, totPnts, totCounts, fwhm):
+	# compute the seeing profile for the specified width parameter
+	seeProf = _seeProf(radSq, fwhm)
+	
+	# compute sums
+	nPtsSeeProf = nPts*seeProf # temporary array
+	sumSeeProf = num.sum(nPtsSeeProf)
+	sumSeeProfSq = num.sum(nPtsSeeProf*seeProf)
+	sumSeeProfRadProf = num.sum(nPtsSeeProf*radProf)
+
+	if _FitRadProfIterDebug:
+		print "_fitIter sumSeeProf=%s, sumSeeProfSq=%s, totCounts=%s, sumSeeProfRadProf=%s, totPnts=%s" % \
+			(sumSeeProf, sumSeeProfSq, totCounts, sumSeeProfRadProf, totPnts)
+
+	# compute amplitude and background
+	# using standard linear least squares fit equations
+	# (predicted value = bkgnd + ampl * seeProf)
+	try:
+		disc = (totPnts * sumSeeProfSq) - sumSeeProf**2
+		ampl  = ((totPnts * sumSeeProfRadProf) - (totCounts * sumSeeProf)) / disc
+		bkgnd = ((sumSeeProfSq * totCounts) - (sumSeeProf * sumSeeProfRadProf)) / disc
+		# diff is the weighted difference between the data and the model
+		diff = radProf - (ampl * seeProf) - bkgnd
+		chiSq = num.sum(radWeight * diff**2) / totPnts
+	except ArithmeticError, e:
+		sys.stderr.write("_fitIter failed on fwhm=%s\n" % fwhm)
+		traceback.print_exc(file=sys.stderr)
+		raise RuntimeError("Could not compute shape: %s" % e)
+
+	if _FitRadProfIterDebug:
+		print "_fitIter: ampl=%s; bkgnd=%s; fwhm=%s; chiSq=%.2f" % \
+			(ampl, bkgnd, fwhm, chiSq)
+	
+	return ampl, bkgnd, chiSq, seeProf
+
+def _seeProf(radSq, fwhm):
+	"""Computes the predicted star profile for the given width parameter.
+	
+	Inputs:
+	- radSq		array of radius squared values
+	- fwhm		desired fwhm
+	"""
+	norm = 1.0/1.1
+	x = radSq * (-0.5 * (FWHMPerSigma / fwhm)**2)
+	return (num.exp(x) + (0.1*num.exp(0.25*x))) * norm
