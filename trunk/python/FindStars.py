@@ -57,19 +57,26 @@ History:
 2005-04-01 ROwen	Modified to return the median of the unmasked data.
 2005-04-11 ROwen	Modified to use Constants.DS9Title.
 2005-04-22 ROwen	Added rad argument (overrides radMult).
+2005-05-17 ROwen	Overhauled findStars:
+					- four args were consolidated into ccdInfo
+					- renamed dataCut to thresh (to match the APO 3.5m hub)
+					- renamed ds9 to doDS9
+					- saturated stars are now centroided, and they are likely
+					  to show up first in the list, so beware!
+					- no longer returns isSaturated; the returned centroid data
+					  now includes a count of the # of saturated pixels, instead
+					- returns imStats instead of med
+					Modified to use PyGuide.Constants.MinThresh
 """
 __all__ = ['findStars']
 
+import warnings
 import numarray as num
 import numarray.nd_image
 import numarray.ma
 import Centroid
 import Constants
 import ImUtil
-try:
-	import RO.DS9
-except ImportError:
-	pass
 
 def _fmtList(alist):
 	"""Return "alist[0], alist[1], ..."
@@ -86,82 +93,85 @@ def _reversed(alist):
 def findStars(
 	data,
 	mask,
-	bias,
-	readNoise,
-	ccdGain,
-	dataCut = 3.0,
-	satLevel = 2**16,
+	ccdInfo,
+	thresh = 3.0,
 	radMult = 1.0,
 	rad = None,
 	verbosity = 1,
-	ds9 = False,
+	doDS9 = False,
 ):
 	"""Find and centroid stars.
 	
 	Inputs:
-	- data		the image data [i,j]; this is converted to UInt16 if necessary
+	- data		the image data [i,j]; this is converted to an UInt16 numarray if necessary
 	- mask		a mask [i,j] of 0's (valid data) or 1's (invalid); None if no mask.
 				If mask is specified, it must have the same shape as data.
-	- bias		ccd bias (ADU)
-	- readNoise	ccd read noise (e-)
-	- ccdGain	ccd inverse gain (e-/ADU)
-	- dataCut	determines the point above which pixels are considered data;
-				cut level = median + dataCut * standard deviation
-	- satLevel	The value at or above which a pixel is considered saturated (ADU)
+	- ccdInfo	bias, read noise, etc: a PyGuide.CCDInfo object.
+	- thresh	determines the point above which pixels are considered data;
+				valid data >= thresh * standard deviation + median
+				values less than PyGuide.Constants.MinThresh are silently increased
 	- radMult	centroid radius = radMult * max(box x rad, box y rad);
 				ignored if rad specified
 	- rad		centroid radius; if specified, overrides radMult
 	- verbosity	0: no output, 1: print warnings, 2: print information and
-				(if ds9 true) show smoothed image in ds9 frame 3.
-	- ds9		if True, shows current image and other info in ds9 in current frame.
+				(if doDS9 true) show smoothed image in ds9 frame 3.
+	- doDS9		if True, shows current image and other info in ds9 in current frame.
 				For this to work, you must have the RO package installed.
 	
 	Returns two items:
-	- isSaturated	a flag indicating whether any stars were saturated
 	- starData		a list of centroid information for unsaturated stars;
 					each element is a PyGuide.CentroidData object whose fields include:
 		- ctr		the i,j centroid (pixels)
 		- err		the predicted i,j 1-sigma error (pixels)
 		- asymm		measure of asymmetry (dimensionless)
 		(see PyGuide.CentroidData for more information)
-	- med			median of masked data
+	- imStats		median and stdDev masked data; an ImStats object
 	
 	Note: the found "stars" are not required to look star-like and so
-	are not fit to a stellar profile. This routine was designed to handle
-	spectrograph slit viewers and fiber bundles, where only a fragment
-	of a star may be visible. It also handles donut-shaped images.
+	are not fit to a stellar profile. However, if the object is not
+	circularly symmetric then the centroid it returns may not match
+	the centroid you think it should return; this is especially a worry
+	if the image has a large portion masked out.
+
+	This routine was designed to handle	spectrograph slit viewers
+	and fiber bundles, where only a fragment of a star may be visible.
+	It also handles donut-shaped images.
 	"""
+	data = num.array(data)
 	if data.type() != num.UInt16:
 		data = data.astype(num.UInt16)
 	elif not data.iscontiguous():
 		data = data.copy()
 	maskedData = num.ma.array(data, mask=mask)
 	
-	if ds9:
-		if "RO" not in globals():
-			print 'RO.DS9 not available; ignoring ds9 flag'
-		else:
-			# if not already available, open new DS9 window
-			try:
-				ds9Win = RO.DS9.DS9Win(Constants.DS9Title)
-				ds9Win.xpaset("tile frames")
-				ds9Win.xpaset("frame 1")
-				if mask != None:
-					ds9Win.showArray(data * (mask==0))
-				else:
-					ds9Win.showArray(data)
-				ds9Win.xpaset("frame 2")
-				ds9Win.showArray(data)
-				ds9Win.xpaset("frame 1")
-			except RuntimeError, e:
-				print "Error communicating with ds9: %s" % (e,)
-				ds9Win = None
+	thresh = max(Constants.MinThresh, float(thresh))
+	
+	if doDS9:
+		ds9Win = ImUtil.openDS9Win()
 	else:
 		ds9Win = None
-	
-	isSaturated = False
-	
+			
+	if ds9Win:
+		# show masked data in frame 1 and unmasked data in frame 2
+		ds9Win.xpaset("tile frames")
+		ds9Win.xpaset("frame 1")
+		if mask != None:
+			ds9Win.showArray(data * (mask==0))
+		else:
+			ds9Win.showArray(data)
+		ds9Win.xpaset("frame 2")
+		ds9Win.showArray(data)
+		ds9Win.xpaset("frame 1")
+		
 	med, stdDev = ImUtil.skyStats(maskedData)
+	dataCut = med + (thresh * stdDev)
+
+	imStats = Centroid.ImStats(
+		thresh = thresh,
+		med = med,
+		stdDev = stdDev,
+		dataCut = dataCut,
+	)
 
 	# get a copy with the median used to fill in masked areas
 	# and apply a filter to get rid of speckle
@@ -173,11 +183,8 @@ def findStars(
 		ds9Win.xpaset("frame 1")
 	
 	# look for points larger than median + dataCut * stdDev
-	dataCut = med + (dataCut * stdDev)
 	shapeArry = num.ones((3,3))
 	labels, numElts = num.nd_image.label(smoothedData>dataCut, shapeArry)
-
-		
 	smoothedData = None # release the storage
 	if verbosity >= 2:
 		print "findStars found %s possible stars above dataCut=%s" % (numElts, dataCut)
@@ -185,10 +192,9 @@ def findStars(
 	# examine the candidate stars and compute centroids
 	countsCentroidList = []
 	slices = num.nd_image.find_objects(labels)
-	for ind in range(len(slices)):
-		ijSlc = slices[ind]
-		ijSize = [slc.stop - slc.start for slc in ijSlc]
-		ijCtrInd = [(slc.stop + slc.start) / 2.0 for slc in ijSlc]
+	for ijSlice in slices:
+		ijSize = [slc.stop - slc.start for slc in ijSlice]
+		ijCtrInd = [(slc.stop + slc.start) / 2.0 for slc in ijSlice]
 		xyCtrGuess = ImUtil.xyPosFromIJPos(ijCtrInd)
 		
 		# reject regions only 1 pixel tall or wide
@@ -196,13 +202,6 @@ def findStars(
 			# object is too small to be of interest
 			if verbosity >= 1:
 				print "findStars warning: candidate star at %s is too small; size=%s" % (xyCtrGuess, ijSize)
-			continue
-		
-		# reject saturated regions and set isSaturated flag
-		if num.nd_image.maximum(data, labels, ind) >= satLevel:
-			isSaturated = True
-			if verbosity >= 1:
-				print "findStars warning: candidate star at %s is saturated" % (xyCtrGuess,)
 			continue
 		
 		# region appears to be valid; centroid it
@@ -216,22 +215,22 @@ def findStars(
 			# display circle showing the centroider input
 			args = ds9BoxCtr + [rad]
 			ds9Win.xpaset("regions", "image; circle %s # group=ctrcirc" % _fmtList(args))
-		try:
-			if verbosity >= 2:
-				print "findStars centroid at %s with rad=%s" % (xyCtrGuess, rad)
-			ctrData = Centroid.centroid(
-				data = data,
-				mask = mask,
-				xyGuess = xyCtrGuess,
-				rad = rad,
-				bias = bias,
-				readNoise = readNoise,
-				ccdGain = ccdGain,
-			)
-		except RuntimeError, e:
+
+		if verbosity >= 2:
+			print "findStars centroid at %s with rad=%s" % (xyCtrGuess, rad)
+		ctrData = Centroid.basicCentroid(
+			data = data,
+			mask = mask,
+			xyGuess = xyCtrGuess,
+			rad = rad,
+			ccdInfo = ccdInfo,
+			verbosity = verbosity,
+		)
+		if not ctrData.isOK:
 			if verbosity >= 1:
-				print "findStars warning: centroid at %s with rad=%s failed: %s" % (xyCtrGuess, rad, e)
+				print "findStars warning: centroid at %s with rad=%s failed: %s" % (xyCtrGuess, rad, ctrData.msgStr)
 			continue
+			
 		countsCentroidList.append((ctrData.counts, ctrData))
 		
 		if ds9Win:
@@ -239,18 +238,17 @@ def findStars(
 			args = ImUtil.ds9PosFromXYPos(ctrData.xyCtr)
 			ds9Win.xpaset("regions", "image; x point %s # group=centroid" % _fmtList(args))
 	
+	
 	# sort by decreasing counts
 	countsCentroidList.sort()
 	countsCentroidList.reverse()
 	centroidList = [cc[1] for cc in countsCentroidList]
 	if verbosity >= 2:
 		print "findStars returning data for %s stars:" % len(centroidList)
-		if isSaturated:
-			print "WARNING: some pixels are saturated!"
 		print "x ctr\ty ctr\tx err\ty err\t    pixels\tcounts\tradius"
 		for cd in centroidList:
 			print "%5.1f\t%5.1f\t%5.1f\t%5.1f\t%10.0f\t%6d\t%6d" % \
 				(cd.xyCtr[0], cd.xyCtr[1],
 				 cd.xyErr[0], cd.xyErr[1],
 				 cd.pix, cd.counts, cd.rad)
-	return isSaturated, centroidList, med
+	return centroidList, imStats

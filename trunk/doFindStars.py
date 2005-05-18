@@ -19,6 +19,7 @@ History:
 2005-04-01 ROwen	Updated for modified FindStars and StarShape.
 2005-04-11 ROwen	Modified to use PyGuide.Constants.DS9Title.
 2005-04-22 ROwen	Added support for the rad argument.
+2005-05-16 ROwen	Modified for overhauled findStars.
 """
 import numarray as num
 import PyGuide
@@ -36,17 +37,18 @@ bias = 1780
 readNoise = 21.391
 ccdGain = 1.643 # e-/pixel
 # these are general settings
-dataCut = 3.0
+thresh = 3.0
 radMult = 1.0
 rad = None
-satLevel = 2**16
+satLevel = (2**16)-1
 verbosity = 1
-ds9 = True
+doDS9 = True
 
 # set up a ds9 window
 ds9Win = RO.DS9.DS9Win(PyGuide.Constants.DS9Title)
 
-ParamNames = ("bias", "readNoise", "ccdGain", "dataCut", "radMult", "rad", "satLevel", "verbosity", "ds9")
+CCDInfoNames = ("bias", "readNoise", "ccdGain", "satLevel")
+ParamNames = CCDInfoNames + ("thresh", "radMult", "rad", "verbosity", "doDS9")
 
 def doFindStars(
 	imName = None,
@@ -72,14 +74,21 @@ def doFindStars(
 		if paramName not in kargs:
 			kargs[paramName] = globalDict[paramName]
 	
+	# split off ccd info
+	ccdInfoDict = {}
+	for paramName in CCDInfoNames:
+		ccdInfoDict[paramName] = kargs.pop(paramName)
+	ccdInfo = PyGuide.CCDInfo(**ccdInfoDict)
+	
 	# find stars and centroid
-	isSat, posDataList, med = PyGuide.findStars(
+	posDataList, imStats = PyGuide.findStars(
 		data = im,
 		mask = mask,
+		ccdInfo = ccdInfo,
 	**kargs)
 
-	print "%s stars found; isSaturated = %s:" % (len(posDataList), isSat)
-	print "   xctr	   yctr	   xerr	   yerr		 ampl	  bkgnd	   fwhm	 |  rad	    pix	  chiSq"
+	print "%s stars found:" % (len(posDataList),)
+	print "   xctr    yctr    xerr    yerr         ampl   bkgnd    fwhm  |  rad     pix    nSat  chiSq"
 	for posData in posDataList:
 		# measure star shape
 		try:
@@ -88,18 +97,17 @@ def doFindStars(
 				mask = mask,
 				xyCtr = posData.xyCtr,
 				rad = posData.rad,
-#				bkgnd = med,
 			)
 		except RuntimeError, e:
 			print "starShape failed: %s" % (e,)
 			shapeData = PyGuide.StarShapeData()
 		
 		# print results
-		print "%7.2f	%7.2f	%7.2f	%7.2f	%13.1f	%7.1f	%7.1f	%7d	%7d	%7.1f" % (
+		print "%7.2f %7.2f %7.2f %7.2f %13.1f %7.1f %7.1f %7d %7d %7d %7.1f" % (
 			posData.xyCtr[0], posData.xyCtr[1],
 			posData.xyErr[0], posData.xyErr[1],
 			shapeData.ampl, shapeData.bkgnd, shapeData.fwhm,
-			posData.rad, posData.pix, shapeData.chiSq,
+			posData.rad, posData.pix, posData.nSat, shapeData.chiSq,
 		)
 
 def showDef():

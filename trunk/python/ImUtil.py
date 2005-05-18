@@ -8,6 +8,8 @@ History:
 2004-12-01 ROwen	Added __all__.
 2005-02-08 ROwen	Added ijIndFromXYPos, ijPosFromXYPos, xyPosFromIJPos, ds9PosFromXYPos, xyPosFromDS9Pos.
 					Changed subFrameCtr arguments ctr and size (i,j) to xyCtr and xySize.
+2005-05-16 ROwen	Rewrote subFrameCtr to return a (new) SubFrame object.
+					Added openDS9Win.
 """
 __all__ = ["getQuartile", "skyStats", "subFrameCtr",
 	"ijIndFromXYPos", "ijPosFromXYPos", "xyPosFromIJPos",
@@ -15,8 +17,9 @@ __all__ = ["getQuartile", "skyStats", "subFrameCtr",
 ]
 
 import math
+import warnings
 import numarray as num
-from Constants import PosMinusIndex
+import Constants
 
 _QuartileResidRatios = (
 	(1.0, 0.0),
@@ -82,10 +85,93 @@ def skyStats(maskedData, verbosity=1):
 	
 	return med, stdDev
 
+class SubFrame:
+	"""Create a subframe and provide useful utility methods.
+	
+	Inputs:
+	- dataArr		data array
+	- desBegInd		desired starting i,j index (inclusive)
+	- desEndInd		desired ending i,j index (exclusive)
+	
+	The input indices are called "desired" because they need not
+	actually be valid indices. The actual indices used are
+	silently shrunk to fit if required.
+	"""
+	def __init__(
+		self,
+		dataArr,
+		desBegInd,
+		desEndInd,
+	):
+		self.dataArr = num.array(dataArr)
+		#print "SubFrame(data%s, desBegInd=%s, desEndInd=%s)" % (self.dataArr.shape, desBegInd, desEndInd)
+		
+		# round desired i,j index (just in case)
+		self.desBegInd = [int(round(val)) for val in desBegInd]
+		self.desEndInd = [int(round(val)) for val in desEndInd]
+		
+		# truncated desired i,j index to get actual i,j index
+		self.begInd = [max(self.desBegInd[ii], 0) for ii in (0, 1)]
+		self.endInd = [min(self.desEndInd[ii], self.dataArr.shape[ii]) for ii in (0, 1)]
+		
+		# compute amount truncated at beginning and end
+		self.begCut = [self.begInd[ii] - self.desBegInd[ii] for ii in (0,1)]
+		self.endCut = [self.desEndInd[ii] - self.endInd[ii] for ii in (0,1)]
+		#print "SubFrame: begInd=%s; endInd=%s; begCutIJ=%s, endCutIJ=%s" % (self.begInd, self.endInd, self.begCut, self.endCut)
+
+	def getIJLim(self):
+		"""Return (min i, min j, max i, max j) of subframe in full frame coords"""
+		return tuple(self.begInd) + tuple(self.endInd)
+	
+	def getSubFrame(self):
+		"""Return the subframe as a numarray array.
+		Warning: this is a pointer to the data in the full frame, not a copy.
+		"""
+		return self.dataArr[self.begInd[0]:self.endInd[0], self.begInd[1]:self.endInd[1]]
+	
+	def fullIJFromSubIJ(self, subIJ):
+		"""Convert ij position from sub frame to full frame coords.
+		Does not check range.
+		"""
+		return [subIJ[ii] + self.begInd[ii] for ii in (0,1)]
+	
+	def subIJFromFullIJ(self, fullIJ):
+		"""Convert ij position from full frame to sub frame coords.
+		Does not check range.
+		"""
+		return [fullIJ[ii] - self.begInd[ii] for ii in (0,1)]
+
+	def fullXYFromSubXY(self, subXY):
+		"""Convert xy position from sub frame to full frame coords.
+		Does not check range.
+		"""
+		return [subXY[ii] + self.begInd[1-ii] for ii in (0,1)]
+		
+	def subXYFromFullXY(self, fullXY):
+		"""Convert xy position from full frame to sub frame coords
+		Does not check range.
+		"""
+		return [fullXY[ii] - self.begInd[1-ii] for ii in (0,1)]
+	
+	def subIJPosOK(self, subIJ):
+		"""Return True if subIJPos is in bounds.
+		"""
+		for ii in (0,1):
+			subIJInd = int(round(subIJPos[ii]))
+			if self.begInd[ii] > subIJInd[ii] or self.endInd[ii] < subIJInd[ii]:
+				return False
+		return True
+
+	def subXYOK(self, subXYPos):
+		"""Return True if subXYPos is in bounds.
+		"""
+		return self.subIJOK(ijPosFromXYPos(subXYPos))
+
+
 def subFrameCtr(data, xyCtr, xySize):
 	"""Extract a subframe from a 2d array given a center and size.
 	
-	Return a pointer (not a copy).
+	Return a SubFrame object.
 
 	Inputs:
 	- data		2-d array of data [i,j]
@@ -93,11 +179,8 @@ def subFrameCtr(data, xyCtr, xySize):
 	- xySize	desired x,y size of subframe (may be float);
 				e.g. (5,7) returns a 5x7 subframe
 	
-	Returns two numarray arrays:
-	- offset	i,j index of start of subframe (int);
-				location subloc in the subframe
-				matches location subloc + offset in data
-	- subframe	the subframe as a pointer into data (NOT a copy)
+	Returns the following:
+	- subFrame	a SubFrame object; see getSubFrame to get a numarray.
 	
 	With ctr in the middle of a pixel:
 	- a size of 0.0 to 1.999... returns 1 pixel
@@ -114,16 +197,13 @@ def subFrameCtr(data, xyCtr, xySize):
 	If size is odd and the entire subframe fits in data without truncation,
 	then xyCtr is truly centered.
 	"""
+	#print "subFrameCtr(data%s, xyCtr=%s, xySize=%s)" % (data.shape, xyCtr, xySize)
 	ijCtr = ijPosFromXYPos(xyCtr)
 	ijRad = [xySize[ii] / 2.0 for ii in (1, 0)]
-
-	begInd = [int(max(math.ceil(ijCtr[ii] - ijRad[ii]), 0.0)) for ii in (0, 1)]
-	endInd = [int(math.floor(ijCtr[ii] + ijRad[ii])) + 1 for ii in (0, 1)]
 	
-	print "subFrameCtr: xyCtr=%s; xySize=%s; ijCtr=%s; ijRad=%s; begInd=%s; endInd=%s" % (xyCtr, xySize, ijCtr, ijRad, begInd, endInd)
-	
-	subframe = data[begInd[0]:endInd[0], begInd[1]:endInd[1]]
-	return begInd, subframe
+	desBegInd = [int(math.ceil(ijCtr[ii] - ijRad[ii])) for ii in (0, 1)]
+	desEndInd = [int(math.floor(ijCtr[ii] + ijRad[ii])) + 1 for ii in (0, 1)]
+	return SubFrame(data, desBegInd, desEndInd)
 
 def ijIndFromXYPos(xyPos):
 	"""Return the integer index of the pixel whose center is nearest the specified position.
@@ -133,7 +213,7 @@ def ijIndFromXYPos(xyPos):
 	"""
 	# use floor(0.5 + x) instead of round(x) because round(-0.5) is -1, not 0,
 	# making (0.0, 0,0) convert to (-1,-1) instead of (0,0)
-	return [int(math.floor(0.5 + xyPos[ii] - PosMinusIndex)) for ii in (1, 0)]
+	return [int(round(xyPos[ii] - Constants.PosMinusIndex)) for ii in (1, 0)]
 	
 def ijPosFromXYPos(xyPos):
 	"""Convert from x,y position to i,j position.
@@ -141,7 +221,7 @@ def ijPosFromXYPos(xyPos):
 	x,y position convention is defined by PyGuide.Constants.PosMinusIndex (which see).
 	i,j position has the axes swapped and has (0,0) as the center of the (0,0) pixel.
 	"""
-	return [float(xyPos[ii] - PosMinusIndex) for ii in (1, 0)]
+	return [float(xyPos[ii] - Constants.PosMinusIndex) for ii in (1, 0)]
 	
 def xyPosFromIJPos(ijInd):
 	"""Return the x,y position corresponding to the specified i,j position.
@@ -149,14 +229,43 @@ def xyPosFromIJPos(ijInd):
 	x,y position is defined by PyGuide.Constants.PosMinusIndex (which see).
 	i,j position has the axes swapped and has (0,0) as the center of the (0,0) pixel.
 	"""
-	return [float(ijInd[ii] + PosMinusIndex) for ii in (1, 0)]
+	return [float(ijInd[ii] + Constants.PosMinusIndex) for ii in (1, 0)]
 	
 def ds9PosFromXYPos(xyPos):
 	"""Convert from PyGuide's x,y position to ds9 x,y position.
 	"""
-	return [float(pos - PosMinusIndex + 1.0) for pos in xyPos]
+	return [float(pos - Constants.PosMinusIndex + 1.0) for pos in xyPos]
 
 def xyPosFromDS9Pos(ds9Pos):
 	"""Convert from ds9 x,y position to PyGuide's x,y position.
 	"""
-	return [float(pos + PosMinusIndex - 1.0) for pos in ds9Pos]
+	return [float(pos + Constants.PosMinusIndex - 1.0) for pos in ds9Pos]
+
+def openDS9Win(title=Constants.DS9Title, doRaise=False):
+	"""Open a ds9 window with default title Constants.DS9Title.
+	Issue a warnings.UserWarning and return None on error.
+	"""
+	try:
+		import RO.DS9
+		return RO.DS9.DS9Win(title, doRaise=doRaise)
+	except (SystemExit, KeyboardInterrupt):
+		raise
+	except Exception, e:
+		warnings.warn("Could not open ds9 window: %s" % (e,))
+	return None
+
+if __name__ == "__main__":
+	a = num.arange(121, shape=[11, 11])
+	print a
+	
+	for xyCtr, xySize in [
+		((5.5, 5.5), (5.9999, 6.0)),
+		((5.0, 5.0), (4.9999, 5.0)),
+		((1.5, 1.5), (5.9999, 6.0)),
+		((1.0, 1.0), (4.9999, 5.0)),
+		((9.5, 9.5), (5.9999, 6.0)),
+		((10.0, 10.0), (4.9999, 5.0)),
+	]:
+		sub = ImUtil.subFrameCtr(a, xyCtr, xySize)
+		print "shape=%s, xyCtr=%s, xySubCtr=%s" % (sub.getSubFrame().shape, xyCtr, sub.subXYFromFullXY(xyCtr))
+		print

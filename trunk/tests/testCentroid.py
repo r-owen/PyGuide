@@ -10,6 +10,7 @@ History:
 					Explicitly specifies values for noise components.
 2005-02-07 ROwen	Modified for PyGuide 1.2.
 					Modified to show estimated error.
+2005-05-17 ROwen	Updated for PyGuide 1.3.
 """
 import sys
 import numarray as num
@@ -17,10 +18,12 @@ import numarray.random_array as num_random
 import PyGuide
 import RO.DS9
 
-Sky = 1000		# sky level, in ADU
-Bias = 2176		# image bias, in ADU
-ReadNoise = 19	# read noise, in e-
-CCDGain = 2.1	# inverse ccd gain, in e-/ADU
+Sky = 1000,		# sky level, in ADU
+CCDInfo = PyGuide.CCDInfo(
+	bias = 2176,	# image bias, in ADU
+	readNoise = 19,	# read noise, in e-
+	ccdGain = 2.1,	# inverse ccd gain, in e-/ADU
+)
 
 # test data format:
 # arrShape, actual center, sigma, ampl, scanRad factor, maskLim
@@ -56,9 +59,7 @@ for arrShape, actCtr, sigma, ampl, scanRadFactor, maskLim in testData:
 	data = PyGuide.FakeData.addNoise(
 		cleanData,
 		sky = Sky,
-		bias = Bias,
-		readNoise = ReadNoise,
-		ccdGain = CCDGain,
+		ccdInfo = CCDInfo,
 	)
 
 	print "\nactual center = %6.2f, %6.2f, sigma = %.2f, scanRad = %d" % (actCtr[0], actCtr[1], sigma, scanRad)
@@ -68,10 +69,13 @@ for arrShape, actCtr, sigma, ampl, scanRadFactor, maskLim in testData:
 		mask = mask,
 		xyGuess = xyGuess,
 		rad = scanRad,
-		bias = Bias,
-		readNoise = ReadNoise,
-		ccdGain = CCDGain,
+		ccdInfo = CCDInfo,
 	)
+	
+	if not ctrData.isOK:
+		print "centroid failed: %s" % ctrData.msgStr
+		continue
+	
 	measCtr = ctrData.xyCtr
 	nCounts = ctrData.counts
 	nPts = ctrData.pix
@@ -85,9 +89,7 @@ for arrShape, actCtr, sigma, ampl, scanRadFactor, maskLim in testData:
 		mask = mask,
 		xyGuess = xyGuess,
 		rad = scanRad,
-		bias = Bias,
-		readNoise = ReadNoise,
-		ccdGain = CCDGain,
+		ccdInfo = CCDInfo,
 	)
 	measCtr = ctrData.xyCtr
 	nCounts = ctrData.counts
@@ -102,5 +104,6 @@ ds9Win.showArray(data - cleanData)
 
 ds9Win.xpaset("frame 2")
 ds9Win.showArray(data)
-ds9Win.xpaset("frame 3")
-ds9Win.showArray(data * (1-mask))
+if mask != None:
+	ds9Win.xpaset("frame 3")
+	ds9Win.showArray(data * (1-mask))

@@ -20,6 +20,10 @@ import math
 #     are (0.5, 0.5) and (N+0.5, M+0.5).
 PosMinusIndex = 0.5
 
+# minimum allowed threshold, where:
+# valid data = stdDev * threshold + median
+MinThresh = 1.5
+
 # Constants (do not touch)
 FWHMPerSigma = 2 * math.sqrt(2 * math.log(2))
 NaN = float("nan")

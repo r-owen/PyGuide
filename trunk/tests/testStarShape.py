@@ -22,14 +22,12 @@ import PyGuide
 import pyfits
 
 # these values are probably wrong for the given test image
-bias = 200		# image bias, in ADU
-readNoise = 21.391
-ccdGain = 1.643 # e-/pixel
+CCDInfo = PyGuide.CCDInfo(
+	bias = 200,			# image bias, in ADU
+	readNoise = 21.391, # read noise, in e-
+	ccdGain = 1.643,	# ccd gain, in e-/pixel
+)
 
-# to enable debugging output:
-PyGuide.StarShape._StarShapeDebug = True
-#PyGuide.StarShape._FitRadProfDebug = True
-#PyGuide.StarShape._FitRadProfIterDebug = True
 UseDS9 = True
 
 if len(sys.argv) > 1:
@@ -41,9 +39,9 @@ testimg = pyfits.open(filename)
 data = testimg[0].data
 
 if UseDS9:
-	import RO.DS9
-	ds9 = RO.DS9.DS9Win("testStarShape")
-	ds9.showArray(data)
+	ds9Win = PyGuide.ImUtil.openDS9Win("testStarShape")
+	if ds9Win:
+		ds9Win.showArray(data)
 
 mask = None
 # use for image /Test\ Images/ecam/2004-04-27/gimg0170.fits
@@ -51,29 +49,27 @@ mask = None
 #mask[64:101, 78:92] = 1
 
 print "searching for stars"
-isSat, ctrDataList = PyGuide.findStars(
+ctrDataList, imStats = PyGuide.findStars(
 	data = data,
 	mask = mask,
-	bias = bias,
-	readNoise = readNoise,
-	ccdGain = ccdGain,
+	ccdInfo = CCDInfo,
 	verbosity = 0,
-	ds9 = False,
+	doDS9 = False,
 )[0:2]
 for ctrData in ctrDataList:
-	try:
-		xyCtr = ctrData.xyCtr
-		rad = ctrData.rad
-		print "star xyCtr=%.2f, %.2f, radius=%s" % (xyCtr[0], xyCtr[1], rad)
-		
-		gsData = PyGuide.starShape(
-			data,
-			mask = mask,
-			xyCtr = xyCtr,
-			rad = rad,
-		)
+	xyCtr = ctrData.xyCtr
+	rad = ctrData.rad
+	print "star xyCtr=%.2f, %.2f, radius=%s" % (xyCtr[0], xyCtr[1], rad)
+	
+	shapeData = PyGuide.starShape(
+		data,
+		mask = mask,
+		xyCtr = xyCtr,
+		rad = rad,
+	)
+	if not shapeData.isOK:
+		print "starShape failed: %s" % (shapeData.msgStr,)
+	else:
 		print "star ampl=%.1f, fwhm=%.1f, bkgnd=%.1f, chiSq=%.2f" %\
-			(gsData.ampl, gsData.fwhm, gsData.bkgnd, gsData.chiSq)
-	except RuntimeError, e:
-		print "Failed:", e
+			(shapeData.ampl,shapeData.fwhm, shapeData.bkgnd, shapeData.chiSq)
 	print

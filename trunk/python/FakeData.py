@@ -9,6 +9,7 @@ History:
 2004-12-01 ROwen	Added __all__.
 2005-01-31 ROwen	Bug fix: used == instead of = for __all__.
 2005-02-07 ROwen	Changed fakeStar to accept xyCtr instead of (i,j) ctr.
+2005-05-16 ROwen	Modified addNoise to take ccdInfo instead of 3 args.
 """
 __all__ = ["fakeStar", "addNoise"]
 
@@ -51,23 +52,19 @@ def fakeStar(
 
 def addNoise(
 	data,
-	sky = 1000,
-	bias = 1000,
-	readNoise = 13,
-	ccdGain = 5,
+	sky,
+	ccdInfo,
 ):
 	"""Adds poisson noise and gaussian read noise to the specified data.
 	
 	Inputs:
 	- data		noiseless image, in ADU
 	- sky		sky level, in ADU
-	- bias		image bias, in ADU
-	- readNoise	ccd read noise, in e-
-	- ccdGain	ccd inverse gain, in e-/ADU
+	- ccdInfo	a PyGuide.CCDInfo object
 	"""
 	outData = num.add(data, sky).astype(num.Int32)
-	outData = rand.poisson(mean = outData * ccdGain) / ccdGain
-	outData += rand.normal(mean = bias, std = readNoise/float(ccdGain), shape = data.shape)
+	outData = rand.poisson(mean = outData * ccdInfo.ccdGain) / ccdInfo.ccdGain
+	outData += rand.normal(mean = ccdInfo.bias, std = ccdInfo.readNoise/float(ccdInfo.ccdGain), shape = data.shape)
 	# truncate data and return as UInt16
 	outData = num.where(outData >= 0, outData, 0)
 	outData = num.where(outData <= _MaxValUInt16, outData, _MaxValUInt16)

@@ -9,17 +9,24 @@ History:
 2004-08-04 ROwen
 2004-08-06 ROwen	Modified for new centroid.
 2005-02-07 ROwen	Modified for PyGuide 1.2.
+2005-05-17 ROwen	Modified for PyGuide 1.3.
+					Reports centroid error stats.
+					Shows inputs when centroid fails.
 """
 import numarray as num
 import numarray.random_array as num_random
 import PyGuide
+from Stats import Stats
 
-# image data info
+# settings
 ImWidth = 64
-Sky = 1000		# sky level, in ADU
-ReadNoise = 19	# read noise, in e-
-CCDGain = 2.1	# inverse ccd gain, in e-/ADU
-Bias = 2176		# image bias, in ADU
+Sky = 1000,		# sky level, in ADU
+CCDInfo = PyGuide.CCDInfo(
+	bias = 2176,	# image bias, in ADU
+	readNoise = 19,	# read noise, in e-
+	ccdGain = 2.1,	# inverse ccd gain, in e-/ADU
+)
+Thresh = 2.5
 
 imShape = (ImWidth, ImWidth)
 nomCtr = (ImWidth // 2, ImWidth // 2)
@@ -37,9 +44,9 @@ print "over a range of fake data"
 print
 print "Settings:"
 print "Sky         =", Sky, "ADU"
-print "Read Noise  =", ReadNoise, "e-"
-print "CCD Gain    =", CCDGain, "e-/ADU"
-print "Bias        =", Bias, "ADU"
+print "Read Noise  =", CCDInfo.readNoise, "e-"
+print "CCD Gain    =", CCDInfo.ccdGain, "e-/ADU"
+print "Bias        =", CCDInfo.bias, "ADU"
 print "Amplitudes  =", AmplValues, "ADU"
 print "FWHMs       =", FWHMValues, "pixels"
 print "Mask Widths =", MaskWidthsPerFWHM, "fractions of a FWHM"
@@ -63,6 +70,8 @@ print
 print "fwhm	ampl	maskWid	xErr	yErr	xUncert	yUncert	asymm	totPix	totCts	rad"
 
 nBad = 0
+ctrXStats = Stats()
+ctrYStats = Stats()
 for ampl in AmplValues:
 	for fwhm in FWHMValues:
 		sigma = fwhm / PyGuide.FWHMPerSigma
@@ -81,31 +90,40 @@ for ampl in AmplValues:
 				data = PyGuide.FakeData.addNoise(
 					data = cleanData,
 					sky = Sky,
-					bias = Bias,
-					readNoise = ReadNoise,
-					ccdGain = CCDGain,
+					ccdInfo = CCDInfo,
 				)
 
-				try:
-					ctrData = PyGuide.centroid(
-						data = data,
-						mask = mask,
-						xyGuess = nomCtr,
-						rad = fwhm * 3.0,
-						bias = Bias,
-						readNoise = ReadNoise,
-						ccdGain = CCDGain,
+				ctrData = PyGuide.centroid(
+					data = data,
+					mask = mask,
+					xyGuess = nomCtr,
+					rad = fwhm * 3.0,
+					ccdInfo = CCDInfo,
+					thresh = Thresh,
+				)
+				if not ctrData.isOK:
+					print "%s	%s	%s	NaN	NaN	NaN	NaN	NaN	NaN	NaN	%s	%r" % (
+						fwhm, ampl, maskWidth, ctrData.rad, ctrData.msgStr
 					)
-					xyMeasErr = [ctrData.xyCtr[ii] - actCtr[ii] for ii in (0,1)]
-					print "%s	%s	%s	%.3f	%.3f	%.3f	%.3f	%.3f	%s	%s	%s" % (
-						fwhm, ampl, maskWidth,
-						xyMeasErr[0], xyMeasErr[1],
-						ctrData.xyErr[0], ctrData.xyErr[1],
-						ctrData.asymm, ctrData.pix, ctrData.counts, ctrData.rad,
-					)
-					
-				except RuntimeError, e:
 					nBad += 1
+					continue
+				
+				xyMeasErr = [ctrData.xyCtr[ii] - actCtr[ii] for ii in (0,1)]
+				print "%s	%s	%s	%.3f	%.3f	%.3f	%.3f	%.3f	%s	%s	%s" % (
+					fwhm, ampl, maskWidth,
+					xyMeasErr[0], xyMeasErr[1],
+					ctrData.xyErr[0], ctrData.xyErr[1],
+					ctrData.asymm, ctrData.pix, ctrData.counts, ctrData.rad,
+				)
+				ctrXStats.append(xyMeasErr[0])
+				ctrYStats.append(xyMeasErr[1])
+
+print
+print "Error statistics (for %d points)" % ctrXStats.nPoints()
+print "            min      max    mean   stdDev"
+print "xErr  %8.1f %8.1f %8.1f %8.1f" % (ctrXStats.min(), ctrXStats.max(), ctrXStats.mean(), ctrXStats.stdDev())
+print "yErr  %8.1f %8.1f %8.1f %8.1f" % (ctrYStats.min(), ctrYStats.max(), ctrYStats.mean(), ctrYStats.stdDev())
 
 if nBad > 0:
+	print
 	print "number of failures =", nBad

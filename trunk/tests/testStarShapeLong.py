@@ -13,7 +13,7 @@ History:
 2005-04-05 ROwen	Modified to show failed cases (with NaN for the shape data).
 2005-04-06 ROwen	Removed unnecessary float("NaN").
 2005-04-25 ROwen	Modified for new starShape (now always fit background).
-2005-04-29 ROwen	Modified to write all errors to stderr.
+2005-04-15 ROwen	Modified for PyGuide 1.3
 """
 import sys
 import traceback
@@ -25,9 +25,11 @@ from Stats import Stats
 # image data info
 ImWidth = 512
 Sky = 1000		# sky level, in ADU
-ReadNoise = 19	# read noise, in e-
-CCDGain = 2.1	# inverse ccd gain, in e-/ADU
-Bias = 2176		# image bias, in ADU
+CCDInfo = PyGuide.CCDInfo(
+	bias = 2176,	# image bias, in ADU
+	readNoise = 19,	# read noise, in e-
+	ccdGain = 2.1,	# inverse ccd gain, in e-/ADU
+)
 
 imShape = (ImWidth, ImWidth)
 nomCtr = (ImWidth // 2, ImWidth // 2)
@@ -44,9 +46,9 @@ print "over a range of fake data"
 print
 print "Settings:"
 print "Sky         =", Sky, "ADU"
-print "Read Noise  =", ReadNoise, "e-"
-print "CCD Gain    =", CCDGain, "e-/ADU"
-print "Bias        =", Bias, "ADU"
+print "Read Noise  =", CCDInfo.readNoise, "e-"
+print "CCD Gain    =", CCDInfo.ccdGain, "e-/ADU"
+print "Bias        =", CCDInfo.bias, "ADU"
 print "Amplitudes  =", AmplValues, "ADU"
 print "FWHMs       =", FWHMValues, "pixels"
 print "Mask Widths =", MaskWidthsPerFWHM, "fractions of a FWHM"
@@ -72,7 +74,7 @@ nBad = 0
 
 print
 print "fwhm	ampl	bg	xCtr	yCtr	maskWid	fitFWHM	fitAmpl	fitBg	chiSq	fwhmErr	amplErr	bgErr"
-bkgnd = Sky + Bias
+bkgnd = Sky + CCDInfo.bias
 for ampl in AmplValues:
 	for fwhm in FWHMValues:
 		sigma = fwhm / PyGuide.FWHMPerSigma
@@ -91,47 +93,38 @@ for ampl in AmplValues:
 				data = PyGuide.FakeData.addNoise(
 					data = cleanData,
 					sky = Sky,
-					readNoise = ReadNoise,
-					ccdGain = CCDGain,
-					bias = Bias,
+					ccdInfo = CCDInfo,
 				)
 				
 				maskedData = num.ma.array(data, mask=mask)
 
-				try:
-					shapeData = PyGuide.starShape(
-						data = data,
-						mask = mask,
-						xyCtr = xyCtr,
-						rad = fwhm * 3,
-					)
-					fwhmErr = pctErr(shapeData.fwhm, fwhm)
-					amplErr = pctErr(shapeData.ampl, ampl)
-					bkgndErr = pctErr(shapeData.bkgnd, bkgnd)
-					print "%.1f	%.1f	%.1f	%.2f	%.2f	%.2f	%.1f	%.1f	%.1f	%.2f	%.1f	%.1f	%.1f" % (
+				shapeData = PyGuide.starShape(
+					data = data,
+					mask = mask,
+					xyCtr = xyCtr,
+					rad = fwhm * 3,
+				)
+				if not shapeData.isOK:
+					print "%.1f	%.1f	%.1f	%.2f	%.2f	%.2f	NaN	NaN	NaN	NaN	NaN	NaN	NaN	%r" % (
 						fwhm, ampl, bkgnd,
 						xyCtr[0], xyCtr[1], maskWidth,
-						shapeData.fwhm, shapeData.ampl, shapeData.bkgnd, shapeData.chiSq,
-						fwhmErr, amplErr, bkgndErr,
-					)
-					fwhmStats.append(fwhmErr)
-					amplStats.append(amplErr)
-					bkgndStats.append(bkgndErr)
-				
-				except (SystemExit, KeyboardInterrupt):
-					raise
-				except Exception, e:
-					sys.stderr.write("Failed on %.1f	%.1f	%.1f	%.2f	%.2f	%.2f: %s\n" % (
-						fwhm, ampl, bkgnd,
-						xyCtr[0], xyCtr[1], maskWidth,
-						e,
-					))
-					print "%.1f	%.1f	%.1f	%.2f	%.2f	%.2f	NaN	NaN	NaN	NaN	NaN	NaN	NaN" % (
-						fwhm, ampl, bkgnd,
-						xyCtr[0], xyCtr[1], maskWidth,
+						shapeData.msgStr
 					)
 					nBad += 1
-					traceback.print_exc(file=sys.stderr)
+					continue
+					
+				fwhmErr = pctErr(shapeData.fwhm, fwhm)
+				amplErr = pctErr(shapeData.ampl, ampl)
+				bkgndErr = pctErr(shapeData.bkgnd, bkgnd)
+				print "%.1f	%.1f	%.1f	%.2f	%.2f	%.2f	%.1f	%.1f	%.1f	%.2f	%.1f	%.1f	%.1f" % (
+					fwhm, ampl, bkgnd,
+					xyCtr[0], xyCtr[1], maskWidth,
+					shapeData.fwhm, shapeData.ampl, shapeData.bkgnd, shapeData.chiSq,
+					fwhmErr, amplErr, bkgndErr,
+				)
+				fwhmStats.append(fwhmErr)
+				amplStats.append(amplErr)
+				bkgndStats.append(bkgndErr)
 
 print
 print "Error statistics (for %d points)" % fwhmStats.nPoints()
