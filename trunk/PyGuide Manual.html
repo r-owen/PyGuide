@@ -93,8 +93,6 @@
 	</ul>
 
 	<li>Do not try to centroid on a star that has nearby bright neighbors. You must be especially careful of this if your star will be partially obscured, because the relative brightness of the neighbors increases as the main star's light is lost.
-
-	<li>centroid may return a result even on plain noise. Thus you need some way to verify that you have given it usable signal. We are still working on this. We have tried rejecting stars that starShape cannot fit, but this does not work terribly well. On the other hand, findStars does a good job of distinguishing signal from noise and the approach we are working on now is to call findStars on a smallish portion of the image, and have findStars call centroid.
 </ul>
 
 <h3><a name="Coordinates"></a>Coordinate Systems</h3>
@@ -117,7 +115,6 @@
 
 <ul>
 	<li>PyGuide.centroid's error estimate tend to over-estimate the error (but not in a sufficiently predictable fashion to be trivially fixed). You can see my test results at PyGuide/tests/test results/testCentroidLong <i>date</i>.txt
-	<li>PyGuide.centroid seems capable of returning a "centroid" on plain noise. To be safe, verify that you are sending it a decent signal.
 	<li>PyGuide.centroid's measure of asymmetry is not well normalized, so it is unlikely to be useful outside of the centroider. This measure tends to get large for bright objects that are mostly masked off.
 	<li>PyGuide.starShape assumes a symmetrical star, and so does not fit ellipticity.
 	<li>PyGuide in general does not deal with dark current. As long as dark current is not a dominant source of noise this should be acceptable.
