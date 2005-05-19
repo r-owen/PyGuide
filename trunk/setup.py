@@ -18,7 +18,7 @@ radProfExt = NumarrayExtension(
 
 setup(
 	name = PkgName,
-	version = "1.3",
+	version = "2.0",
 	description = "support for telescope guiding",
 	author = "Russell Owen",
 #	url = "http://astro.washington.edu/owen/",

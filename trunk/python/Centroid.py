@@ -91,6 +91,8 @@ History:
 					- Both basicCentroid and centroid now always return normally
 					  unless some serious internal error occurs;
 					  if centroiding fails then centroidData.isOK is False.
+2005-05-19 ROwen	Bug fix: conditionMask was mis-handling mask=None.
+					Modified centroid to use conditionData and conditionMask.
 """
 __all__ = ['CentroidData', 'centroid', 'basicCentroid',]
 
@@ -227,8 +229,8 @@ def centroid(
 		print "centroid(xyGuess=%s, rad=%s, ccdInfo=%s, thresh=%s)" % (xyGuess, rad, ccdInfo, thresh)
 
 	# condition and check inputs
-	data = num.asarray(data)
-	mask = num.asarray(mask, type=num.Bool)
+	data = conditionData(data)
+	mask = conditionMask(mask)
 	if len(xyGuess) != 2:
 		raise ValueError("initial guess=%r must have 2 elements" % (xyGuess,))
 	rad = int(round(max(rad, _MinRad)))
@@ -531,8 +533,10 @@ def basicCentroid(
 	except (SystemExit, KeyboardInterrupt):
 		raise
 	except Exception, e:
-		if verbosity >= 1:
+		if verbosity > 1:
 			traceback.print_exc(file=sys.stderr)
+		elif verbosity > 0:
+			print "basicCentroid failed: %s" % (e,)
 		return CentroidData(
 			isOK = False,
 			msgStr = str(e),
@@ -551,9 +555,13 @@ def conditionData(data):
 def conditionMask(mask):
 	"""Convert mask to the correct type
 	such that basicCentroid can operate most efficiently on it.
+	
+	Mask is optional, so a value of None returns None.
 
 	Warning: does not copy the data unless necessary.
 	"""
+	if mask == None:
+		return None
 	return conditionArr(mask, num.Bool)
 
 def conditionArr(arr, desType):

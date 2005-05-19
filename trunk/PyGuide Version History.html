@@ -8,6 +8,19 @@
 
 <h1>PyGuide Version History</h1>
 
+<h2>2.0 prerelease 2005-05-19</h2>
+
+<p>Bug fixes:
+<ul>
+	<li>Bug fix: findStars, centroid and basicCentroid were all mis-handling mask=None. (Fixed by making conditionMask handle None properly and also by modifying centroid to use conditionData and conditionMask).
+</ul>
+
+<p>Other Changes:
+<ul>
+	<li>Updated all references of PyGuide version 1.3 to PyGuide 2.0
+	<li>findStars: changed default verbosity to 0.
+</ul>
+
 <h2>1.3b1 2005-05-18</h2>
 
 <p>This is a major overhaul of PyGuide. The main purpose was to make centroiding and star shape fitting more robust. In particular centroiding should no longer attempt to centroid random noise. However, I also took the opportunity to clean up a number of other issues.

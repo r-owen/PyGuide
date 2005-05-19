@@ -53,7 +53,7 @@ History:
 2005-04-01 ROwen	Modified to return the median of the unmasked data.
 2005-04-11 ROwen	Modified to use Constants.DS9Title.
 2005-04-22 ROwen	Added rad argument (overrides radMult).
-2005-05-18 ROwen	Overhauled findStars:
+2005-05-19 ROwen	Overhauled findStars:
 					- Argument ccdInfo replaces four old arguments.
 					- Renamed dataCut to thresh (to match the APO 3.5m hub).
 					- There is now a minimum threshold of Constants.MinThresh
@@ -64,6 +64,7 @@ History:
 					- Returns dataList, imStats instead of isSaturated, dataList, med:
 					  - isSaturated is replaced by nSat in centroid data
 					  - med is replaced by imStats, which contains more info
+					- Changed default verbosity to 1.
 """
 __all__ = ['findStars']
 
@@ -94,7 +95,7 @@ def findStars(
 	thresh = Constants.DefThresh,
 	radMult = 1.0,
 	rad = None,
-	verbosity = 1,
+	verbosity = 0,
 	doDS9 = False,
 ):
 	"""Find and centroid stars.

@@ -13,8 +13,8 @@ History:
 2005-04-05 ROwen	Modified to show failed cases (with NaN for the shape data).
 2005-04-06 ROwen	Removed unnecessary float("NaN").
 2005-04-25 ROwen	Modified for new starShape (now always fit background).
-2005-04-17 ROwen	Modified for PyGuide 1.3
-2005-04-18 ROwen	Modified to optionally centroid before shape fitting.
+2005-04-19 ROwen	Modified for PyGuide 2.0.
+					Modified to optionally centroid before shape fitting.
 					This should tell us more about how well the shape fitter
 					does on realistic data.
 					Shows centroid and star shape warning messages.

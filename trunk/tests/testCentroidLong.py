@@ -9,7 +9,7 @@ History:
 2004-08-04 ROwen
 2004-08-06 ROwen	Modified for new centroid.
 2005-02-07 ROwen	Modified for PyGuide 1.2.
-2005-05-18 ROwen	Modified for PyGuide 1.3.
+2005-05-19 ROwen	Modified for PyGuide 2.0.
 					Reports centroid error stats.
 					Shows inputs when centroid fails.
 					Shows centroid warnings.
