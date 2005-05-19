@@ -1,30 +1,26 @@
 """Find Stars.
 
-WARNING: Python handles images as data[y,x]. This same index order is used
-for positions, sizes and such. In an attempt to reduce confusion, the code
-uses i,j instead of y,x.
+Note: as with all PyGuide routines, the coordinate system origin
+is specified by PosMinusIndex.
 
-Uses an algorithm developed by Jim Gunn with some changes of my own:
-- compute median and quartiles (Q1 & Q3) of the data
-- stdDev = 0.741 * (Q3-Q1)
-- repeat the computation, ignoring data above
-  median + 0.235 * stdDev
-  (iteration reduces the effects of bright pixels)
-- median-filter a copy of the data (filling in masked values with median)
-- candidate stars are connected blobs whose pixels
-  have value > med + 5 * stdDev. Ignore blobs
-  with width or height of only 1.
-- centroid each blob.
-
-This is an adaptation of code by Jim Gunn and Connie Rockosi.
+Based on an algorithm and code developed by Jim Gunn
+with some changes of my own:
+- Estimate the median and stdDev of the sky
+- Median-filter a copy of the data (filling in masked values with median)
+- Candidate stars are connected blobs in the median-fitered data
+  whose pixels have value > med + (thresh * stdDev)
+  and which are at least 2x2 in size
+- Centroid each such blob. Note: the centroiding
+  is peformed on the original data, not smoothed data
+  (see the notes with centroid for the issues involved).
 
 To Do:
 - Make use of the centroid error and minimum asymmetry
-  to reject bad stars or sort starts in order of desirability?
+  to reject bad stars or sort stars in order of desirability?
 - Detect and reject identical stars (one centroid within 1/2 pixel of another)?
   This isn't essential as duplicates will not hurt the guider.
   On the other hand, it's probably not terribly difficult to do, either.
-- Consider using a histogram to compute the quartiles (as the original
+- Consider using a histogram to compute the quartiles (as Jim's original
   code did). Thus one can allocate a single 65k array (for 16-bit data)
   and reuse that for all images. But locating the quartiles is a bit more work.
 
@@ -57,16 +53,17 @@ History:
 2005-04-01 ROwen	Modified to return the median of the unmasked data.
 2005-04-11 ROwen	Modified to use Constants.DS9Title.
 2005-04-22 ROwen	Added rad argument (overrides radMult).
-2005-05-17 ROwen	Overhauled findStars:
-					- four args were consolidated into ccdInfo
-					- renamed dataCut to thresh (to match the APO 3.5m hub)
-					- renamed ds9 to doDS9
-					- saturated stars are now centroided, and they are likely
+2005-05-18 ROwen	Overhauled findStars:
+					- Argument ccdInfo replaces four old arguments.
+					- Renamed dataCut to thresh (to match the APO 3.5m hub).
+					- There is now a minimum threshold of Constants.MinThresh
+					- The default thresh is now set by Constants.DefThresh
+					- Renamed ds9 argument to doDS9.
+					- Saturated stars are now centroided, and they are likely
 					  to show up first in the list, so beware!
-					- no longer returns isSaturated; the returned centroid data
-					  now includes a count of the # of saturated pixels, instead
-					- returns imStats instead of med
-					Modified to use PyGuide.Constants.MinThresh
+					- Returns dataList, imStats instead of isSaturated, dataList, med:
+					  - isSaturated is replaced by nSat in centroid data
+					  - med is replaced by imStats, which contains more info
 """
 __all__ = ['findStars']
 
@@ -94,7 +91,7 @@ def findStars(
 	data,
 	mask,
 	ccdInfo,
-	thresh = 3.0,
+	thresh = Constants.DefThresh,
 	radMult = 1.0,
 	rad = None,
 	verbosity = 1,
@@ -110,7 +107,7 @@ def findStars(
 	- thresh	determines the point above which pixels are considered data;
 				valid data >= thresh * standard deviation + median
 				values less than PyGuide.Constants.MinThresh are silently increased
-	- radMult	centroid radius = radMult * max(box x rad, box y rad);
+	- radMult	centroid radius = radMult * max(rad * blob size x, rad * blob size y);
 				ignored if rad specified
 	- rad		centroid radius; if specified, overrides radMult
 	- verbosity	0: no output, 1: print warnings, 2: print information and
@@ -119,13 +116,9 @@ def findStars(
 				For this to work, you must have the RO package installed.
 	
 	Returns two items:
-	- starData		a list of centroid information for unsaturated stars;
-					each element is a PyGuide.CentroidData object whose fields include:
-		- ctr		the i,j centroid (pixels)
-		- err		the predicted i,j 1-sigma error (pixels)
-		- asymm		measure of asymmetry (dimensionless)
-		(see PyGuide.CentroidData for more information)
-	- imStats		median and stdDev masked data; an ImStats object
+	- centroidData	a list of centroid information for each star found, in decreasing
+					order of counts. Each element is a PyGuide.CentroidData object.
+	- imStats		background statistics; a PyGuide.ImStats object.
 	
 	Note: the found "stars" are not required to look star-like and so
 	are not fit to a stellar profile. However, if the object is not
@@ -137,14 +130,11 @@ def findStars(
 	and fiber bundles, where only a fragment of a star may be visible.
 	It also handles donut-shaped images.
 	"""
-	data = num.array(data)
-	if data.type() != num.UInt16:
-		data = data.astype(num.UInt16)
-	elif not data.iscontiguous():
-		data = data.copy()
-	maskedData = num.ma.array(data, mask=mask)
-	
-	thresh = max(Constants.MinThresh, float(thresh))
+	# Condition the data and mask arrays so that centroid can operate
+	# most efficiently on them (better to do it once in advance
+	# rather then have centroid do it once for each star).
+	data = Centroid.conditionData(data)
+	mask = Centroid.conditionMask(mask)
 	
 	if doDS9:
 		ds9Win = ImUtil.openDS9Win()
@@ -162,20 +152,14 @@ def findStars(
 		ds9Win.xpaset("frame 2")
 		ds9Win.showArray(data)
 		ds9Win.xpaset("frame 1")
-		
-	med, stdDev = ImUtil.skyStats(maskedData)
-	dataCut = med + (thresh * stdDev)
-
-	imStats = Centroid.ImStats(
-		thresh = thresh,
-		med = med,
-		stdDev = stdDev,
-		dataCut = dataCut,
-	)
+	
+	# compute background statistics
+	maskedData = num.ma.array(data, mask=mask)
+	imStats = ImUtil.skyStats(maskedData, thresh)
 
 	# get a copy with the median used to fill in masked areas
 	# and apply a filter to get rid of speckle
-	smoothedData = maskedData.filled(med)
+	smoothedData = maskedData.filled(imStats.med)
 	num.nd_image.median_filter(smoothedData, 3, output=smoothedData)
 	if ds9Win and verbosity >= 2:
 		ds9Win.xpaset("frame 3")
@@ -184,10 +168,10 @@ def findStars(
 	
 	# look for points larger than median + dataCut * stdDev
 	shapeArry = num.ones((3,3))
-	labels, numElts = num.nd_image.label(smoothedData>dataCut, shapeArry)
+	labels, numElts = num.nd_image.label(smoothedData>imStats.dataCut, shapeArry)
 	smoothedData = None # release the storage
 	if verbosity >= 2:
-		print "findStars found %s possible stars above dataCut=%s" % (numElts, dataCut)
+		print "findStars found %s possible stars above dataCut=%s" % (numElts, imStats.dataCut)
 
 	# examine the candidate stars and compute centroids
 	countsCentroidList = []

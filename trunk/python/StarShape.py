@@ -76,8 +76,8 @@ History:
 2005-05-03 ROwen	Modified to use Brent's method to minimize chiSq.
 					This requires a somewhat messy first pass to bracket fwhm.
 					Also ditched all use of width parameter.
-2005-05-17 ROwen	Replaced debuggin flags with verbosity and doPlot.
-					Modified to return an isOK and msgStr flag in StarShapeData
+2005-05-18 ROwen	Replaced debuggin flags with verbosity and doPlot.
+					Modified to return an isOK flag and msgStr in StarShapeData
 					instead of raising an exception when fitting fails.
 """
 __all__ = ["StarShapeData", "starShape"]
@@ -106,7 +106,7 @@ class StarShapeData:
 	
 	Attributes:
 	- isOK		if False the fit failed; see msgStr for more info
-	- msgStr	a warning or error message (error if isOK false)
+	- msgStr	warning or error message, if any
 	- ampl		profile amplitude (ADUs)
 	- bkgnd		background level (ADUs)
 	- fwhm		FWHM (pixels)
@@ -126,6 +126,14 @@ class StarShapeData:
 		self.bkgnd = float(bkgnd)
 		self.fwhm = float(fwhm)
 		self.chiSq = float(chiSq)
+	
+	def __repr__(self):
+		dataList = []
+		for arg in ("isOK", "msgStr", "ampl", "fwhm", "bkgnd", "chiSq"):
+			val = getattr(self, arg)
+			if val not in (None, ""):
+				dataList.append("%s=%s" % (arg, val))
+		return "%s(%s)" % ", ".join(self.__class__.__name__, dataList)
 
 
 def starShape(
@@ -151,7 +159,7 @@ def starShape(
 				values less than _MinRad are treated as _MinRad
 	- predFWHM	predicted FWHM. Ignored!
 	- verbosity	0: no output, 1: print warnings, 2: print information, 3: print iteration info.
-				Note: there are no warnings at this time because warnings are returned in the msgStr field.
+				Note: there are no warnings at this time
 	- doPlot	if True, output diagnostics using matplotlib
 	"""
 	if verbosity >= 2:
@@ -185,8 +193,6 @@ def starShape(
 	except (SystemExit, KeyboardInterrupt):
 		raise
 	except Exception, e:
-		if verbosity >= 1:
-			print "starShape failed:", e
 		return StarShapeData(isOK = False, msgStr = str(e))
 	
 	"""Adjust the width for the fact that the centroid
@@ -318,6 +324,7 @@ def _fitRadProfile(radProf, var, nPts, rad, verbosity=0, doPlot=False):
 			
 	# return StarShapeData containing fit data
 	return StarShapeData(
+		isOK = True,
 		ampl  = ampl,
 		fwhm = fwhmMin,
 		bkgnd = bkgnd,

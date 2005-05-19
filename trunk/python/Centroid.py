@@ -1,16 +1,7 @@
 """Measure centroids.
 
-To do:
-- Totally debug the new stuff, especially all the submasking
-  and subframing -- in centroid and in basicCentroid
-  (code that computes nSat) 
-- Consider where we can reuse arrays;
-  verify that num.logical_foo(a, b, output) is legit
-
-- Improve the estimate of centroid error.
-- Smooth the data before centroiding it to handle cosmic rays.
-	Consider either a gaussian smoothing or a median filter.
-	In either case, make sure to handle masked pixels correctly.
+Note: as with all PyGuide routines, the coordinate system origin
+is specified by PosMinusIndex.
 
 Warnings:
 - Will be thrown off by hot pixels. This could perhaps
@@ -24,21 +15,41 @@ but it gets large for bright objects with lots of masked pixels.
 This may be simply because the value is only computed at the nearest
 integer pixel or because the noise is assumed gaussian, or some error.
 
-The centroid is the point of mimimum radial asymmetry:
-	sum over rad of var(rad)^2 / weight(rad)
-where weight is the expected sigma of var(rad) due to pixel noise:
-	weight(rad) = pixNoise(rad) * sqrt(2(numPix(rad) - 1))/numPix(rad)
-	pixNoise(rad) = sqrt((readNoise/ccdGain)^2 + (meanVal(rad)-bias)/ccdGain)
+How it works:
+1) Verify that there is an object:
+  - Measure median and standard deviation of background
+  - Look for connected regions with value > med + (std dev * thresh);
+    if no such regions at least 2x2 in size are found
+	within a circle of radius rad centered at xyGuess
+    then reject the field with "No stars found".
 
-The minimum is found in two stages:
-1) Find the pixel with the minimum radAsymm.
-The direction to walk is determined by measuring radAsymm at 9 points.
-Each step is one pixel along x and/or y.
+2) Centroid the object (done in basicCentroid):
+  - The centroid is the point of mimimum radial asymmetry:
+		sum over rad of var(rad)^2 / weight(rad)
+    where weight is the expected sigma of var(rad) due to pixel noise:
+		weight(rad) = pixNoise(rad) * sqrt(2(numPix(rad) - 1))/numPix(rad)
+		pixNoise(rad) = sqrt((readNoise/ccdGain)^2 + (meanVal(rad)-bias)/ccdGain)
 
-2) Find the true centroid (to better than one pixel) by applying
-a quadratic fit to the 3x3 radAsymm matrix centered on the
-pixel of minimum radAsymm. Only the points along +/-x and +/-y
-are used for this fit; the diagonals are ignored.
+  - The minimum is found in two stages:
+	a) Find the pixel with the minimum radAsymm.
+	The direction to walk is determined by measuring radAsymm at 9 points.
+	Each step is one pixel along x and/or y.
+
+	b) Find the true centroid (to better than one pixel) by applying
+	a quadratic fit to the 3x3 radAsymm matrix centered on the
+	pixel of minimum radAsymm. Only the points along +/-x and +/-y
+	are used for this fit; the diagonals are ignored.
+
+To do:
+- Improve the estimate of centroid error.
+- Cosider smoothing the data before centroiding it to handle cosmic rays;
+	perhaps gaussian smoothing or a median filter.
+  I have at least two major concerns about this:
+	- Masked pixels must be handled correctly. This is tricky to do well,
+	  especially because the brightest pixels may be against the edge
+	  of a slit mask.
+	- Make sure the smoothing does not degrade the accuracy of the centroid
+	  by too much.
 
 Acknowledgements:
 - The centroiding algorithm was invented by Jim Gunn
@@ -68,18 +79,20 @@ History:
 					Noted that rad in CentroidData is integer.
 2005-04-01 ROwen	Modified to use round to round the radius instead of adding 0.5 and truncating.
 2005-04-11 CLoomis	Added ds9 flag (as per FindStars).
-2005-05-17 ROwen	Major overhaul; you will need to code that uses Centroid!
-					- Renamed centroid to basicCentroid.
-					- Added new centroid as a front end to basicCentroid
-						which tests for usable signal and (optionally) for saturated signal.
-					- Replaced bias, etc. with ccdGain, a CCDGain object.
+2005-05-18 ROwen	Major overhaul to make sure centroid has usable signal:
+					- Modified centroid to measure usable signal.
+					- Renamed old centroid to basicCentroid
+					  and modified it to count saturated pixels.
+					- Replaced bias, etc. with ccdInfo, a PyGuide.CCDInfo object.
 					- Renamed ds9 argument to doDS9.
+					- Default thresh is now set by Constants.DefThresh.
 					- Added verbosity argument, which replaces _CTRDEBUG and _CTRITERDBUG.
-					- Added isOK and msgStr fields to CentroidData as well as imStats.
-					- Both basicCentroid and centroid now almost always return a CentroidData;
-						if centroid failed then isOK will be False.
+					- Added isOK,  msgStr and imStats fields to CentroidData.
+					- Both basicCentroid and centroid now always return normally
+					  unless some serious internal error occurs;
+					  if centroiding fails then centroidData.isOK is False.
 """
-__all__ = ['CCDInfo', 'centroid', 'basicCentroid',]
+__all__ = ['CentroidData', 'centroid', 'basicCentroid',]
 
 import math
 import sys
@@ -97,101 +110,26 @@ def _fmtList(alist):
 	"""
 	return str(alist)[1:-1]
 
-# minimum radius
-_MinRad = 3.0
-
-# amount to add to rad to get outerRad
-_OuterRadAdd = 10
-
-# max # of iterations
-_MaxIter = 40
-
-class CCDInfo:
-	"""Info about the CCD
-	
-	- bias		ccd bias (ADU)
-	- readNoise	ccd read noise (e-)
-	- ccdGain	ccd inverse gain (e-/ADU)
-	- satLevel	saturation level (ADU); data >= satLevel is saturated;
-				None if unknown
-	"""
-	def __init__(self,
-		bias,
-		readNoise,
-		ccdGain,
-		satLevel = (2**16)-1,
-	):
-		self.bias = bias
-		self.readNoise = readNoise
-		self.ccdGain = ccdGain
-		self.satLevel = satLevel
-	
-	def __repr__(self):
-		dataList = []
-		for arg in ("bias", "readNoise", "ccdGain", "satLevel"):
-			val = getattr(self, arg)
-			if val != None:
-				dataList.append("%s=%s" % (arg, val))
-		return "CCDInfo(%s)" % ", ".join(dataList)
-
-
-class ImStats:
-	"""Information about the image
-	(including the settings use to obtain that info).
-	
-	Values are None if unknown.
-	
-	- rad		radius of masked out circular region; None means no central mask
-	- outerRad	half width of box of outer region; None means no outer limit
-	- med		median
-	- stdDev	std dev
-	- dataCut	data cut level
-	- thresh	threshold used to detect signal
-	
-	If outerRad != None then med and stdDev are for pixels
-	outside a circle of radius "rad" and inside a square
-	of size outerRad*2 on a side.
-	Otherwise the region used to determine the stats is unknown.
-	"""
-	def __init__(self,
-		rad = None,
-		outerRad = None,
-		thresh = None,
-		med = None,
-		stdDev = None,
-		dataCut = None,
-	):
-		self.rad = rad
-		self.outerRad = outerRad
-		self.thresh = thresh
-		self.med = med
-		self.stdDev = stdDev
-		self.dataCut = dataCut
-	
-	def __repr__(self):
-		dataList = []
-		for arg in ("rad", "outerRad", "med", "stdDev", "dataCut", "thresh"):
-			val = getattr(self, arg)
-			if val != None:
-				dataList.append("%s=%s" % (arg, val))
-		return "ImStats(%s)" % ", ".join(dataList)
-
+# parameters
+_MinRad = 3.0		# minimum radius
+_OuterRadAdd = 10	# amount to add to rad to get outerRad
+_MaxIter = 40		# max # of iterations
+_MinPixForStats = 20	# minimum # of pixels needed to measure med and std dev
 
 class CentroidData:
 	"""Centroid data, including the following fields:
 	
 	flags; check before paying attention to the remaining data:
-	- isOK		if False then centroiding failed and msgStr will say why
-	- msgStr	warning or error message (depending on isOK)
+	- isOK		if False then centroiding failed; see msgStr for more info
+	- msgStr	warning or error message, if any
 	- nSat		number of saturated pixels; None if unknown
 
 	basic info:
 	- rad		radius for centroid search (pix)
-	- imStats	med, stdDev, etc.; an ImStats object (or None if unknown).
+	- imStats	image statistics such as median and std. dev. (if known); an ImUtil.ImStats object.
 	
 	star data:
-	- xyCtr		the x,y centroid (pixels); use the convention specified by
-				PyGuide.Constants.PosMinusIndex
+	- xyCtr		the x,y centroid (pixels)
 	- xyErr		the predicted 1-sigma uncertainty in xyCtr (pixels)
 
 	note: the following three values are computed for that radial profile
@@ -240,6 +178,14 @@ class CentroidData:
 		self.asymm = asymm
 		self.pix = pix
 		self.counts = counts
+	
+	def __repr__(self):
+		dataList = []
+		for arg in ("isOK", "msgStr", "nSat", "xyCtr", "xyErr", "asymm", "pix", "counts", "rad", "imStats"):
+			val = getattr(self, arg)
+			if val not in (None, ""):
+				dataList.append("%s=%s" % (arg, val))
+		return "%s(%s)" % (self.__class__.__name__, ", ".join(dataList))
 
 
 def centroid(
@@ -248,7 +194,7 @@ def centroid(
 	xyGuess,
 	rad,
 	ccdInfo,
-	thresh = 3.0,
+	thresh = Constants.DefThresh,
 	verbosity = 0,
 	doDS9 = False,
 ):
@@ -256,31 +202,37 @@ def centroid(
 	
 	Details of usable signal:
 	- Computes median and stdDev in a region extending from a circle of radius "rad"
-	to a box of size (rad+_OuterRadAdd)*2 on a side.
+	  to a box of size (rad+_OuterRadAdd)*2 on a side.
 	- median-smooths the data inside a circle of radius "rad" and makes sure
-		there is usable signal: max(data) >= thresh*stdDev + median
+	  there is usable signal: max(data) >= thresh*stdDev + median
 	
 	Inputs:
 	- data		image data [i,j]
 	- mask		a mask [i,j] of 0's (valid data) or 1's (invalid); None if no mask.
 				If mask is specified, it must have the same shape as data.
-	- xyGuess	initial x,y guess for centroid; use the convention specified by
-				PyGuide.Constants.PosMinusIndex
+	- xyGuess	initial x,y guess for centroid
 	- rad		radius of search (pixels);
 				values less than _MinRad are treated as _MinRad
-	- ccdInfo	ccd bias, gain, etc.; a CCDInfo object
+	- ccdInfo	ccd bias, gain, etc.; a PyGuide.CCDInfo object
 	- thresh	determines the point above which pixels are considered data;
 				valid data >= thresh * standard deviation + median
 				values less than PyGuide.Constants.MinThresh are silently increased
 	- verbosity	0: no output, 1: print warnings, 2: print information, 3: print iteration info.
-				Note: there are no warnings at this time because warnings are returned in the msgStr field.
+				Note: there are no warnings at this time
 	- doDS9		if True, display diagnostic images in ds9
 	
-	Returns a CentroidData object (even if centroiding fails, so always check the isOK flag!).
+	Returns a CentroidData object (which see for more info).
 	"""
 	if verbosity > 2:
-		print "centroid(xyGuess=%s, rad=%s, thresh=%s)" % (xyGuess, rad, thresh)
-	
+		print "centroid(xyGuess=%s, rad=%s, ccdInfo=%s, thresh=%s)" % (xyGuess, rad, ccdInfo, thresh)
+
+	# condition and check inputs
+	data = num.asarray(data)
+	mask = num.asarray(mask, type=num.Bool)
+	if len(xyGuess) != 2:
+		raise ValueError("initial guess=%r must have 2 elements" % (xyGuess,))
+	rad = int(round(max(rad, _MinRad)))
+
 	outerRad = rad + _OuterRadAdd
 	subDataObj = ImUtil.subFrameCtr(
 		data,
@@ -300,11 +252,8 @@ def centroid(
 	else:
 		subMask = num.zeros(subData.shape, type=num.Bool)
 
-	thresh = max(Constants.MinThresh, float(thresh))
-
 	# create circleMask; a centered circle of radius rad
 	# with 0s in the middle and 1s outside
-	radSq = rad**2
 	def makeCircle(i, j):
 		return ((i-subCtrIJ[0])**2 + (j-subCtrIJ[1])**2) > rad**2
 	circleMask = num.fromfunction(makeCircle, subData.shape)
@@ -315,26 +264,29 @@ def centroid(
 		subData,
 		mask = num.logical_or(subMask, num.logical_not(circleMask)),
 	)
-	med, stdDev = ImUtil.skyStats(bkgndPixels)
-	dataCut = med + (thresh * stdDev)
-	# free unused arrays
+	if bkgndPixels.count() < _OuterRadAdd**2:
+		# too few unmasked pixels in outer region; try not masking off the star
+		bkgndPixels = num.ma.array(
+			subData,
+			mask = subMask,
+		)
+		if bkgndPixels.count() < _MinPixForStats:
+			return CentroidData(
+				isOK = False,
+				msgStr = "Cannot measure bkgnd: too few unmasked pixels (%s<%s)" % (bkgndPixels.count(), _MinPixForStats),
+				rad = rad,
+				imStats = imStats,
+			)
+	
+	imStats = ImUtil.skyStats(bkgndPixels, thresh)
 	del(bkgndPixels)
-
-	imStats = ImStats(
-		rad = rad,
-		outerRad = outerRad,
-		thresh=thresh,
-		med = med,
-		stdDev = stdDev,
-		dataCut = dataCut,
-	)
 
 	# median filter the inner data and look for signal > dataCut
 	dataPixels = num.ma.array(
 		subData,
 		mask = num.logical_or(subMask, circleMask),
 	)
-	smoothedData = dataPixels.filled(med)
+	smoothedData = dataPixels.filled(imStats.med)
 	num.nd_image.median_filter(smoothedData, 3, output=smoothedData)
 	del(dataPixels)
 	
@@ -342,7 +294,7 @@ def centroid(
 	# note: it'd be much simpler but less safe to simply test:
 	#    if max(smoothedData) < dataCut: # have signal
 	shapeArry = num.ones((3,3))
-	labels, numElts = num.nd_image.label(smoothedData>dataCut, shapeArry)
+	labels, numElts = num.nd_image.label(smoothedData>imStats.dataCut, shapeArry)
 	del(smoothedData)
 	slices = num.nd_image.find_objects(labels)
 	for ijSlice in slices:
@@ -353,7 +305,7 @@ def centroid(
 		# no usable signal
 		return CentroidData(
 			isOK = False,
-			msgStr = "No signal",
+			msgStr = "No star found",
 			rad = rad,
 			imStats = imStats,
 		)
@@ -386,34 +338,30 @@ def basicCentroid(
 	- data		image data [i,j]
 	- mask		a mask [i,j] of 0's (valid data) or 1's (invalid); None if no mask.
 				If mask is specified, it must have the same shape as data.
-	- xyGuess	initial x,y guess for centroid; use the convention specified by
-				PyGuide.Constants.PosMinusIndex
+	- xyGuess	initial x,y guess for centroid
 	- rad		radius of search (pixels);
 				values less than _MinRad are treated as _MinRad
-	- ccdInfo	ccd bias, gain, etc.; a CCDInfo object
-	- imStats	image statistics such as median and std. dev. (if known); an ImStats object
-	- verbosity	0: no output, 1: print warnings, 2: print information, 3: print iteration info.
+	- ccdInfo	ccd bias, gain, etc.; a PyGuide.CCDInfo object
+	- imStats	image statistics such as median and std. dev. (if known); an ImUtil.ImStats object
+	- verbosity	0: no output, 1: print warnings, 2: print information,
+				3: print basic iteration info, 4: print detailed iteration info.
 				Note: there are no warnings at this time because the relevant info is returned.
 	- doDS9		if True, diagnostic images are displayed in ds9
 		
-	Returns a CentroidData object (which see)
+	Returns a CentroidData object (which see for more info)
 	"""
-	# convert input data to UInt16 and make contiguous, if necessary, to speed radProf call
-	if data.type() != num.UInt16:
-		if verbosity > 2:
-			print "basicCentroid: converting data to UInt16"
-		data = data.astype(num.UInt16)
-	elif not data.iscontiguous():
-		if verbosity > 2:
-			print "basicCentroid: copying data to make it contiguous"
-		data = data.copy()
-
-	# round the initial guess and radius to the nearest integer
+	if verbosity > 1:
+		print "basicCentroid(xyGuess=%s, rad=%s, ccdInfo=%s, imStats=%s)" % (xyGuess, rad, ccdInfo, imStats)
+	# condition and check inputs
+	data = conditionData(data)
+	mask = conditionMask(mask)
 	if len(xyGuess) != 2:
 		raise ValueError("initial guess=%r must have 2 elements" % (xyGuess,))
-	ijIndGuess = ImUtil.ijIndFromXYPos(xyGuess)
 	rad = int(round(max(rad, _MinRad)))
-	
+
+	# compute index of pixel closest to initial guess
+	ijIndGuess = ImUtil.ijIndFromXYPos(xyGuess)
+
 	if doDS9:
 		ds9Win = ImUtil.openDS9Win()
 	else:
@@ -424,7 +372,7 @@ def basicCentroid(
 		ds9Win.xpaset("tile frames")
 		ds9Win.xpaset("frame 1")
 		if mask != None:
-			ds9Win.showArray(data * (1-mask))
+			ds9Win.showArray(data * (mask==0))
 		else:
 			ds9Win.showArray(data)
 		ds9Win.xpaset("frame 2")
@@ -439,7 +387,6 @@ def basicCentroid(
 		# OK, use this as first guess at maximum. Extract radial profiles in
 		# a 3x3 gridlet about this, and walk to find minimum fitting error
 		maxi, maxj = ijIndGuess
-		radSq = rad**2
 		asymmArr = num.zeros([3,3], num.Float64)
 		totPtsArr = num.zeros([3,3], num.Int32)
 		totCountsArr = num.zeros([3,3], num.Float64)
@@ -460,8 +407,8 @@ def basicCentroid(
 						data, mask, (ii, jj), rad, ccdInfo.bias, ccdInfo.readNoise, ccdInfo.ccdGain)
 # this version omits noise-based weighting
 # (warning: the error estimate will be invalid and chiSq will not be normalized)
-#				asymmArr[i, j], totCountsArr[i, j], totPtsArr[i, j] = radProf.radAsymm(
-#					data, mask, (ii, jj), rad)
+#					asymmArr[i, j], totCountsArr[i, j], totPtsArr[i, j] = radProf.radAsymm(
+#						data, mask, (ii, jj), rad)
 	
 					if verbosity > 3:
 						print "basicCentroid: asymm = %10.1f, totPts = %s, totCounts = %s" % \
@@ -484,7 +431,7 @@ def basicCentroid(
 				if verbosity > 2:
 					print "shift by", -ii, -jj, "to", maxi, maxj
 	
-				if ((maxi - ijIndGuess[0])**2 + (maxj - ijIndGuess[1])**2) >= radSq:
+				if ((maxi - ijIndGuess[0])**2 + (maxj - ijIndGuess[1])**2) >= rad**2:
 					raise RuntimeError("could not find star within %r pixels" % (rad,))
 				
 				# shift asymmArr and totPtsArr to minimum is in center again
@@ -496,7 +443,7 @@ def basicCentroid(
 				break
 	
 		if verbosity > 2:
-			print "basicCentroid: after %r iterations computing final quantities" % (niter,)
+			print "basicCentroid: found ijMax=%s after %r iterations" % ((maxi, maxj), niter,)
 		
 		# perform a parabolic fit to find true centroid
 		# and compute the error estimate
@@ -509,8 +456,6 @@ def basicCentroid(
 		bi = 0.5 * (asymmArr[2, 1] - asymmArr[0, 1])
 		aj = 0.5 * (asymmArr[1, 2] - 2.0*asymmArr[1, 1] + asymmArr[1, 0])
 		bj = 0.5 * (asymmArr[1, 2] - asymmArr[1, 0])
-	
-#	print "asymmArr[1-3]=", asymmArr[0,1], asymmArr[1,1], asymmArr[2,1], "ai, aj=", ai, aj
 		
 		di = -0.5*bi/ai
 		dj = -0.5*bj/aj
@@ -519,6 +464,10 @@ def basicCentroid(
 			maxj + dj,
 		)
 		xyCtr = ImUtil.xyPosFromIJPos(ijCtr)
+	
+		if verbosity > 2:
+			print "basicCentroid: asymmArr[0:3, 1]=%s, ai=%s, bi=%s, di=%s, iCtr=%s" % (asymmArr[0:3, 1], ai, bi, di, ijCtr[0])
+			print "basicCentroid: asymmArr[1, 0:3]=%s, aj=%s, bj=%s, dj=%s, jCtr=%s" % (asymmArr[1, 0:3], aj, bj, dj, ijCtr[1])
 		
 		# crude error estimate, based on measured asymmetry
 		# note: I also tried using the minimum along i,j but that sometimes is negative
@@ -526,6 +475,7 @@ def basicCentroid(
 		radAsymmSigma = asymmArr[1,1]
 		iErr = math.sqrt(radAsymmSigma / ai)
 		jErr = math.sqrt(radAsymmSigma / aj)
+		xyErr = (jErr, iErr)
 	
 		if ds9Win:
 			# display x at centroid
@@ -563,17 +513,21 @@ def basicCentroid(
 			hotPixels = num.logical_and(subData >= ccdInfo.satLevel, num.logical_not(maskForData))
 			nSat = num.nd_image.sum(hotPixels)
 	
-		return CentroidData(
+		ctrData = CentroidData(
 			isOK = True,
 			rad = rad,
 			nSat = nSat,
 			imStats = imStats,
 			xyCtr = xyCtr,
-			xyErr = (jErr, iErr),
+			xyErr = xyErr,
 			counts = totCountsArr[1,1],
 			pix = totPtsArr[1,1],
 			asymm = asymmArr[1,1],
 		)
+		if verbosity > 2:
+			print "basicCentroid: %s" % (ctrData,)
+		return ctrData
+
 	except (SystemExit, KeyboardInterrupt):
 		raise
 	except Exception, e:
@@ -585,3 +539,29 @@ def basicCentroid(
 			rad = rad,
 			imStats = imStats,
 		)
+
+def conditionData(data):
+	"""Convert dataArr to the correct type
+	such that basicCentroid can operate most efficiently on it.
+	
+	Warning: does not copy the data unless necessary.
+	"""
+	return conditionArr(data, desType=num.UInt16)
+
+def conditionMask(mask):
+	"""Convert mask to the correct type
+	such that basicCentroid can operate most efficiently on it.
+
+	Warning: does not copy the data unless necessary.
+	"""
+	return conditionArr(mask, num.Bool)
+
+def conditionArr(arr, desType):
+	"""Convert a sequence to a numarray array of the desired type.
+
+	Warning: does not copy the data unless necessary.
+	"""
+	arr = num.asarray(arr, type=desType)
+	if not arr.iscontiguous():
+		arr = arr.copy()
+	return arr

@@ -7,31 +7,36 @@ History:
 2004-08-03 ROwen	Modified to use fake data.
 2004-08-06 ROwen	Modified for new centroid.
 2005-02-07 ROwen	Modified for PyGuide 1.2.
+2005-05-18 ROwen	Modified for PyGuide 1.3.
 """
 import time
 import numarray as num
 import PyGuide
 
-# settings for fake data
+# settings
 ImWidth = 1024	# image width
 Sky = 1000		# sky level, in ADU
-ReadNoise = 19	# read noise, in e-
-CCDGain = 2.1	# inverse ccd gain, in e-/ADU
-Bias = 2176		# image bias, in ADU
+CCDInfo = PyGuide.CCDInfo(
+	bias = 2176,	# image bias, in ADU
+	readNoise = 19,	# read noise, in e-
+	ccdGain = 2.1,	# inverse ccd gain, in e-/ADU
+)
+Thresh = 3.0
+FWHM = 2.5
+Ampl = 5000
 
 def timeCentroid(data, mask, xyGuess, niter, rad=20):
 	print "timeCentroid: xyGuess=%3.0f, %3.0f; niter=%2d; rad=%3d;" % \
 		(xyGuess[0], xyGuess[1], niter, rad),
 	begTime = time.time()
 	for ii in range(niter):
-		PyGuide.centroid(
+		ctrData = PyGuide.centroid(
 			data = data,
 			mask = mask,
 			xyGuess = xyGuess,
 			rad = rad,
-			bias = Bias,
-			readNoise = ReadNoise,
-			ccdGain = CCDGain,
+			thresh = Thresh,
+			ccdInfo = CCDInfo,
 		)
 	dTime = time.time() - begTime
 	print "time/iter=%.3f" % (dTime/niter,)
@@ -47,7 +52,7 @@ def timeRadAsymmWeighted(data, mask, niter, rad=20):
 	for ii in range(niter):
 		PyGuide.radProf.radAsymmWeighted(
 			data, mask, (xc, yc), rad,
-			Bias, ReadNoise, CCDGain,
+			CCDInfo.bias, CCDInfo.readNoise, CCDInfo.ccdGain,
 		)
 	dTime = time.time() - begTime
 	print "time/iter=%.3f" % (dTime/niter,)
@@ -86,28 +91,21 @@ def timeRadProf(data, mask, niter, rad):
 
 
 def runTests():
-	# settings for fake data
-	imWidth = 1024
-	fwhm = 2.5
-	ampl = 5000
-	
 	# generate fake data
 	imShape = (ImWidth, ImWidth)
 	xyCtr = num.divide(imShape, 2.0)
-	sigma = fwhm / PyGuide.FWHMPerSigma
-	cleanData = PyGuide.FakeData.fakeStar(imShape, xyCtr, sigma, ampl)
+	sigma = FWHM / PyGuide.FWHMPerSigma
+	cleanData = PyGuide.FakeData.fakeStar(imShape, xyCtr, sigma, Ampl)
 	data = PyGuide.FakeData.addNoise(
 		data = cleanData,
 		sky = Sky,
-		bias = Bias,
-		readNoise = ReadNoise,
-		ccdGain = CCDGain,
+		ccdInfo = CCDInfo,
 	)
 	data = data.astype(num.Int16)
 	
 	# let centroiding walk a bit to find the center
 	xyGuess = num.add(xyCtr, (2, -2))
-	
+
 	print "Time various parts of centroiding as a function of radius"
 	print
 	print "Settings:"
@@ -115,13 +113,13 @@ def runTests():
 	print "Star center   = %d, %d pix" % (xyCtr[0], xyCtr[1])
 	print "Initial guess = %d, %d pix" % (xyGuess[0], xyGuess[1])
 	print
-	print "Amplitude  =", ampl, "ADU"
-	print "FWHM       =", fwhm, "pix"
+	print "Amplitude  =", Ampl, "ADU"
+	print "FWHM       =", FWHM, "pix"
 	print "Sky        =", Sky, "ADU"
-	print "Bias       =", Bias, "ADU"
-	print "Read Noise =", ReadNoise, "e-"
-	print "CCD Gain   =", CCDGain, "e-/ADU"
-	
+	print "Bias       =", CCDInfo.bias, "ADU"
+	print "Read Noise =", CCDInfo.readNoise, "e-"
+	print "CCD Gain   =", CCDInfo.ccdGain, "e-/ADU"
+
 	allZerosMask = data.astype(num.Bool)
 	allZerosMask[:] = 0
 	
@@ -173,7 +171,8 @@ def runTests():
 			try:
 				timeCentroid(data, mask, xyGuess, niter, rad)
 			except Exception, e:
-				print "timeCentroid(niter=%s, rad=%s) failed: %s" % (niter, rad, e)
+				raise
+#				print "timeCentroid(niter=%s, rad=%s) failed: %s" % (niter, rad, e)
 
 
 if __name__ == "__main__":

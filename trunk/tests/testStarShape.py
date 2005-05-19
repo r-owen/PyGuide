@@ -14,7 +14,7 @@ History:
 2004-08-06 ROwen	Modified to work with 2004-08-06 findStars.
 2005-02-07 ROwen	Modified for PyGuide 1.2.
 					Modified to show shape info for all found stars.
-2005-04-15 ROwen	Modified for PyGuide 1.3
+2005-04-18 ROwen	Modified for PyGuide 1.3
 """
 import sys
 import numarray as num

@@ -8,7 +8,7 @@
 
 <h1>PyGuide: Algorithms for Telescope Guiding</h1>
 
-<p>PyGuide offers various useful algorithms for telescope guiding, including a star finder, centroider and star shape fitter. The algorithms are designed to work well with partial images, e.g. fiber bundles where part of the image is off the edge of a fiber, or spectrograph slit viewers where much of the star is invisible due to being in the slit.
+<p>PyGuide offers various useful algorithms for telescope guiding, including a star finder, centroider and star shape fitter. The algorithms are designed to work well with partial images, e.g. spectrograph slit viewers where much of the star is invisible due to being in the slit or fiber bundles where part of the image is off the edge of a fiber.
 
 <p>PyGuide was written by Russell E. Owen, based on algorithms and code by Jim Gunn, and with help from Connie Rockosi and Craig Loomis.
 
@@ -37,7 +37,7 @@
 	<li>Python 2.2.1 or later built to use IEEE floating point. Warning: I have only tested PyGuide under python 2.3.x and 2.4.
 	<li>A C compiler that python distutils can use.
 	<li>Numarray (1.1 or later recommended).
-	<li>If you want findStars to display images in ds9 then RO.DS9 is required. The RO package is available from <a href="http://www.astro.washington.edu/rowen/">http://www.astro.washington.edu/rowen/</a>.
+	<li>If you want findStars to display images in ds9 then RO.DS9 and ds9 are required. The RO package is available from <a href="http://www.astro.washington.edu/rowen/">http://www.astro.washington.edu/rowen/</a>.
 </ul>
 
 <p>To install, use the standard python "distutils" procedure:<pre>
@@ -74,9 +74,9 @@
 
 <p>A mask is required for images that have missing light, e.g. due to light going down a slit on a slitviewer image, or truncated by the edge of a fiber bundle. The mask tells PyGuide what portions of the image to ignore.
 
-<p>A mask consists of a boolean array (type numarray.Bool) with the same dimensions as the image. A value of True masks out the corresponding pixel in the image, making PyGuide ignore that data.
+<p>A mask consists of a boolean array (of type numarray.Bool) with the same dimensions as the image. A value of True masks out the corresponding pixel in the image, making PyGuide ignore that data.
 
-<p><b>Warning:</b> to get good results, you must mask out all bad areas of the image, including transitional areas where the image is dimmer but not completely dark. Thus, for example, you should mask out the edge of a slit (where you can still see some light but some of it is lost). If you fail to mask out transitional data, you will get garbage out of the centroider.
+<p><b>Warning:</b> to get good results, you must mask out all bad areas of the image, including transitional areas where the image is dimmer but not completely dark. Thus, for example, you should mask out the edges of a slit (where you can still see some light but some of it is lost). If you fail to mask out transitional data, you will get garbage out of the centroider.
 
 <h3><a name="CentroidingHints"></a>Hints For Centroiding</h3>
 
@@ -92,7 +92,7 @@
 		<li>Use a radius large enough to include the whole star. This is crucial with a slit viewer, because the star will usually be seen as two blobs (one on either side of the slit), and if the radius is too small, the centroider will jump to the center of one of those blobs.
 	</ul>
 
-	<li>Do not try to centroid on a star that has nearby bright neighbors. You must be especially careful of this if your star will be partially obscured, because the relative brightness of the neighbors increases as the main star's light is lost.
+	<li>Do not try to centroid on a star that has nearby bright neighbors. You must be especially careful of this if your star will be partially obscured, because the relative brightness of the neighbors increases as the main star's light is obscured.
 </ul>
 
 <h3><a name="Coordinates"></a>Coordinate Systems</h3>
@@ -105,9 +105,9 @@
 	<li>The center of an MxN image has xy position (M/2.0, N/2.0)
 </ul>
 
-<p>Another common convention is that used by iraf and ds9: the center of the lower left pixel is (1.0, 1.0) and the lower left corner of the image is (0.5, 0.5). PyGuide.ImUtil includes converters between ds9 position and xy position: ds9PosFromXYPos and xyPosFromDS9Pos. In addition, if you really dislike the zero-point convention for xy position, you can change it. The zero point is defined by PyGuide.Constants.PosMinusIndex: the difference between the position of the center of a pixel and the zero-based index of that pixel. To modify PosMinusIndex, edit PyGuide/python/PyGuide/Constants.py and reinstall the software. PyGuide ships with PosMinusIndex = 0.5; to use the ds9 convention, change it to 1.0.
+<p>Another common convention is that used by iraf and ds9: the center of the lower left pixel is (1.0, 1.0) and the lower left corner of the image is (0.5, 0.5). PyGuide.ImUtil includes converters between ds9 position and xy position: ds9PosFromXYPos and xyPosFromDS9Pos. In addition, if you really dislike the zero-point convention for xy position, you can change it. The zero point is defined by PyGuide.Constants.PosMinusIndex. To modify PosMinusIndex, edit PyGuide/python/PyGuide/Constants.py and reinstall the software. PyGuide ships with PosMinusIndex = 0.5; to use the ds9 convention, change it to 1.0. (Note that ds9PosFromXYPos and xyPosFromDS9Pos work correctly regardless of how you set PosMinusIndex.)
 
-<p>In addition to xy position, PyGuide internally makes use of ij position, the natural units for numarray arrays. Rounding ij position to the nearest integer gives the array index of the pixel containing that position. The main reason for ij position is because numarray swaps indices (just like C): the x axis is the second axis of a numarray array. Thus conversion between ij and xy position involves swapping axes and a small offset.
+<p>In addition to xy position, PyGuide internally makes use of ij position: rounding ij position to the nearest integer gives the array index of the pixel containing that position. The main reason for ij position is because numarray swaps indices (like the C language): the x axis is the second axis of a numarray array. Thus conversion between ij and xy position involves swapping axes and a small offset (PosMinusIndex).
 
 <p>PyGuide.ImUtil offers routines to convert between ds9 position, xy position, ij position and ij index. If you are doing any array manipulation in your own code, you will probably find these very useful.
 
@@ -117,7 +117,7 @@
 	<li>PyGuide.centroid's error estimate tend to over-estimate the error (but not in a sufficiently predictable fashion to be trivially fixed). You can see my test results at PyGuide/tests/test results/testCentroidLong <i>date</i>.txt
 	<li>PyGuide.centroid's measure of asymmetry is not well normalized, so it is unlikely to be useful outside of the centroider. This measure tends to get large for bright objects that are mostly masked off.
 	<li>PyGuide.starShape assumes a symmetrical star, and so does not fit ellipticity.
-	<li>PyGuide in general does not deal with dark current. As long as dark current is not a dominant source of noise this should be acceptable.
+	<li>PyGuide does not deal with dark current. As long as dark current is not a dominant source of noise this should be acceptable.
 </ul>
 
 

@@ -10,8 +10,14 @@ History:
 					Changed subFrameCtr arguments ctr and size (i,j) to xyCtr and xySize.
 2005-05-16 ROwen	Rewrote subFrameCtr to return a (new) SubFrame object.
 					Added openDS9Win.
+2005-05-18 ROwen	Modified skyStats to  accept any kind of array, to take a new argument "thresh",
+					to return an ImStats object and to compute dataCut.
+					Modified getQuartile to reject too-short data.
+					and to handle short data more gracefully.
+					Bug fix: skyStats was using ma.compressed().raw_data() instead of just ma.compressed()
+					(though I doubt this change has any real effect).
 """
-__all__ = ["getQuartile", "skyStats", "subFrameCtr",
+__all__ = ["ImStats", "getQuartile", "skyStats", "subFrameCtr",
 	"ijIndFromXYPos", "ijPosFromXYPos", "xyPosFromIJPos",
 	"ds9PosFromXYPos", "xyPosFromDS9Pos",
 ]
@@ -37,23 +43,71 @@ def getQuartile(sortedData, qnum):
 	uses linear interpolation to compute the value.
 
 	If the input data is not sorted, returns a meaningless number.
-	If qnum not in (1, 2, 3) raises ValueError.
+	If qnum not in (1, 2, 3) or len(sortedData) < 3 raises ValueError.
 	"""
 	if qnum not in (1, 2, 3):
 		raise ValueError("qnum=%r must be 1, 2 or 3" % qnum)
 	dataLen = len(sortedData)
+	if dataLen < 3:
+		raise ValueError("sortedData too short; len = %s < 3" % len(sortedData))
 	ratios = _QuartileResidRatios[((dataLen-1) * qnum) % 4]
 	ind0 = (dataLen-1) * qnum // 4
 	return ((sortedData[ind0] * ratios[0]) + (sortedData[ind0+1] * ratios[1])) / (ratios[0] + ratios[1])
 
-def skyStats(maskedData, verbosity=1):
+
+class ImStats:
+	"""Information about an image
+	(including the settings use to obtain that info).
+	
+	Values are None if unknown.
+	
+	- med		median
+	- stdDev	std dev
+	- nPts		number of points used to compute med and stdDev
+	- thresh	threshold used to detect signal
+	- dataCut	data cut level
+	
+	If outerRad != None then med and stdDev are for pixels
+	outside a circle of radius "rad" and inside a square
+	of size outerRad*2 on a side.
+	Otherwise the region used to determine the stats is unknown.
+	"""
+	def __init__(self,
+		med = None,
+		stdDev = None,
+		nPts = None,
+		thresh = None,
+		dataCut = None,
+	):
+		self.med = med
+		self.stdDev = stdDev
+		self.nPts = nPts
+		self.thresh = thresh
+		self.dataCut = dataCut
+	
+	def __repr__(self):
+		dataList = []
+		for arg in ("med", "stdDev", "nPts", "thresh", "dataCut"):
+			val = getattr(self, arg)
+			if val not in (None, ""):
+				dataList.append("%s=%s" % (arg, val))
+		return "%s(%s)" % (self.__class__.__name__, ", ".join(dataList))
+
+
+def skyStats(
+	dataArr,
+	thresh = Constants.DefThresh,
+	verbosity = 0,
+):
 	"""Computes sky statistics.
 	
 	Inputs:
-	- maskedData: a numarray.ma masked array.
+	- dataArr: an n-dimensional array or numarray.ma masked array
+	- thresh: a threshold for valid data: dataCut = med + (stdDev * thresh);
+		values less than PyGuide.Constants.MinThresh are silently increased
 	- verbosity	0: no output, 1: print warnings, 2: print information
 
-	Returns median and standard deviation.
+	Returns an ImStats object containing median, std dev, etc.
 	
 	The statistics are computed using quartiles. Pixel values above
 	2.35 * stdDev are ignored, and this computation is iterated a few times
@@ -62,7 +116,10 @@ def skyStats(maskedData, verbosity=1):
 	Standard deviation is computed as stdDev = 0.741 * (Q3 - Q1)
 	"""
 	# creating sorted data
-	sortedData = maskedData.compressed().raw_data()
+	if isinstance(dataArr, num.ma.array):
+		sortedData = dataArr.compressed()
+	else:
+		sortedData = num.array(dataArr, copy=True).getflat()
 	dataLen = len(sortedData)
 	if verbosity >= 2:
 		print "skyStats sorting %d elements" % (dataLen)
@@ -81,9 +138,23 @@ def skyStats(maskedData, verbosity=1):
 		cutInd = num.searchsorted(sortedData, [cutVal])[0]
 		if verbosity >= 2:
 			print "skStats cutInd=%d, sortedData[cutInd]=%d" % (cutInd, sortedData[cutInd])
+		if cutInd < 3:
+			if verbosity >= 1:
+				print "skStats aborting iteration at step %s; not enough data to cut further" % (ii,)
+			break
 		dataLen = cutInd
 	
-	return med, stdDev
+	thresh = max(Constants.MinThresh, float(thresh))
+	dataCut = med + (stdDev * thresh)
+		
+	return ImStats(
+		med = med,
+		stdDev = stdDev,
+		nPts = dataLen,
+		thresh = thresh,
+		dataCut = dataCut,
+	)
+
 
 class SubFrame:
 	"""Create a subframe and provide useful utility methods.

@@ -10,7 +10,7 @@ History:
 					Explicitly specifies values for noise components.
 2005-02-07 ROwen	Modified for PyGuide 1.2.
 					Modified to show estimated error.
-2005-05-17 ROwen	Updated for PyGuide 1.3.
+2005-05-18 ROwen	Updated for PyGuide 1.3.
 """
 import sys
 import numarray as num
@@ -73,7 +73,7 @@ for arrShape, actCtr, sigma, ampl, scanRadFactor, maskLim in testData:
 	)
 	
 	if not ctrData.isOK:
-		print "centroid failed: %s" % ctrData.msgStr
+		print "centroid failed: %s" % (ctrData.msgStr,)
 		continue
 	
 	measCtr = ctrData.xyCtr

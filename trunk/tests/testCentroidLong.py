@@ -9,9 +9,10 @@ History:
 2004-08-04 ROwen
 2004-08-06 ROwen	Modified for new centroid.
 2005-02-07 ROwen	Modified for PyGuide 1.2.
-2005-05-17 ROwen	Modified for PyGuide 1.3.
+2005-05-18 ROwen	Modified for PyGuide 1.3.
 					Reports centroid error stats.
 					Shows inputs when centroid fails.
+					Shows centroid warnings.
 """
 import numarray as num
 import numarray.random_array as num_random
@@ -43,6 +44,7 @@ print "Compare centroid actual error vs estimated error"
 print "over a range of fake data"
 print
 print "Settings:"
+print "Thresh      =", Thresh
 print "Sky         =", Sky, "ADU"
 print "Read Noise  =", CCDInfo.readNoise, "e-"
 print "CCD Gain    =", CCDInfo.ccdGain, "e-/ADU"
@@ -67,7 +69,7 @@ print "center of the CCD = the center of the slit."
 print
 print "The slit is along y so the error along y should be smaller than x."
 print
-print "fwhm	ampl	maskWid	xErr	yErr	xUncert	yUncert	asymm	totPix	totCts	rad"
+print "fwhm	ampl	maskWid	xErr	yErr	xUncert	yUncert	asymm	totPix	totCts	rad	msgs"
 
 nBad = 0
 ctrXStats = Stats()
@@ -103,17 +105,18 @@ for ampl in AmplValues:
 				)
 				if not ctrData.isOK:
 					print "%s	%s	%s	NaN	NaN	NaN	NaN	NaN	NaN	NaN	%s	%r" % (
-						fwhm, ampl, maskWidth, ctrData.rad, ctrData.msgStr
+						fwhm, ampl, maskWidth, ctrData.rad, ctrData.msgStr,
 					)
 					nBad += 1
 					continue
 				
 				xyMeasErr = [ctrData.xyCtr[ii] - actCtr[ii] for ii in (0,1)]
-				print "%s	%s	%s	%.3f	%.3f	%.3f	%.3f	%.3f	%s	%s	%s" % (
+				print "%s	%s	%s	%.3f	%.3f	%.3f	%.3f	%.3f	%s	%s	%s	%r" % (
 					fwhm, ampl, maskWidth,
 					xyMeasErr[0], xyMeasErr[1],
 					ctrData.xyErr[0], ctrData.xyErr[1],
-					ctrData.asymm, ctrData.pix, ctrData.counts, ctrData.rad,
+					ctrData.asymm, ctrData.pix, ctrData.counts,
+					ctrData.rad, ctrData.msgStr,
 				)
 				ctrXStats.append(xyMeasErr[0])
 				ctrYStats.append(xyMeasErr[1])

@@ -13,7 +13,11 @@ History:
 2005-04-05 ROwen	Modified to show failed cases (with NaN for the shape data).
 2005-04-06 ROwen	Removed unnecessary float("NaN").
 2005-04-25 ROwen	Modified for new starShape (now always fit background).
-2005-04-15 ROwen	Modified for PyGuide 1.3
+2005-04-17 ROwen	Modified for PyGuide 1.3
+2005-04-18 ROwen	Modified to optionally centroid before shape fitting.
+					This should tell us more about how well the shape fitter
+					does on realistic data.
+					Shows centroid and star shape warning messages.
 """
 import sys
 import traceback
@@ -31,15 +35,19 @@ CCDInfo = PyGuide.CCDInfo(
 	ccdGain = 2.1,	# inverse ccd gain, in e-/ADU
 )
 
-imShape = (ImWidth, ImWidth)
-nomCtr = (ImWidth // 2, ImWidth // 2)
-mask = num.zeros(imShape, num.Bool)
-
-# settings
+# other settings
+DoCentroid = True
+Thresh = 2.0 # allow marginal cases through to exercise starShape harder
+			# though as of 2005-05-18 a threshold of 2.0 does not give significantly
+			# worse star fits than a threshold of 2.5.
 AmplValues = (100, 1000, 10000)
 FWHMValues = (2.0, 3.0, 4.0)
 MaskWidthsPerFWHM = (0.0, 0.5, 1.0, 1.5, 2.0) # fractions of a FWHM
 NumTries = 10
+
+imShape = (ImWidth, ImWidth)
+nomCtr = (ImWidth // 2, ImWidth // 2)
+mask = num.zeros(imShape, num.Bool)
 
 print "Compare star shape fit values to correct values"
 print "over a range of fake data"
@@ -49,6 +57,9 @@ print "Sky         =", Sky, "ADU"
 print "Read Noise  =", CCDInfo.readNoise, "e-"
 print "CCD Gain    =", CCDInfo.ccdGain, "e-/ADU"
 print "Bias        =", CCDInfo.bias, "ADU"
+print "DoCentroid  =", DoCentroid
+if DoCentroid:
+	print "Thresh      =", Thresh
 print "Amplitudes  =", AmplValues, "ADU"
 print "FWHMs       =", FWHMValues, "pixels"
 print "Mask Widths =", MaskWidthsPerFWHM, "fractions of a FWHM"
@@ -70,10 +81,11 @@ def pctErr(meas, act):
 fwhmStats = Stats()
 amplStats = Stats()
 bkgndStats = Stats()
+nBadCtr = 0
 nBad = 0
 
 print
-print "fwhm	ampl	bg	xCtr	yCtr	maskWid	fitFWHM	fitAmpl	fitBg	chiSq	fwhmErr	amplErr	bgErr"
+print "fwhm	ampl	bg	xCtr	yCtr	maskWid	xCtMeas	yCtMeas	fitFWHM	fitAmpl	fitBg	chiSq	fwhmErr	amplErr	bgErr	msgs"
 bkgnd = Sky + CCDInfo.bias
 for ampl in AmplValues:
 	for fwhm in FWHMValues:
@@ -97,18 +109,41 @@ for ampl in AmplValues:
 				)
 				
 				maskedData = num.ma.array(data, mask=mask)
+				
+				if DoCentroid:
+					ctrData = PyGuide.centroid(
+						data = data,
+						mask = mask,
+						xyGuess = nomCtr,
+						rad = fwhm * 3.0,
+						ccdInfo = CCDInfo,
+						thresh = Thresh,
+					)
+					if not ctrData.isOK:
+						print "%.1f	%.1f	%.1f	%.2f	%.2f	%.2f	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	NaN	%r" % (
+							fwhm, ampl, bkgnd,
+							xyCtr[0], xyCtr[1], maskWidth,
+							ctrData.msgStr,
+						)
+						nBadCtr += 1
+						continue
+				else:
+					ctrData = PyGuide.CentroidData(
+						isOK = True,
+						xyCtr = xyCtr,
+					)
 
 				shapeData = PyGuide.starShape(
 					data = data,
 					mask = mask,
-					xyCtr = xyCtr,
+					xyCtr = ctrData.xyCtr,
 					rad = fwhm * 3,
 				)
 				if not shapeData.isOK:
-					print "%.1f	%.1f	%.1f	%.2f	%.2f	%.2f	NaN	NaN	NaN	NaN	NaN	NaN	NaN	%r" % (
+					print "%.1f	%.1f	%.1f	%.2f	%.2f	%.2f	%.2f	%.2f	NaN	NaN	NaN	NaN	NaN	NaN	NaN	%r" % (
 						fwhm, ampl, bkgnd,
-						xyCtr[0], xyCtr[1], maskWidth,
-						shapeData.msgStr
+						xyCtr[0], xyCtr[1], maskWidth, ctrData.xyCtr[0], ctrData.xyCtr[1],
+						shapeData.msgStr,
 					)
 					nBad += 1
 					continue
@@ -116,11 +151,12 @@ for ampl in AmplValues:
 				fwhmErr = pctErr(shapeData.fwhm, fwhm)
 				amplErr = pctErr(shapeData.ampl, ampl)
 				bkgndErr = pctErr(shapeData.bkgnd, bkgnd)
-				print "%.1f	%.1f	%.1f	%.2f	%.2f	%.2f	%.1f	%.1f	%.1f	%.2f	%.1f	%.1f	%.1f" % (
+				print "%.1f	%.1f	%.1f	%.2f	%.2f	%.2f	%.2f	%.2f	%.1f	%.1f	%.1f	%.2f	%.1f	%.1f	%.1f	%r" % (
 					fwhm, ampl, bkgnd,
-					xyCtr[0], xyCtr[1], maskWidth,
+					xyCtr[0], xyCtr[1], maskWidth, ctrData.xyCtr[0], ctrData.xyCtr[1],
 					shapeData.fwhm, shapeData.ampl, shapeData.bkgnd, shapeData.chiSq,
 					fwhmErr, amplErr, bkgndErr,
+					shapeData.msgStr,
 				)
 				fwhmStats.append(fwhmErr)
 				amplStats.append(amplErr)
@@ -133,6 +169,8 @@ print "fwhm  %8.1f %8.1f %8.1f %8.1f" % (fwhmStats.min(), fwhmStats.max(), fwhmS
 print "ampl  %8.1f %8.1f %8.1f %8.1f" % (amplStats.min(), amplStats.max(), amplStats.mean(), amplStats.stdDev())
 print "bkgnd %8.1f %8.1f %8.1f %8.1f" % (bkgndStats.min(), bkgndStats.max(), bkgndStats.mean(), bkgndStats.stdDev())
 
-if nBad > 0:
+if (nBad > 0) or (nBadCtr > 0):
 	print
-	print "number of failures =", nBad
+	print "number of shape fit failures =", nBad
+	if DoCentroid:
+		print "number of centroid failures  =", nBadCtr
