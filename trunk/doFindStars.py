@@ -148,7 +148,6 @@ def doCentroid(
 	ccdInfo = PyGuide.CCDInfo(**ccdInfoDict)
 	
 	# centroid
-	print "kargs=", kargs
 	ctrData = PyGuide.centroid(
 		data = im,
 		mask = mask,
