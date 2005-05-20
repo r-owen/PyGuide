@@ -18,6 +18,8 @@
 
 <p>Other Changes:
 <ul>
+	<li>centroid now (optionally) checks for valid signal both before and after centroiding. As a result, the returned background stats are properly centered at the centroid position (rather than being centered on the initial guess).
+	<li>findStars now performs the full "valid signal" before and after check when centroiding. This eliminates invalid centroids in areas of high background (where findStars thinks there is usable signal, but there is not).
 	<li>Added doCentroid to doFindStars (which needs a new name).
 	<li>Updated all references of PyGuide version 1.3 to PyGuide 2.0
 	<li>findStars: changed default verbosity to 0.

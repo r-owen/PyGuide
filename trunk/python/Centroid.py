@@ -16,7 +16,7 @@ This may be simply because the value is only computed at the nearest
 integer pixel or because the noise is assumed gaussian, or some error.
 
 How it works:
-1) Verify that there is an object:
+1) Verify that there is usable signal (optional):
   - Measure median and standard deviation of background
   - Look for connected regions with value > med + (std dev * thresh);
     if no such regions at least 2x2 in size are found
@@ -39,6 +39,11 @@ How it works:
 	a quadratic fit to the 3x3 radAsymm matrix centered on the
 	pixel of minimum radAsymm. Only the points along +/-x and +/-y
 	are used for this fit; the diagonals are ignored.
+
+3) Conform that there is usable signal (optional):
+  - This is just like step 1 but is performed at the final centroid position.
+    This makes sure the centroider has not wandered off into a region of bad signal.
+	It also allows us to return background statistics for the region about the star.
 
 To do:
 - Improve the estimate of centroid error.
@@ -91,11 +96,15 @@ History:
 					- Both basicCentroid and centroid now always return normally
 					  unless some serious internal error occurs;
 					  if centroiding fails then centroidData.isOK is False.
-2005-05-20 ROwen	Bug fix: conditionMask was mis-handling mask=None.
+2005-05-20 ROwen	Added checkSignal method.
+					Rewrite centroid to check for usable signal first, then centroid,
+					then check signal again. Both signal checks are optional
+					The second check avoids trouble when centroid walks into a region of pure noise.
+					Bug fix: conditionMask was mis-handling mask=None.
 					Modified centroid to use conditionData and conditionMask.
 					Stopped auto-tiling frames for doDS9.
 """
-__all__ = ['CentroidData', 'centroid', 'basicCentroid',]
+__all__ = ['CentroidData', 'centroid',]
 
 import math
 import sys
@@ -191,147 +200,12 @@ class CentroidData:
 		return "%s(%s)" % (self.__class__.__name__, ", ".join(dataList))
 
 
-def centroid(
-	data,
-	mask,
-	xyGuess,
-	rad,
-	ccdInfo,
-	thresh = Constants.DefThresh,
-	verbosity = 0,
-	doDS9 = False,
-):
-	"""Check that there is usable signal and then centroid.
-	
-	Details of usable signal:
-	- Computes median and stdDev in a region extending from a circle of radius "rad"
-	  to a box of size (rad+_OuterRadAdd)*2 on a side.
-	- median-smooths the data inside a circle of radius "rad" and makes sure
-	  there is usable signal: max(data) >= thresh*stdDev + median
-	
-	Inputs:
-	- data		image data [i,j]
-	- mask		a mask [i,j] of 0's (valid data) or 1's (invalid); None if no mask.
-				If mask is specified, it must have the same shape as data.
-	- xyGuess	initial x,y guess for centroid
-	- rad		radius of search (pixels);
-				values less than _MinRad are treated as _MinRad
-	- ccdInfo	ccd bias, gain, etc.; a PyGuide.CCDInfo object
-	- thresh	determines the point above which pixels are considered data;
-				valid data >= thresh * standard deviation + median
-				values less than PyGuide.Constants.MinThresh are silently increased
-	- verbosity	0: no output, 1: print warnings, 2: print information, 3: print iteration info.
-				Note: there are no warnings at this time
-	- doDS9		if True, display diagnostic images in ds9
-	
-	Returns a CentroidData object (which see for more info).
-	"""
-	if verbosity > 2:
-		print "centroid(xyGuess=%s, rad=%s, ccdInfo=%s, thresh=%s)" % (xyGuess, rad, ccdInfo, thresh)
-
-	# condition and check inputs
-	data = conditionData(data)
-	mask = conditionMask(mask)
-	if len(xyGuess) != 2:
-		raise ValueError("initial guess=%r must have 2 elements" % (xyGuess,))
-	rad = int(round(max(rad, _MinRad)))
-
-	outerRad = rad + _OuterRadAdd
-	subDataObj = ImUtil.subFrameCtr(
-		data,
-		xyCtr = xyGuess,
-		xySize = (outerRad, outerRad),
-	)
-	subCtrIJ = subDataObj.subIJFromFullIJ(ImUtil.ijPosFromXYPos(xyGuess))
-	subData = subDataObj.getSubFrame().astype(num.UInt16) # force type and copy
-	
-	if mask != None:
-		subMaskObj = ImUtil.subFrameCtr(
-			mask,
-			xyCtr = xyGuess,
-			xySize = (outerRad, outerRad),
-		)
-		subMask = subMaskObj.getSubFrame().astype(num.Bool) # force type and copy
-	else:
-		subMask = num.zeros(subData.shape, type=num.Bool)
-
-	# create circleMask; a centered circle of radius rad
-	# with 0s in the middle and 1s outside
-	def makeCircle(i, j):
-		return ((i-subCtrIJ[0])**2 + (j-subCtrIJ[1])**2) > rad**2
-	circleMask = num.fromfunction(makeCircle, subData.shape)
-	
-	# make a copy of the data outside a circle of radius "rad";
-	# use this to compute background stats
-	bkgndPixels = num.ma.array(
-		subData,
-		mask = num.logical_or(subMask, num.logical_not(circleMask)),
-	)
-	if bkgndPixels.count() < _OuterRadAdd**2:
-		# too few unmasked pixels in outer region; try not masking off the star
-		bkgndPixels = num.ma.array(
-			subData,
-			mask = subMask,
-		)
-		if bkgndPixels.count() < _MinPixForStats:
-			return CentroidData(
-				isOK = False,
-				msgStr = "Cannot measure bkgnd: too few unmasked pixels (%s<%s)" % (bkgndPixels.count(), _MinPixForStats),
-				rad = rad,
-				imStats = imStats,
-			)
-	
-	imStats = ImUtil.skyStats(bkgndPixels, thresh)
-	del(bkgndPixels)
-
-	# median filter the inner data and look for signal > dataCut
-	dataPixels = num.ma.array(
-		subData,
-		mask = num.logical_or(subMask, circleMask),
-	)
-	smoothedData = dataPixels.filled(imStats.med)
-	num.nd_image.median_filter(smoothedData, 3, output=smoothedData)
-	del(dataPixels)
-	
-	# look for a blob of at least 2x2 adjacent pixels with smoothed value >= dataCut
-	# note: it'd be much simpler but less safe to simply test:
-	#    if max(smoothedData) < dataCut: # have signal
-	shapeArry = num.ones((3,3))
-	labels, numElts = num.nd_image.label(smoothedData>imStats.dataCut, shapeArry)
-	del(smoothedData)
-	slices = num.nd_image.find_objects(labels)
-	for ijSlice in slices:
-		ijSize = [slc.stop - slc.start for slc in ijSlice]
-		if 1 not in ijSize:
-			break
-	else:
-		# no usable signal
-		return CentroidData(
-			isOK = False,
-			msgStr = "No star found",
-			rad = rad,
-			imStats = imStats,
-		)
-
-	return basicCentroid(
-		data = data,
-		mask = mask,
-		xyGuess = xyGuess,
-		rad = rad,
-		ccdInfo = ccdInfo,
-		imStats = imStats,
-		verbosity = verbosity,
-		doDS9 = doDS9,
-	)
-
-
 def basicCentroid(
 	data,
 	mask,
 	xyGuess,
 	rad,
 	ccdInfo,
-	imStats = None,
 	verbosity = 0,
 	doDS9 = False,
 ):
@@ -345,16 +219,16 @@ def basicCentroid(
 	- rad		radius of search (pixels);
 				values less than _MinRad are treated as _MinRad
 	- ccdInfo	ccd bias, gain, etc.; a PyGuide.CCDInfo object
-	- imStats	image statistics such as median and std. dev. (if known); an ImUtil.ImStats object
 	- verbosity	0: no output, 1: print warnings, 2: print information,
 				3: print basic iteration info, 4: print detailed iteration info.
 				Note: there are no warnings at this time because the relevant info is returned.
 	- doDS9		if True, diagnostic images are displayed in ds9
 		
-	Returns a CentroidData object (which see for more info)
+	Returns a CentroidData object (which see for more info),
+	but with no imStats info.
 	"""
 	if verbosity > 1:
-		print "basicCentroid(xyGuess=%s, rad=%s, ccdInfo=%s, imStats=%s)" % (xyGuess, rad, ccdInfo, imStats)
+		print "basicCentroid(xyGuess=%s, rad=%s, ccdInfo=%s)" % (xyGuess, rad, ccdInfo)
 	# condition and check inputs
 	data = conditionData(data)
 	mask = conditionMask(mask)
@@ -519,7 +393,6 @@ def basicCentroid(
 			isOK = True,
 			rad = rad,
 			nSat = nSat,
-			imStats = imStats,
 			xyCtr = xyCtr,
 			xyErr = xyErr,
 			counts = totCountsArr[1,1],
@@ -541,8 +414,196 @@ def basicCentroid(
 			isOK = False,
 			msgStr = str(e),
 			rad = rad,
-			imStats = imStats,
 		)
+
+
+def centroid(
+	data,
+	mask,
+	xyGuess,
+	rad,
+	ccdInfo,
+	thresh = Constants.DefThresh,
+	verbosity = 0,
+	doDS9 = False,
+	checkSig = (True, True),
+):
+	"""Centroid and then confirm that there is usable signal at the location.
+	
+	Inputs:
+	- data		image data [i,j]
+	- mask		a mask [i,j] of 0's (valid data) or 1's (invalid); None if no mask.
+				If mask is specified, it must have the same shape as data.
+	- xyGuess	initial x,y guess for centroid
+	- rad		radius of search (pixels);
+				values less than _MinRad are treated as _MinRad
+	- ccdInfo	ccd bias, gain, etc.; a PyGuide.CCDInfo object
+	- thresh	determines the point above which pixels are considered data;
+				valid data >= thresh * standard deviation + median
+				values less than PyGuide.Constants.MinThresh are silently increased
+	- verbosity	0: no output, 1: print warnings, 2: print information, 3: print iteration info.
+				Note: there are no warnings at this time
+	- doDS9		if True, display diagnostic images in ds9
+	- checkSig	Verify usable signal for circle at (xyGuess, xy centroid)?
+				If both are false then imStats is not computed.
+	
+	Returns a CentroidData object (which see for more info).
+	"""
+	if verbosity > 2:
+		print "centroid(xyGuess=%s, rad=%s, ccdInfo=%s, thresh=%s)" % (xyGuess, rad, ccdInfo, thresh)
+	
+	if checkSig[0]:
+		signalOK, imStats = checkSignal(
+			data = data,
+			mask = mask,
+			xyCtr = xyGuess,
+			rad = rad,
+			thresh = thresh,
+			verbosity = verbosity,
+		)
+		if not signalOK:
+			return CentroidData(
+				isOK = False,
+				msgStr = "No star found",
+			)
+
+	ctrData = basicCentroid(
+		data = data,
+		mask = mask,
+		xyGuess = xyGuess,
+		rad = rad,
+		ccdInfo = ccdInfo,
+		verbosity = verbosity,
+		doDS9 = doDS9,
+	)
+
+	if ctrData.isOK and checkSig[1]:
+		signalOK, imStats = checkSignal(
+			data = data,
+			mask = mask,
+			xyCtr = ctrData.xyCtr,
+			rad = rad,
+			thresh = thresh,
+			verbosity = verbosity,
+		)
+		ctrData.imStats = imStats
+		if not signalOK:
+			ctrData.isOK = False
+			ctrData.msgStr = "No star found"
+	return ctrData
+
+
+def checkSignal(
+	data,
+	mask,
+	xyCtr,
+	rad,
+	thresh = Constants.DefThresh,
+	verbosity = 0,
+):
+	"""Check that there is usable signal in a given circle.
+	
+	Inputs:
+	- data		image data [i,j]
+	- mask		a mask [i,j] of 0's (valid data) or 1's (invalid); None if no mask.
+				If mask is specified, it must have the same shape as data.
+	- xyCtr		center of circule (pixels)
+	- rad		radius of circle (pixels);
+				values less than _MinRad are treated as _MinRad
+	- thresh	determines the point above which pixels are considered data;
+				valid data >= thresh * standard deviation + median
+				values less than PyGuide.Constants.MinThresh are silently increased
+	- verbosity	0: no output, 1: print warnings, 2: print information, 3: print iteration info.
+				Note: there are no warnings at this time
+	
+	Return:
+	- signalOK	True if usable signal is present
+	- imStats	background statistics: a PyGuide.ImStats object
+	
+	Details of usable signal:
+	- Computes median and stdDev in a region extending from a circle of radius "rad"
+	  to a box of size (rad+_OuterRadAdd)*2 on a side.
+	- median-smooths the data inside a circle of radius "rad" and makes sure
+	  there is usable signal: max(data) >= thresh*stdDev + median
+	"""
+	if verbosity > 2:
+		print "checkSignal(xyCtr=%s, rad=%s, thresh=%s)" % (xyCtr, rad, thresh)
+
+	# check check inputs
+	if len(xyCtr) != 2:
+		raise ValueError("initial guess=%r must have 2 elements" % (xyCtr,))
+	rad = int(round(max(rad, _MinRad)))
+
+	outerRad = rad + _OuterRadAdd
+	subDataObj = ImUtil.subFrameCtr(
+		data,
+		xyCtr = xyCtr,
+		xySize = (outerRad, outerRad),
+	)
+	subCtrIJ = subDataObj.subIJFromFullIJ(ImUtil.ijPosFromXYPos(xyCtr))
+	subData = subDataObj.getSubFrame().astype(num.UInt16) # force type and copy
+	
+	if mask != None:
+		subMaskObj = ImUtil.subFrameCtr(
+			mask,
+			xyCtr = xyCtr,
+			xySize = (outerRad, outerRad),
+		)
+		subMask = subMaskObj.getSubFrame().astype(num.Bool) # force type and copy
+	else:
+		subMask = num.zeros(subData.shape, type=num.Bool)
+
+	# create circleMask; a centered circle of radius rad
+	# with 0s in the middle and 1s outside
+	def makeCircle(i, j):
+		return ((i-subCtrIJ[0])**2 + (j-subCtrIJ[1])**2) > rad**2
+	circleMask = num.fromfunction(makeCircle, subData.shape)
+	
+	# make a copy of the data outside a circle of radius "rad";
+	# use this to compute background stats
+	bkgndPixels = num.ma.array(
+		subData,
+		mask = num.logical_or(subMask, num.logical_not(circleMask)),
+	)
+	if bkgndPixels.count() < _OuterRadAdd**2:
+		# too few unmasked pixels in outer region; try not masking off the star
+		bkgndPixels = num.ma.array(
+			subData,
+			mask = subMask,
+		)
+		if bkgndPixels.count() < _MinPixForStats:
+			return CentroidData(
+				isOK = False,
+				msgStr = "Cannot measure bkgnd: too few unmasked pixels (%s<%s)" % (bkgndPixels.count(), _MinPixForStats),
+				rad = rad,
+				imStats = imStats,
+			)
+	
+	imStats = ImUtil.skyStats(bkgndPixels, thresh)
+	del(bkgndPixels)
+
+	# median filter the inner data and look for signal > dataCut
+	dataPixels = num.ma.array(
+		subData,
+		mask = num.logical_or(subMask, circleMask),
+	)
+	smoothedData = dataPixels.filled(imStats.med)
+	num.nd_image.median_filter(smoothedData, 3, output=smoothedData)
+	del(dataPixels)
+	
+	# look for a blob of at least 2x2 adjacent pixels with smoothed value >= dataCut
+	# note: it'd be much simpler but less safe to simply test:
+	#    if max(smoothedData) < dataCut: # have signal
+	shapeArry = num.ones((3,3))
+	labels, numElts = num.nd_image.label(smoothedData>imStats.dataCut, shapeArry)
+	del(smoothedData)
+	slices = num.nd_image.find_objects(labels)
+	for ijSlice in slices:
+		ijSize = [slc.stop - slc.start for slc in ijSlice]
+		if 1 not in ijSize:
+			return True, imStats
+	return False, imStats
+
 
 def conditionData(data):
 	"""Convert dataArr to the correct type

@@ -64,6 +64,7 @@ History:
 					- Returns dataList, imStats instead of isSaturated, dataList, med:
 					  - isSaturated is replaced by nSat in centroid data
 					  - med is replaced by imStats, which contains more info
+					- Performs the full "valid signal" check when centroiding.
 					- Changed default verbosity to 1.
 					- Stopped auto-tiling frames for doDS9.
 """
@@ -203,13 +204,14 @@ def findStars(
 
 		if verbosity >= 2:
 			print "findStars centroid at %s with rad=%s" % (xyCtrGuess, rad)
-		ctrData = Centroid.basicCentroid(
+		ctrData = Centroid.centroid(
 			data = data,
 			mask = mask,
 			xyGuess = xyCtrGuess,
 			rad = rad,
 			ccdInfo = ccdInfo,
 			verbosity = verbosity,
+#			checkSig = (False, True), # check for usable signal only after centroiding
 		)
 		if not ctrData.isOK:
 			if verbosity >= 1:
