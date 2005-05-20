@@ -53,7 +53,7 @@ History:
 2005-04-01 ROwen	Modified to return the median of the unmasked data.
 2005-04-11 ROwen	Modified to use Constants.DS9Title.
 2005-04-22 ROwen	Added rad argument (overrides radMult).
-2005-05-19 ROwen	Overhauled findStars:
+2005-05-20 ROwen	Overhauled findStars:
 					- Argument ccdInfo replaces four old arguments.
 					- Renamed dataCut to thresh (to match the APO 3.5m hub).
 					- There is now a minimum threshold of Constants.MinThresh
@@ -65,6 +65,7 @@ History:
 					  - isSaturated is replaced by nSat in centroid data
 					  - med is replaced by imStats, which contains more info
 					- Changed default verbosity to 1.
+					- Stopped auto-tiling frames for doDS9.
 """
 __all__ = ['findStars']
 
@@ -144,7 +145,6 @@ def findStars(
 			
 	if ds9Win:
 		# show masked data in frame 1 and unmasked data in frame 2
-		ds9Win.xpaset("tile frames")
 		ds9Win.xpaset("frame 1")
 		if mask != None:
 			ds9Win.showArray(data * (mask==0))

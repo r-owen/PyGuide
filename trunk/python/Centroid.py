@@ -91,8 +91,9 @@ History:
 					- Both basicCentroid and centroid now always return normally
 					  unless some serious internal error occurs;
 					  if centroiding fails then centroidData.isOK is False.
-2005-05-19 ROwen	Bug fix: conditionMask was mis-handling mask=None.
+2005-05-20 ROwen	Bug fix: conditionMask was mis-handling mask=None.
 					Modified centroid to use conditionData and conditionMask.
+					Stopped auto-tiling frames for doDS9.
 """
 __all__ = ['CentroidData', 'centroid', 'basicCentroid',]
 
@@ -371,7 +372,6 @@ def basicCentroid(
 
 	if ds9Win:
 		# show masked data in frame 1 and unmasked data in frame 2
-		ds9Win.xpaset("tile frames")
 		ds9Win.xpaset("frame 1")
 		if mask != None:
 			ds9Win.showArray(data * (mask==0))
