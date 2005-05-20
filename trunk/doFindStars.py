@@ -20,6 +20,7 @@ History:
 2005-04-11 ROwen	Modified to use PyGuide.Constants.DS9Title.
 2005-04-22 ROwen	Added support for the rad argument.
 2005-05-16 ROwen	Modified for overhauled findStars.
+2005-05-20 ROwen	Added doCentroid.
 """
 import numarray as num
 import PyGuide
@@ -48,7 +49,8 @@ doDS9 = True
 ds9Win = RO.DS9.DS9Win(PyGuide.Constants.DS9Title)
 
 CCDInfoNames = ("bias", "readNoise", "ccdGain", "satLevel")
-ParamNames = CCDInfoNames + ("thresh", "radMult", "rad", "verbosity", "doDS9")
+FindParamNames = CCDInfoNames + ("thresh", "radMult", "rad", "verbosity", "doDS9")
+CentroidParamNames = CCDInfoNames + ("thresh", "rad", "verbosity", "doDS9")
 
 def doFindStars(
 	imName = None,
@@ -65,12 +67,12 @@ def doFindStars(
 	
 	# check keyword arguments
 	for paramName in kargs:
-		if paramName not in ParamNames:
+		if paramName not in FindParamNames:
 			raise RuntimeError("Invalid argument: %s" % (paramName,))
 	
 	# fill in defaults
 	globalDict = globals()
-	for paramName in ParamNames:
+	for paramName in FindParamNames:
 		if paramName not in kargs:
 			kargs[paramName] = globalDict[paramName]
 	
@@ -81,22 +83,22 @@ def doFindStars(
 	ccdInfo = PyGuide.CCDInfo(**ccdInfoDict)
 	
 	# find stars and centroid
-	posDataList, imStats = PyGuide.findStars(
+	ctrDataList, imStats = PyGuide.findStars(
 		data = im,
 		mask = mask,
 		ccdInfo = ccdInfo,
 	**kargs)
 
-	print "%s stars found:" % (len(posDataList),)
+	print "%s stars found:" % (len(ctrDataList),)
 	print "   xctr    yctr    xerr    yerr         ampl   bkgnd    fwhm  |  rad     pix    nSat  chiSq"
-	for posData in posDataList:
+	for ctrData in ctrDataList:
 		# measure star shape
 		try:
 			shapeData = PyGuide.starShape(
 				data = im,
 				mask = mask,
-				xyCtr = posData.xyCtr,
-				rad = posData.rad,
+				xyCtr = ctrData.xyCtr,
+				rad = ctrData.rad,
 			)
 		except RuntimeError, e:
 			print "starShape failed: %s" % (e,)
@@ -104,11 +106,78 @@ def doFindStars(
 		
 		# print results
 		print "%7.2f %7.2f %7.2f %7.2f %13.1f %7.1f %7.1f %7d %7d %7d %7.1f" % (
-			posData.xyCtr[0], posData.xyCtr[1],
-			posData.xyErr[0], posData.xyErr[1],
+			ctrData.xyCtr[0], ctrData.xyCtr[1],
+			ctrData.xyErr[0], ctrData.xyErr[1],
 			shapeData.ampl, shapeData.bkgnd, shapeData.fwhm,
-			posData.rad, posData.pix, posData.nSat, shapeData.chiSq,
+			ctrData.rad, ctrData.pix, ctrData.nSat, shapeData.chiSq,
 		)
+
+
+def doCentroid(
+	imName = None,
+	maskName = None,
+	xyGuess = None,
+	**kargs
+):
+	global im, imfits, mask, maskfits, isSat, sd
+	if imName:
+		imfits = pyfits.open(imName)
+		im = imfits[0].data
+	if maskName:
+		maskfits = pyfits.open(maskName)
+		mask = maskfits[0].data
+	if xyGuess == None:
+		print "xyGuess is required"
+		return
+	
+	# check keyword arguments
+	for paramName in kargs:
+		if paramName not in CentroidParamNames:
+			raise RuntimeError("Invalid argument: %s" % (paramName,))
+	
+	# fill in defaults
+	globalDict = globals()
+	for paramName in CentroidParamNames:
+		if paramName not in kargs:
+			kargs[paramName] = globalDict[paramName]
+	
+	# split off ccd info
+	ccdInfoDict = {}
+	for paramName in CCDInfoNames:
+		ccdInfoDict[paramName] = kargs.pop(paramName)
+	ccdInfo = PyGuide.CCDInfo(**ccdInfoDict)
+	
+	# centroid
+	print "kargs=", kargs
+	ctrData = PyGuide.centroid(
+		data = im,
+		mask = mask,
+		xyGuess = xyGuess,
+		ccdInfo = ccdInfo,
+	**kargs)
+
+	if not ctrData.isOK:
+		print "centroid failed:", ctrData.msgStr
+		return
+
+	print "   xctr    yctr    xerr    yerr         ampl   bkgnd    fwhm  |  rad     pix    nSat  chiSq"
+	shapeData = PyGuide.starShape(
+		data = im,
+		mask = mask,
+		xyCtr = ctrData.xyCtr,
+		rad = ctrData.rad,
+	)
+	# print results
+	print "%7.2f %7.2f %7.2f %7.2f %13.1f %7.1f %7.1f %7d %7d %7d %7.1f" % (
+		ctrData.xyCtr[0], ctrData.xyCtr[1],
+		ctrData.xyErr[0], ctrData.xyErr[1],
+		shapeData.ampl, shapeData.bkgnd, shapeData.fwhm,
+		ctrData.rad, ctrData.pix, ctrData.nSat, shapeData.chiSq,
+	)
+
+	if not shapeData.isOK:
+		print "starShape failed:", shapeData.msgStr
+
 
 def showDef():
 	"""Show current value of various global variables
@@ -116,13 +185,12 @@ def showDef():
 	"""
 	print "Global variables (defaults for doFindStars):"
 	globalDict = globals()
-	for paramName in ParamNames:
+	for paramName in FindParamNames:
 		print "%s = %s" % (paramName, globalDict[paramName])
 	print
 
 showDef()
-print """ds9Win.showArray(arry) will display an array
-
+print """
 Computed values:
 im: image data array
 mask: mask data array, or None if no mask
@@ -138,10 +206,11 @@ Notes:
 - For optimal centroiding and a reasonable centroid error estimate
   you must set bias, readNoise and ccdGain correctly for your image.
 
-Function call:
-doFindStars(imName=None, maskName=None)
-where:
-- imName is the file name of a fits image; if omitted then the current im array is used
-- maskName is the file name of a fits mask; if omitted then the current mask array is used
+Function calls:
+doFindStars(imName=None, maskName=None [, optional_named_params])
+
+doCentroid(imName=None, maskName=None, xyGuess=(x,y) [, optional_named_params])
+
+ds9Win.showArray(arry) will display an array
 """
 

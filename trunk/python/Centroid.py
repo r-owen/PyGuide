@@ -321,7 +321,7 @@ def centroid(
 		ccdInfo = ccdInfo,
 		imStats = imStats,
 		verbosity = verbosity,
-		doDS9 = False,
+		doDS9 = doDS9,
 	)
 
 
