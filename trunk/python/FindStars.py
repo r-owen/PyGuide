@@ -67,6 +67,7 @@ History:
 					- Performs the full "valid signal" check when centroiding.
 					- Changed default verbosity to 1.
 					- Stopped auto-tiling frames for doDS9.
+2005-06-13 ROwen	Bug fix: was mis-computing radius for centroid.
 """
 __all__ = ['findStars']
 
@@ -192,30 +193,32 @@ def findStars(
 		
 		# region appears to be valid; centroid it
 		if rad == None:
-			rad = max(ijSize[0], ijSize[1]) * radMult / 2.0
+			actRad = max(ijSize[0], ijSize[1]) * radMult / 2.0
+		else:
+			actRad = rad
 		if ds9Win:
 			ds9BoxCtr = ImUtil.ds9PosFromXYPos(xyCtrGuess)
 			# display box from find_objects
 			args = ds9BoxCtr + _reversed(ijSize) + [0]
 			ds9Win.xpaset("regions", "image; box %s # group=findbox" % _fmtList(args))
 			# display circle showing the centroider input
-			args = ds9BoxCtr + [rad]
+			args = ds9BoxCtr + [actRad]
 			ds9Win.xpaset("regions", "image; circle %s # group=ctrcirc" % _fmtList(args))
 
 		if verbosity >= 2:
-			print "findStars centroid at %s with rad=%s" % (xyCtrGuess, rad)
+			print "findStars centroid at %s with rad=%s" % (xyCtrGuess, actRad)
 		ctrData = Centroid.centroid(
 			data = data,
 			mask = mask,
 			xyGuess = xyCtrGuess,
-			rad = rad,
+			rad = actRad,
 			ccdInfo = ccdInfo,
 			verbosity = verbosity,
 #			checkSig = (False, True), # check for usable signal only after centroiding
 		)
 		if not ctrData.isOK:
 			if verbosity >= 1:
-				print "findStars warning: centroid at %s with rad=%s failed: %s" % (xyCtrGuess, rad, ctrData.msgStr)
+				print "findStars warning: centroid at %s with rad=%s failed: %s" % (xyCtrGuess, actRad, ctrData.msgStr)
 			continue
 			
 		countsCentroidList.append((ctrData.counts, ctrData))
