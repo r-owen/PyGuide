@@ -21,6 +21,7 @@ History:
 2005-04-22 ROwen	Added support for the rad argument.
 2005-05-16 ROwen	Modified for overhauled findStars.
 2005-05-20 ROwen	Added doCentroid.
+2005-06-17 ROwen	Added an invertMask flag.
 """
 import numarray as num
 import PyGuide
@@ -55,15 +56,11 @@ CentroidParamNames = CCDInfoNames + ("thresh", "rad", "verbosity", "doDS9")
 def doFindStars(
 	imName = None,
 	maskName = None,
+	invertMask = False,
 	**kargs
 ):
-	global im, imfits, mask, maskfits, isSat, sd
-	if imName:
-		imfits = pyfits.open(imName)
-		im = imfits[0].data
-	if maskName:
-		maskfits = pyfits.open(maskName)
-		mask = maskfits[0].data
+	global isSat, sd
+	im, mask = loadFiles(imName, maskName, invertMask)
 	
 	# check keyword arguments
 	for paramName in kargs:
@@ -112,20 +109,15 @@ def doFindStars(
 			ctrData.rad, ctrData.pix, ctrData.nSat, shapeData.chiSq,
 		)
 
-
 def doCentroid(
 	imName = None,
 	maskName = None,
 	xyGuess = None,
+	invertMask = False,
 	**kargs
 ):
 	global im, imfits, mask, maskfits, isSat, sd
-	if imName:
-		imfits = pyfits.open(imName)
-		im = imfits[0].data
-	if maskName:
-		maskfits = pyfits.open(maskName)
-		mask = maskfits[0].data
+	im, mask = loadFiles(imName, maskName, invertMask)
 	if xyGuess == None:
 		print "xyGuess is required"
 		return
@@ -177,6 +169,25 @@ def doCentroid(
 	if not shapeData.isOK:
 		print "starShape failed:", shapeData.msgStr
 
+def loadFiles(
+	imName = None,
+	maskName = None,
+	invertMask = False,
+):
+	"""Load a new image and/or mask from a fits file.
+	invertMask is ignored unless maskName is specified.
+	"""
+	global im, imfits, mask, maskfits, isSat, sd
+	if imName:
+		imfits = pyfits.open(imName)
+		im = imfits[0].data
+	if maskName:
+		maskfits = pyfits.open(maskName)
+		if invertMask:
+			mask = maskfits[0].data < 0.1
+		else:
+			mask = maskfits[0].data > 0.1
+	return im, mask
 
 def showDef():
 	"""Show current value of various global variables
@@ -204,12 +215,13 @@ Notes:
 - For a slitviewer image, be sure to specify a suitable mask.
 - For optimal centroiding and a reasonable centroid error estimate
   you must set bias, readNoise and ccdGain correctly for your image.
+- invertMask is ignored unless maskName is specified.
 
 Function calls:
-doFindStars(imName=None, maskName=None [, optional_named_params])
-
-doCentroid(imName=None, maskName=None, xyGuess=(x,y) [, optional_named_params])
-
-ds9Win.showArray(arry) will display an array
+doFindStars(imName=None, maskName=None, invertMask=False, [, optional_named_params])
+doCentroid(imName=None, maskName=None, invertMask=False, xyGuess=(x,y) [, optional_named_params])
+loadFiles(imName, maskname, invertMask) loads a new image and/or mask
+ds9Win.showArray(arry) displays an array in ds9
+showDef() prints the current defaults
 """
 
