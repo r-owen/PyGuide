@@ -8,26 +8,13 @@
 
 <h1>PyGuide Version History</h1>
 
-<h2>2.0b2 2005-06-17</h2>
-
-<p>Bug fixes from 1.3b1:
+<p>Future plans: support for calibrated images, including:
 <ul>
-	<li>Bug fix 2005-06-13: findStars was mis-computing centroid radius.
-	<li>Bug fix: findStars, centroid and basicCentroid were all mis-handling mask=None. (Fixed by making conditionMask handle None properly and also by modifying centroid to use conditionData and conditionMask).
-	<li>Bug fix: centroid was not passing doDS9 through to basicCentroid.
+	<li>Support for 32-bit floating point images.
+	<li>Replacing the saturated pixel threshold value with a saturated pixel mask (since otherwise it is impossible to tell which pixels are saturated in calibrated images).
 </ul>
 
-<p>Other Changes:
-<ul>
-	<li>centroid now (optionally) checks for valid signal both before and after centroiding. As a result, the returned background stats are properly centered at the centroid position (rather than being centered on the initial guess).
-	<li>findStars now performs the full "valid signal" before and after check when centroiding. This eliminates invalid centroids in areas of high background (where findStars thinks there is usable signal, but there is not).
-	<li>Added doCentroid to doFindStars (which needs a new name).
-	<li>Updated all references of PyGuide version 1.3 to PyGuide 2.0
-	<li>findStars: changed default verbosity to 0.
-	<li>doFindStars: added an invertMask argument, plus a new function loadFiles.
-</ul>
-
-<h2>1.3b1 2005-05-18</h2>
+<h2>2.0 2005-06-19</h2>
 
 <p>This is a major overhaul of PyGuide. The main purpose was to make centroiding and star shape fitting more robust. In particular centroiding should no longer attempt to centroid random noise. However, I also took the opportunity to clean up a number of other issues.
 
@@ -37,12 +24,13 @@
 	<li>centroid and starShape return data even when they fail. The returned objects now have an isOK flag that you must check and a msgStrs field for warning and error messages (if isOK is false then msgStrs[-1] will contain an error message). CentroidData also includes nSat, the number of saturated pixels, which you should check.
 	<li>findStars:
 	<ul>
-		<li>Returns a list of centroid data and an ImStats object containing statistics for the entire masked image. Formerly it returned an isSaturated flag, a list of centroid data and a median. (Note: findStars still does not return data for centroids that failed.)
+		<li>Returns a list of centroid data and an ImStats object containing statistics for the entire masked image. Formerly it returned an isSaturated flag, a list of centroid data and a median. (Note: findStars still does not return data for centroids that fail.)
 		<li>Returns centroided data for stars with saturated pixels. Formerly it ignored such stars. It is up to you to decide if the star has so many saturated pixels that it is unusable. Please be careful because <b>saturated stars are likely to turn up first in the list of returned stars</b>.
 		<li>Argument ccdInfo replaces four old arguments.
 		<li>Argument dataCut renamed to thresh (to match the 3.5m hub).
 		<li>Argument ds9 renamed to doDS9.
 		<li>New argument rad; if specified it overrides radMult.
+	</ul>
 	<li>centroid:
 	<ul>
 		<li>Overhauled to verify that there is signal before attempting to centroid the data. It uses essentially the same algorithm as findStars for this purpose. To avoid this check, use the new routine basicCentroid.
@@ -50,9 +38,9 @@
 		<ul>
 			<li>isOK: if False the centroid failed
 			<li>msgStr: contains an error message if isOK is false and may contain a warning message even if isOK is true.
-			<li>nSat: the number of saturated pixels. It is your responsibility to determine if there are so many that you should not trust the centroid.
+			<li>nSat: the number of saturated pixels. It is your responsibility to determine if there are so many saturated pixels that you should not trust the centroid.
 		</ul>
-		<li>Argument ccdInfo replaces four old arguments.
+		<li>New argument ccdInfo replaces four old arguments.
 		<li>New argument thresh
 		<li>New argument verbosity replaces debugging constants.
 		<li>Argument ds9 renamed to doDS9.
@@ -64,9 +52,8 @@
 			<li>isOK: if False the star shape fitting failed
 			<li>msgStr: contains an error message if isOK is false and may contain a warning message even if isOK is true.
 		</ul>
-		<li>New required argument rad: the radius of the data to explore.
-		<li>New debugging arguments: verbosity and doPlot replace debugging constants.
-		<li>The predFWHM argument is ignored and deprecated. Please stop using it!
+		<li>New argument rad replaces predFWHM.
+		<li>New debugging arguments verbosity and doPlot replace debugging constants.
 	</ul>
 	<li>FakeData.addNoise: new argument ccdInfo replaces three exising arguments.
 	<li>ImUtil:
@@ -79,14 +66,24 @@
 <p>Other changes:
 
 <ul>
+	<li>centroid now (optionally) checks for valid signal both before and after centroiding. As a result, the returned background stats are properly centered at the centroid position (rather than being centered on the initial guess).
+	<li>findStars now performs the full "valid signal" before and after check when centroiding. This eliminates invalid centroids in areas of high background (where findStars thinks there is usable signal, but there is not).
 	<li>starShape algorithm tweaked. It now appears to be pickier about what it will fit, but often seems to give a better answer for reasonable data. Tweaks include:
 	<ul>
+		<li>The initial guess has been greatly improved (at the expense of speed). It explores a wide range of possible fwhm (from 1 to rad*1.5 pixels).
+		<li>Modified to use Jim Gunn's original weighting function. This seems to give somewhat better its and fewer surprising failures (at least for the test code). However, chiSq is no longer even remotely normalized.
 		<li>Modified to use Jim Gunn's original weighting function. This seems to give somewhat better its and fewer surprising failures (at least for the test code). However, chiSq is no longer even remotely normalized.
 		<li>The initial guess has been greatly improved (at the expense of speed). It explores a wide range of possible fwhm (from 1 to rad*1.5 pixels).
 		<li>Uses Brent's method to fit. Note: the implementation of Brent's method was borrowed from scipy, but is built into PyGuide.
 	</ul>
 	<li>ImUtil.skyStats now uses ma.compressed() instead of ma.compressed().raw_data() on masked arrays. This is the right way to do it, but I'm not sure if it actually makes a difference.
 	<li>ImUtil.getQuartile now raises ValueError for arrays with less than 3 elements.
+	<li>doFindStars (a utility module which now does so many things that it should be renamed):
+	<ul>
+		<li>Added doCentroid function
+		<li>Added loadFiles function.
+		<li>Added an invertMask argument to the doFindStars function.
+	</ul>
 	<li>Moved the python source code up one level (and modifies setup.py accordingly) to make the layout more logical.
 </ul>
 
