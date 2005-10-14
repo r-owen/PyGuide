@@ -372,31 +372,32 @@ def basicCentroid(
 		if satMask == None:
 			nSat = None
 		else:
-			intXYCtr = [int(val) for val in xyCtr]
-			subRad = rad+1
+			ctrPixIJ = (maxi, maxj)
+			ctrPixXY = ImUtil.xyPosFromIJPos(ctrPixIJ)
+			subSize = (rad*2) + 1
 			subSatMaskObj = ImUtil.subFrameCtr(
 				satMask,
-				xyCtr = intXYCtr,
-				xySize = (subRad, subRad),
+				xyCtr = ctrPixXY,
+				xySize = (subSize, subSize),
 			)
-			subSatMask = subSatMaskObj.getSubFrame() # .astype(num.Bool) # force type and copy WHY?
-			subCtrIJ = subSatMaskObj.subIJFromFullIJ(ImUtil.ijPosFromXYPos(xyCtr))
+			subSatMask = subSatMaskObj.getSubFrame()
+			subCtrIJ = subSatMaskObj.subIJFromFullIJ(ctrPixIJ)
 
-			def makeCircle(i, j):
-				return ((i-subCtrIJ[0])**2 + (j-subCtrIJ[1])**2) > rad**2
-			maskForData = num.fromfunction(makeCircle, subSatMask.shape)
+			def makeDisk(i, j):
+				return ((i-subCtrIJ[0])**2 + (j-subCtrIJ[1])**2) <= rad**2
+			maybeSatPixel = num.fromfunction(makeDisk, subSatMask.shape)
 
 			if mask != None:
 				subMaskObj = ImUtil.subFrameCtr(
 					mask,
-					xyCtr = intXYCtr,
-					xySize = (subRad, subRad),
+					xyCtr = ctrPixXY,
+					xySize = (subSize, subSize),
 				)
-				subMask = subMaskObj.getSubFrame() # .astype(num.Bool) WHY???
-				num.logical_or(maskForData, subMask, maskForData)
+				subMask = subMaskObj.getSubFrame()
+				num.logical_and(maybeSatPixel, num.logical_not(subMask), maybeSatPixel)
 			
-			hotPixels = num.logical_and(subSatMask, num.logical_not(maskForData))
-			nSat = num.nd_image.sum(hotPixels)
+			num.logical_and(subSatMask, maybeSatPixel, maybeSatPixel)
+			nSat = num.nd_image.sum(maybeSatPixel)
 	
 		ctrData = CentroidData(
 			isOK = True,
