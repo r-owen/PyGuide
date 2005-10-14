@@ -15,6 +15,7 @@ History:
 2005-02-07 ROwen	Modified for PyGuide 1.2.
 					Modified to show shape info for all found stars.
 2005-04-19 ROwen	Modified for PyGuide 2.0
+2005-10-14 ROwen	Supply null satMask for PyGuide 2.1.
 """
 import sys
 import numarray as num
@@ -52,6 +53,7 @@ print "searching for stars"
 ctrDataList, imStats = PyGuide.findStars(
 	data = data,
 	mask = mask,
+	satMask = None,
 	ccdInfo = CCDInfo,
 	verbosity = 0,
 	doDS9 = False,

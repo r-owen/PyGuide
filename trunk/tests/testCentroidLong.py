@@ -13,6 +13,7 @@ History:
 					Reports centroid error stats.
 					Shows inputs when centroid fails.
 					Shows centroid warnings.
+2005-10-14 ROwen	Supply null satMask for PyGuide 2.1.
 """
 import numarray as num
 import numarray.random_array as num_random
@@ -98,6 +99,7 @@ for ampl in AmplValues:
 				ctrData = PyGuide.centroid(
 					data = data,
 					mask = mask,
+					satMask = None,
 					xyGuess = nomCtr,
 					rad = fwhm * 3.0,
 					ccdInfo = CCDInfo,

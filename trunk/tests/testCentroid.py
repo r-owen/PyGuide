@@ -11,6 +11,7 @@ History:
 2005-02-07 ROwen	Modified for PyGuide 1.2.
 					Modified to show estimated error.
 2005-05-19 ROwen	Updated for PyGuide 2.0.
+2005-10-14 ROwen	Supply null satMask for PyGuide 2.1.
 """
 import sys
 import numarray as num
@@ -67,6 +68,7 @@ for arrShape, actCtr, sigma, ampl, scanRadFactor, maskLim in testData:
 	ctrData = PyGuide.centroid(
 		data = data,
 		mask = mask,
+		satMask = None,
 		xyGuess = xyGuess,
 		rad = scanRad,
 		ccdInfo = CCDInfo,
@@ -87,6 +89,7 @@ for arrShape, actCtr, sigma, ampl, scanRadFactor, maskLim in testData:
 	ctrData = PyGuide.centroid(
 		data = data,
 		mask = mask,
+		satMask = None,
 		xyGuess = xyGuess,
 		rad = scanRad,
 		ccdInfo = CCDInfo,

@@ -103,6 +103,10 @@ History:
 					Bug fix: conditionMask was mis-handling mask=None.
 					Modified centroid to use conditionData and conditionMask.
 					Stopped auto-tiling frames for doDS9.
+2005-10-14 ROwen	Added satMask argument to centroid and basicCentroid;
+					they now ignore ccdInfo.satLevel.
+					Modified to use Float32 omage data instead of UInt16.
+					
 """
 __all__ = ['CentroidData', 'centroid',]
 
@@ -203,6 +207,7 @@ class CentroidData:
 def basicCentroid(
 	data,
 	mask,
+	satMask,
 	xyGuess,
 	rad,
 	ccdInfo,
@@ -213,8 +218,8 @@ def basicCentroid(
 
 	Inputs:
 	- data		image data [i,j]
-	- mask		a mask [i,j] of 0's (valid data) or 1's (invalid); None if no mask.
-				If mask is specified, it must have the same shape as data.
+	- mask		a mask of invalid data (1 if invalid, 0 if valid); None if no mask.
+	- satMask	a maks of of saturated pixels (1 if saturated, 0 if not); None if no mask.
 	- xyGuess	initial x,y guess for centroid
 	- rad		radius of search (pixels);
 				values less than _MinRad are treated as _MinRad
@@ -223,6 +228,9 @@ def basicCentroid(
 				3: print basic iteration info, 4: print detailed iteration info.
 				Note: there are no warnings at this time because the relevant info is returned.
 	- doDS9		if True, diagnostic images are displayed in ds9
+	
+	Masks are optional. If specified, they must be the same shape as "data"
+	and should be of type Bool. None means no mask (all data is OK).
 		
 	Returns a CentroidData object (which see for more info),
 	but with no imStats info.
@@ -232,6 +240,7 @@ def basicCentroid(
 	# condition and check inputs
 	data = conditionData(data)
 	mask = conditionMask(mask)
+	satMask = conditionMask(satMask)
 	if len(xyGuess) != 2:
 		raise ValueError("initial guess=%r must have 2 elements" % (xyGuess,))
 	rad = int(round(max(rad, _MinRad)))
@@ -359,23 +368,23 @@ def basicCentroid(
 						_fmtList(xyCtr))
 	
 
-		# count # saturated pixels, if satLevel available
-		if ccdInfo.satLevel == None:
+		# count # saturated pixels, if satMask available
+		if satMask == None:
 			nSat = None
 		else:
 			intXYCtr = [int(val) for val in xyCtr]
 			subRad = rad+1
-			subDataObj = ImUtil.subFrameCtr(
-				data,
+			subSatMaskObj = ImUtil.subFrameCtr(
+				satMask,
 				xyCtr = intXYCtr,
 				xySize = (subRad, subRad),
 			)
-			subData = subDataObj.getSubFrame().astype(num.UInt16) # force type and copy
-			subCtrIJ = subDataObj.subIJFromFullIJ(ImUtil.ijPosFromXYPos(xyCtr))
+			subSatMask = subSatMaskObj.getSubFrame() # .astype(num.Bool) # force type and copy WHY?
+			subCtrIJ = subSatMaskObj.subIJFromFullIJ(ImUtil.ijPosFromXYPos(xyCtr))
 
 			def makeCircle(i, j):
 				return ((i-subCtrIJ[0])**2 + (j-subCtrIJ[1])**2) > rad**2
-			maskForData = num.fromfunction(makeCircle, subData.shape)
+			maskForData = num.fromfunction(makeCircle, subSatMask.shape)
 
 			if mask != None:
 				subMaskObj = ImUtil.subFrameCtr(
@@ -383,10 +392,10 @@ def basicCentroid(
 					xyCtr = intXYCtr,
 					xySize = (subRad, subRad),
 				)
-				subMask = subMaskObj.getSubFrame().astype(num.Bool)
+				subMask = subMaskObj.getSubFrame() # .astype(num.Bool) WHY???
 				num.logical_or(maskForData, subMask, maskForData)
 			
-			hotPixels = num.logical_and(subData >= ccdInfo.satLevel, num.logical_not(maskForData))
+			hotPixels = num.logical_and(subSatMask, num.logical_not(maskForData))
 			nSat = num.nd_image.sum(hotPixels)
 	
 		ctrData = CentroidData(
@@ -420,6 +429,7 @@ def basicCentroid(
 def centroid(
 	data,
 	mask,
+	satMask,
 	xyGuess,
 	rad,
 	ccdInfo,
@@ -432,8 +442,8 @@ def centroid(
 	
 	Inputs:
 	- data		image data [i,j]
-	- mask		a mask [i,j] of 0's (valid data) or 1's (invalid); None if no mask.
-				If mask is specified, it must have the same shape as data.
+	- mask		a mask of invalid data (1 if invalid, 0 if valid); None if no mask.
+	- satMask	a maks of of saturated pixels (1 if saturated, 0 if not); None if no mask.
 	- xyGuess	initial x,y guess for centroid
 	- rad		radius of search (pixels);
 				values less than _MinRad are treated as _MinRad
@@ -470,6 +480,7 @@ def centroid(
 	ctrData = basicCentroid(
 		data = data,
 		mask = mask,
+		satMask = satMask,
 		xyGuess = xyGuess,
 		rad = rad,
 		ccdInfo = ccdInfo,
@@ -541,7 +552,7 @@ def checkSignal(
 		xySize = (outerRad, outerRad),
 	)
 	subCtrIJ = subDataObj.subIJFromFullIJ(ImUtil.ijPosFromXYPos(xyCtr))
-	subData = subDataObj.getSubFrame().astype(num.UInt16) # force type and copy
+	subData = subDataObj.getSubFrame().astype(num.Float32) # force type and copy
 	
 	if mask != None:
 		subMaskObj = ImUtil.subFrameCtr(
@@ -611,7 +622,7 @@ def conditionData(data):
 	
 	Warning: does not copy the data unless necessary.
 	"""
-	return conditionArr(data, desType=num.UInt16)
+	return conditionArr(data, desType=num.Float32)
 
 def conditionMask(mask):
 	"""Convert mask to the correct type

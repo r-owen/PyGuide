@@ -37,7 +37,7 @@ void g_radAsymm_free(
 );
 long radAsymm(
 	long inLenI, long inLenJ,
-	UInt16 data[inLenI][inLenJ],
+	Float32 data[inLenI][inLenJ],
 	Bool mask[inLenI][inLenJ],
 	long iCtr, long jCtr,
 	long rad,
@@ -46,7 +46,7 @@ long radAsymm(
 );
 long radAsymmWeighted(
 	long inLenI, long inLenJ,
-	UInt16 data[inLenI][inLenJ],
+	Float32 data[inLenI][inLenJ],
 	Bool mask[inLenI][inLenJ],
 	long iCtr, long jCtr,
 	long rad,
@@ -58,7 +58,7 @@ long radAsymmWeighted(
 );
 long radProf(
 	long inLenI, long inLenJ,
-	UInt16 data[inLenI][inLenJ],
+	Float32 data[inLenI][inLenJ],
 	Bool mask[inLenI][inLenJ],
 	long iCtr, long jCtr,
 	long rad,
@@ -70,7 +70,7 @@ long radProf(
 );
 long radSqProf(
 	long inLenI, long inLenJ,
-	UInt16 data[inLenI][inLenJ],
+	Float32 data[inLenI][inLenJ],
 	Bool mask[inLenI][inLenJ],
 	long iCtr, long jCtr,
 	long rad,

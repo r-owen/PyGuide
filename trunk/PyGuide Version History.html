@@ -8,10 +8,11 @@
 
 <h1>PyGuide Version History</h1>
 
-<p>Future plans: support for calibrated images, including:
+<h2>2.1 2005-10-14</h2>
+
 <ul>
-	<li>Support for 32-bit floating point images.
-	<li>Replacing the saturated pixel threshold value with a saturated pixel mask (since otherwise it is impossible to tell which pixels are saturated in calibrated images).
+	<li>Float32 is now the basic image data type, rather than UInt16. This makes it far more compatible with various image formats, including calibrated CCD data. It is also more compatible with pyfits.
+	<li>Saturated pixels are now marked by a saturation mask, rather than by comparing pixel values to a saturation level. This was done because calibrated images may not have a fixed saturation level. Note that ccdInfo.satLevel is still available, but is no longer used by PyGuide. You may find it useful for generating a saturation mask.
 </ul>
 
 <h2>2.0 2005-06-19</h2>

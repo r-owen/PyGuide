@@ -8,6 +8,7 @@ History:
 2004-08-06 ROwen	Modified for new centroid.
 2005-02-07 ROwen	Modified for PyGuide 1.2.
 2005-05-19 ROwen	Modified for PyGuide 2.0.
+2005-10-14 ROwen	Supply null satMask for PyGuide 2.1.
 """
 import time
 import numarray as num
@@ -33,6 +34,7 @@ def timeCentroid(data, mask, xyGuess, niter, rad=20):
 		ctrData = PyGuide.centroid(
 			data = data,
 			mask = mask,
+			satMask = None,
 			xyGuess = xyGuess,
 			rad = rad,
 			thresh = Thresh,

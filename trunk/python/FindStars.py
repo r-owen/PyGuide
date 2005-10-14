@@ -68,6 +68,8 @@ History:
 					- Changed default verbosity to 1.
 					- Stopped auto-tiling frames for doDS9.
 2005-06-13 ROwen	Bug fix: was mis-computing radius for centroid.
+2005-10-14 ROwen	Added satMask argument to findStars.
+					Modified to use Float32 image data instead of UInt16.
 """
 __all__ = ['findStars']
 
@@ -94,6 +96,7 @@ def _reversed(alist):
 def findStars(
 	data,
 	mask,
+	satMask,
 	ccdInfo,
 	thresh = Constants.DefThresh,
 	radMult = 1.0,
@@ -104,9 +107,9 @@ def findStars(
 	"""Find and centroid stars.
 	
 	Inputs:
-	- data		the image data [i,j]; this is converted to an UInt16 numarray if necessary
-	- mask		a mask [i,j] of 0's (valid data) or 1's (invalid); None if no mask.
-				If mask is specified, it must have the same shape as data.
+	- data		the image data [i,j]; this is converted to an Float32 numarray if necessary
+	- mask		a mask of invalid data (1 if invalid, 0 if valid); None if no mask.
+	- satMask	a maks of of saturated pixels (1 if saturated, 0 if not); None if no mask.
 	- ccdInfo	bias, read noise, etc: a PyGuide.CCDInfo object.
 	- thresh	determines the point above which pixels are considered data;
 				valid data >= thresh * standard deviation + median
@@ -123,8 +126,11 @@ def findStars(
 	- centroidData	a list of centroid information for each star found, in decreasing
 					order of counts. Each element is a PyGuide.CentroidData object.
 	- imStats		background statistics; a PyGuide.ImStats object.
+
+	Masks are optional. If specified, they must be the same shape as "data"
+	and should be of type Bool. None means no mask (all data is OK).
 	
-	Note: the found "stars" are not required to look star-like and so
+	Found "stars" are not required to look star-like and so
 	are not fit to a stellar profile. However, if the object is not
 	circularly symmetric then the centroid it returns may not match
 	the centroid you think it should return; this is especially a worry
@@ -139,6 +145,7 @@ def findStars(
 	# rather then have centroid do it once for each star).
 	data = Centroid.conditionData(data)
 	mask = Centroid.conditionMask(mask)
+	satMask = Centroid.conditionMask(satMask)
 	
 	if doDS9:
 		ds9Win = ImUtil.openDS9Win()
@@ -210,6 +217,7 @@ def findStars(
 		ctrData = Centroid.centroid(
 			data = data,
 			mask = mask,
+			satMask = satMask,
 			xyGuess = xyCtrGuess,
 			rad = actRad,
 			ccdInfo = ccdInfo,

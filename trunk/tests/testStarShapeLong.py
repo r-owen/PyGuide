@@ -18,6 +18,7 @@ History:
 					This should tell us more about how well the shape fitter
 					does on realistic data.
 					Shows centroid and star shape warning messages.
+2005-10-14 ROwen	Supply null satMask for PyGuide 2.1.
 """
 import sys
 import traceback
@@ -114,6 +115,7 @@ for ampl in AmplValues:
 					ctrData = PyGuide.centroid(
 						data = data,
 						mask = mask,
+						satMask = None,
 						xyGuess = nomCtr,
 						rad = fwhm * 3.0,
 						ccdInfo = CCDInfo,

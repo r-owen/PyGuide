@@ -22,6 +22,8 @@ History:
 2005-05-16 ROwen	Modified for overhauled findStars.
 2005-05-20 ROwen	Added doCentroid.
 2005-06-17 ROwen	Added an invertMask flag.
+2005-10-14 ROwen	Added support for satMask.
+					Bug fix: modified to handle nSat=None on output.
 """
 import numarray as num
 import PyGuide
@@ -29,9 +31,11 @@ import pyfits
 import RO.DS9
 
 im = None
-imfits = None
+imFits = None
 mask = None
-maskfits = None
+maskFits = None
+satMask = None
+satMaskFits = None
 
 # Default Parameters
 # these settings are for the new NA2 guider
@@ -56,11 +60,12 @@ CentroidParamNames = CCDInfoNames + ("thresh", "rad", "verbosity", "doDS9")
 def doFindStars(
 	imName = None,
 	maskName = None,
+	satMaskName = None,
 	invertMask = False,
 	**kargs
 ):
 	global isSat, sd
-	im, mask = loadFiles(imName, maskName, invertMask)
+	im, mask, satMask = loadFiles(imName, maskName, satMaskName, invertMask)
 	
 	# check keyword arguments
 	for paramName in kargs:
@@ -83,11 +88,12 @@ def doFindStars(
 	ctrDataList, imStats = PyGuide.findStars(
 		data = im,
 		mask = mask,
+		satMask = satMask,
 		ccdInfo = ccdInfo,
 	**kargs)
 
 	print "%s stars found:" % (len(ctrDataList),)
-	print "   xctr    yctr    xerr    yerr         ampl   bkgnd    fwhm  |  rad     pix    nSat  chiSq"
+	print "   xctr    yctr    xerr    yerr          ampl   bkgnd    fwhm  |  rad     pix    nSat   chiSq"
 	for ctrData in ctrDataList:
 		# measure star shape
 		try:
@@ -102,6 +108,9 @@ def doFindStars(
 			shapeData = PyGuide.StarShapeData()
 		
 		# print results
+		if ctrData.nSat == None:
+			ctrData.nSat = 0
+
 		print "%7.2f %7.2f %7.2f %7.2f %13.1f %7.1f %7.1f %7d %7d %7d %7.1f" % (
 			ctrData.xyCtr[0], ctrData.xyCtr[1],
 			ctrData.xyErr[0], ctrData.xyErr[1],
@@ -112,12 +121,13 @@ def doFindStars(
 def doCentroid(
 	imName = None,
 	maskName = None,
+	satMaskName = None,
 	xyGuess = None,
 	invertMask = False,
 	**kargs
 ):
-	global im, imfits, mask, maskfits, isSat, sd
-	im, mask = loadFiles(imName, maskName, invertMask)
+	global im, imFits, mask, maskFits, satMask, satMaskFits, isSat, sd
+	im, mask = loadFiles(imName, maskName, satMaskName, invertMask)
 	if xyGuess == None:
 		print "xyGuess is required"
 		return
@@ -143,6 +153,7 @@ def doCentroid(
 	ctrData = PyGuide.centroid(
 		data = im,
 		mask = mask,
+		satMask = satMask,
 		xyGuess = xyGuess,
 		ccdInfo = ccdInfo,
 	**kargs)
@@ -172,22 +183,26 @@ def doCentroid(
 def loadFiles(
 	imName = None,
 	maskName = None,
+	satMaskName = None,
 	invertMask = False,
 ):
-	"""Load a new image and/or mask from a fits file.
-	invertMask is ignored unless maskName is specified.
+	"""Load a new image and/or mask and/or satMask from a fits file.
+	invertMask is ignored unless maskName is specified
+	and only applies to mask, not to satMask.
 	"""
-	global im, imfits, mask, maskfits, isSat, sd
+	global im, imFits, mask, maskFits, satMask, satMaskFits, isSat, sd
 	if imName:
-		imfits = pyfits.open(imName)
-		im = imfits[0].data
+		imFits = pyfits.open(imName)
+		im = imFits[0].data
 	if maskName:
-		maskfits = pyfits.open(maskName)
+		maskFits = pyfits.open(maskName)
 		if invertMask:
-			mask = maskfits[0].data < 0.1
+			mask = maskFits[0].data < 0.1
 		else:
-			mask = maskfits[0].data > 0.1
-	return im, mask
+			mask = maskFits[0].data > 0.1
+	if satMaskName:
+		satMaskfits = pyfits.open(satMaskName)
+	return im, mask, satMask
 
 def showDef():
 	"""Show current value of various global variables
@@ -220,7 +235,7 @@ Notes:
 Function calls:
 doFindStars(imName=None, maskName=None, invertMask=False, [, optional_named_params])
 doCentroid(imName=None, maskName=None, invertMask=False, xyGuess=(x,y) [, optional_named_params])
-loadFiles(imName, maskname, invertMask) loads a new image and/or mask
+loadFiles(imName, maskname, satMaskName, invertMask) loads a new image, mask and/or satMask
 ds9Win.showArray(arry) displays an array in ds9
 showDef() prints the current defaults
 """

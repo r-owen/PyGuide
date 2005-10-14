@@ -6,6 +6,7 @@ History:
 2004-12-01 ROwen	Added NaN.
 2005-02-07 ROwen	Added PosMinusIndex.
 2005-05-18 ROwen	Added CCDInfo and DefThresh.
+2005-10-14 ROwen	Noted that satLevel is no longer used by PyGuide.
 """
 import math
 
@@ -40,7 +41,8 @@ class CCDInfo:
 	- bias		ccd bias (ADU)
 	- readNoise	ccd read noise (e-)
 	- ccdGain	ccd inverse gain (e-/ADU)
-	- satLevel	saturation level (ADU); data >= satLevel is saturated; None means unknown
+	- satLevel	saturation level (ADU); ignored by PyFits
+				but potentially useful for generating saturated pixel masks.
 	"""
 	def __init__(self,
 		bias,
