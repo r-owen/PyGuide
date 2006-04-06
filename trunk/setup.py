@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/local/bin/python
 from distutils.core import setup, Extension
 from numarray.numarrayext import NumarrayExtension
 import sys
@@ -19,11 +19,12 @@ radProfExt = NumarrayExtension(
 setup(
 	name = PkgName,
 	version = "2.0",
-	description = "support for telescope guiding",
+	description = "Find stars for telescope guiding",
 	author = "Russell Owen",
-#	url = "http://astro.washington.edu/owen/",
+	url = "http://www.astro.washington.edu/rowen/",
 	ext_package = PkgName,
 	ext_modules = [radProfExt],
 	package_dir = {'PyGuide': PyDir},
 	packages = [PkgName],
+	scripts = ["doPyGuide.py"],
 )

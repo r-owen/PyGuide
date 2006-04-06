@@ -8,6 +8,22 @@
 
 <h1>PyGuide Version History</h1>
 
+<h2>2.1.1b1 2006-04-06</h2>
+
+<ul>
+	<li>doPyGuide:
+	<ul>
+		<li>Renamed from doFindStars
+		<li>Added to setup.py in such a way that its #!..../python line is corrected (if necessary) during installation.
+		<li>Bug fix: doCentroid mis-handled return values from loadFiles.
+	</ul>
+	<li>PyGuide.Centroid.checkSignal:
+	<ul>
+		<li>Bug fix: returned the wrong thing in some cases.
+		<li>Workaround: could crash on some older versions of numarray on a region with no pixels.
+	</ul>
+</ul>
+
 <h2>2.1 2005-10-14</h2>
 
 <ul>

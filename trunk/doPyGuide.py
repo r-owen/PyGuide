@@ -24,6 +24,8 @@ History:
 2005-06-17 ROwen	Added an invertMask flag.
 2005-10-14 ROwen	Added support for satMask.
 					Bug fix: modified to handle nSat=None on output.
+2006-04-06 ROwen	Bug fix: doCentroid mis-handled return values from loadFiles.
+					Renamed doFindStars.py -> doPyGuide.py.
 """
 import numarray as num
 import PyGuide
@@ -127,7 +129,7 @@ def doCentroid(
 	**kargs
 ):
 	global im, imFits, mask, maskFits, satMask, satMaskFits, isSat, sd
-	im, mask = loadFiles(imName, maskName, satMaskName, invertMask)
+	im, mask, satMask = loadFiles(imName, maskName, satMaskName, invertMask)
 	if xyGuess == None:
 		print "xyGuess is required"
 		return
