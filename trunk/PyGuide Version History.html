@@ -10,6 +10,8 @@
 
 <h2>2.1.1b2 2006-04-17</h2>
 
+<p>This is primarily a bug-fix release.
+
 <ul>
 	<li>doPyGuide:
 	<ul>
@@ -20,7 +22,7 @@
 	<li>PyGuide.Centroid.checkSignal:
 	<ul>
 		<li>Bug fix: returned the wrong thing in some cases.
-		<li>Workaround: could crash on some older versions of numarray on a region with no pixels.
+		<li>Workaround: some older versions of numarray would raise an exception if the initial guess that was too far off the image (due to mishandling empty regions).
 	</ul>
 </ul>
 
