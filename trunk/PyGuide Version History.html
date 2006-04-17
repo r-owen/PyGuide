@@ -8,7 +8,7 @@
 
 <h1>PyGuide Version History</h1>
 
-<h2>2.1.1b1 2006-04-06</h2>
+<h2>2.1.1b2 2006-04-17</h2>
 
 <ul>
 	<li>doPyGuide:
@@ -22,6 +22,26 @@
 		<li>Bug fix: returned the wrong thing in some cases.
 		<li>Workaround: could crash on some older versions of numarray on a region with no pixels.
 	</ul>
+</ul>
+
+<p>Changes from 2.1.1b1 (mostly fixes for issues caught by pychecker).
+<ul>
+	<li>python/StarShape.py
+	<ul>
+		<li>Bug fix: _fitRadProfile had bogus diagnostic print.
+		<li>Removed unused constants _FWHMMin/Max/Delta.
+	</ul>
+	<li> python/FindStars.py: ditch unused "import warnings".
+	<li> python/FitUtil.py: two raised exceptions were misspelled.
+	<li> python/ImUtil.py
+	<ul>
+		<li>Renamed subIJPosOK->subIJOK to match subXYOK.
+		<li>Renamed subIJPosOK argument subIJPos -> subIJ to match other args.
+		<li>Renamed subXYOK argumeng subXYPos -> subXY to match other args.
+		<li>Bug fix: subIJPosOK had an argument name issue.
+		<li>Bug fix: test code broken.
+	</ul> 
+	<li> python/Centroid.py: ditch unused "import warnings".
 </ul>
 
 <h2>2.1 2005-10-14</h2>

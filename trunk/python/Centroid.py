@@ -111,13 +111,14 @@ History:
 					checkSignal:
 					- bug fix: sometimes returned the wrong thing
 					- improved compatibility when the subregion has no pixels
+2006-04-17 ROwen	Ditch unused "import warnings" (thanks to pychecker).
 """
 __all__ = ['CentroidData', 'centroid',]
 
 import math
 import sys
 import traceback
-import warnings
+# import warnings
 import numarray as num
 import numarray.nd_image
 import numarray.ma

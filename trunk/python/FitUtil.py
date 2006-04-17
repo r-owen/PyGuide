@@ -14,6 +14,8 @@ bracket     ---      Find a bracket containing the minimum.
 
 # A collection of optimization algorithms.  Version 0.5
 # CHANGES
+#  Bug fixes: the two raised exceptions were misspelled
+#  (caught by pychecker) (R. Owen. 2006-04-17)
 #  Added fminbound (July 2001)
 #  Added brute (Aug. 2002)
 #  Finished line search satisfying strong Wolfe conditions (Mar. 2004)
@@ -50,7 +52,7 @@ def bracket(func, xa=0.0, xb=1.0, args=(), grow_limit=110.0):
         w = xb - ((xb-xc)*tmp2-(xb-xa)*tmp1)/denom
         wlim = xb + grow_limit*(xc-xb)
         if iterNum > 1000:
-            raise RunTimeError, "Too many iterations."
+            raise RuntimeError("Too many iterations")
         if (w-xc)*(xb-w) > 0.0:
             fw = func(w, *args)
             callNum += 1
@@ -122,7 +124,7 @@ def brent(func, args=(), brack=None, tol=1.48e-8, full_output=False, maxiter=500
         assert ((fb<fa) and (fb < fc)), "Not a bracketing interval."
         callNum = 3
     else:
-        raise ValuError, "Bracketing interval must be length 2 or 3 sequence."
+        raise ValueError("Bracketing interval must be length 2 or 3 sequence")
 
     x=w=v=xb
     fw=fv=fx=func(x, *args)

@@ -16,6 +16,12 @@ History:
 					and to handle short data more gracefully.
 					Bug fix: skyStats was using ma.compressed().raw_data() instead of just ma.compressed()
 					(though I doubt this change has any real effect).
+2006-04-17 ROwen	Renamed subIJPosOK->subIJOK to match subXYOK.
+					Renamed subIJPosOK argument subIJPos -> subIJ to match other args.
+					Renamed subXYOK argumeng subXYPos -> subXY to match other args.
+					Bug fix: subIJPosOK had an argument name issue.
+					Bug fix: test code broken.
+					Note: thanks to pychecker for catching most of these problems.
 """
 __all__ = ["ImStats", "getQuartile", "skyStats", "subFrameCtr",
 	"ijIndFromXYPos", "ijPosFromXYPos", "xyPosFromIJPos",
@@ -224,19 +230,19 @@ class SubFrame:
 		"""
 		return [fullXY[ii] - self.begInd[1-ii] for ii in (0,1)]
 	
-	def subIJPosOK(self, subIJ):
-		"""Return True if subIJPos is in bounds.
+	def subIJOK(self, subIJ):
+		"""Return True if subIJ is in bounds.
 		"""
 		for ii in (0,1):
-			subIJInd = int(round(subIJPos[ii]))
+			subIJInd = int(round(subIJ[ii]))
 			if self.begInd[ii] > subIJInd[ii] or self.endInd[ii] < subIJInd[ii]:
 				return False
 		return True
 
-	def subXYOK(self, subXYPos):
-		"""Return True if subXYPos is in bounds.
+	def subXYOK(self, subXY):
+		"""Return True if subXY is in bounds.
 		"""
-		return self.subIJOK(ijPosFromXYPos(subXYPos))
+		return self.subIJOK(ijPosFromXYPos(subXY))
 
 
 def subFrameCtr(data, xyCtr, xySize):
@@ -337,6 +343,6 @@ if __name__ == "__main__":
 		((9.5, 9.5), (5.9999, 6.0)),
 		((10.0, 10.0), (4.9999, 5.0)),
 	]:
-		sub = ImUtil.subFrameCtr(a, xyCtr, xySize)
+		sub = subFrameCtr(a, xyCtr, xySize)
 		print "shape=%s, xyCtr=%s, xySubCtr=%s" % (sub.getSubFrame().shape, xyCtr, sub.subXYFromFullXY(xyCtr))
 		print

@@ -70,10 +70,10 @@ History:
 2005-06-13 ROwen	Bug fix: was mis-computing radius for centroid.
 2005-10-14 ROwen	Added satMask argument to findStars.
 					Modified to use Float32 image data instead of UInt16.
+2006-04-17 ROwen	Ditch unused "import warnings" (thanks to pychecker).
 """
 __all__ = ['findStars']
 
-import warnings
 import numarray as num
 import numarray.nd_image
 import numarray.ma

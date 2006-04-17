@@ -79,6 +79,8 @@ History:
 2005-05-18 ROwen	Replaced debuggin flags with verbosity and doPlot.
 					Modified to return an isOK flag and msgStr in StarShapeData
 					instead of raising an exception when fitting fails.
+2006-04-17 ROwen	Bug fix: _fitRadProfile had bogus diagnostic print (thanks to pychecker).
+					Removed unused constants _FWHMMin/Max/Delta (thanks to pychecker).
 """
 __all__ = ["StarShapeData", "starShape"]
 
@@ -95,11 +97,6 @@ import FitUtil
 
 # minimum radius
 _MinRad = 3.0
-
-# range of FWHM that is explored
-_FWHMMin = 1.0
-_FWHMMax = 30.0
-_FWHMDelta = 0.25
 
 class StarShapeData:
 	"""Guide star fit data
@@ -231,8 +228,8 @@ def _fitRadProfile(radProf, var, nPts, rad, verbosity=0, doPlot=False):
 	Returns a StarShapeData object
 	"""
 	if verbosity >= 2:
-		print "_fitRadProfile radProf[%s]=%s\n   nPts[%s]=%s\n   predFWHM=%r" % \
-			(len(radProf), radProf, len(nPts), nPts, predFWHM)
+		print "_fitRadProfile(radProf[%s]=%s\n, var[%s]=%s\n, nPts=%s, rad=%s)" % \
+			(len(radProf), radProf, len(var), var, nPts, rad)
 
 	radSq = RP.radSqByRadInd(len(radProf))
 	totPnts = num.sum(nPts)
