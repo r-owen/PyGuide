@@ -1,0 +1,149 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+
+<html lang="en">
+<head>
+	<title>PyGuide Version History</title>
+</head>
+<body>
+
+<h1>PyGuide Version History</h1>
+
+<h2>2.1 2005-10-14</h2>
+
+<ul>
+	<li>Float32 is now the basic image data type, rather than UInt16. This makes it far more compatible with various image formats, including calibrated CCD data. It is also more compatible with pyfits.
+	<li>Saturated pixels are now marked by a saturation mask, rather than by comparing pixel values to a saturation level. This was done because calibrated images may not have a fixed saturation level. Note that ccdInfo.satLevel is still available, but is no longer used by PyGuide. You may find it useful for generating a saturation mask.
+</ul>
+
+<h2>2.0 2005-06-19</h2>
+
+<p>This is a major overhaul of PyGuide. The main purpose was to make centroiding and star shape fitting more robust. In particular centroiding should no longer attempt to centroid random noise. However, I also took the opportunity to clean up a number of other issues.
+
+<p>Incompatible changes:
+
+<ul>
+	<li>centroid and starShape return data even when they fail. The returned objects now have an isOK flag that you must check and a msgStrs field for warning and error messages (if isOK is false then msgStrs[-1] will contain an error message). CentroidData also includes nSat, the number of saturated pixels, which you should check.
+	<li>findStars:
+	<ul>
+		<li>Returns a list of centroid data and an ImStats object containing statistics for the entire masked image. Formerly it returned an isSaturated flag, a list of centroid data and a median. (Note: findStars still does not return data for centroids that fail.)
+		<li>Returns centroided data for stars with saturated pixels. Formerly it ignored such stars. It is up to you to decide if the star has so many saturated pixels that it is unusable. Please be careful because <b>saturated stars are likely to turn up first in the list of returned stars</b>.
+		<li>Argument ccdInfo replaces four old arguments.
+		<li>Argument dataCut renamed to thresh (to match the 3.5m hub).
+		<li>Argument ds9 renamed to doDS9.
+		<li>New argument rad; if specified it overrides radMult.
+	</ul>
+	<li>centroid:
+	<ul>
+		<li>Overhauled to verify that there is signal before attempting to centroid the data. It uses essentially the same algorithm as findStars for this purpose. To avoid this check, use the new routine basicCentroid.
+		<li>Returns CentroidData even if the centroid fails (instead of raising an exception). CentroidData now includes the following important new fields:
+		<ul>
+			<li>isOK: if False the centroid failed
+			<li>msgStr: contains an error message if isOK is false and may contain a warning message even if isOK is true.
+			<li>nSat: the number of saturated pixels. It is your responsibility to determine if there are so many saturated pixels that you should not trust the centroid.
+		</ul>
+		<li>New argument ccdInfo replaces four old arguments.
+		<li>New argument thresh
+		<li>New argument verbosity replaces debugging constants.
+		<li>Argument ds9 renamed to doDS9.
+	</ul>
+	<li>starShape:
+	<ul>
+		<li>Returns StarShapeData even if shape fitting fails (instead of raising an exception). StarShapeData now includes the following important new fields:
+		<ul>
+			<li>isOK: if False the star shape fitting failed
+			<li>msgStr: contains an error message if isOK is false and may contain a warning message even if isOK is true.
+		</ul>
+		<li>New argument rad replaces predFWHM.
+		<li>New debugging arguments verbosity and doPlot replace debugging constants.
+	</ul>
+	<li>FakeData.addNoise: new argument ccdInfo replaces three exising arguments.
+	<li>ImUtil:
+	<ul>
+		<li>subFrameCtr returns a SubFrame object. This object has methods to return a pointer to the subframe array as well as methods for coordinate conversion.
+		<li>skyStats returns an ImStats object. It also accepts any kind of array, not just a numarray.ma masked array, Finally, it now accepts a new argument "thresh" and computes dataCut.
+	</ul>
+</ul>
+
+<p>Other changes:
+
+<ul>
+	<li>centroid now (optionally) checks for valid signal both before and after centroiding. As a result, the returned background stats are properly centered at the centroid position (rather than being centered on the initial guess).
+	<li>findStars now performs the full "valid signal" before and after check when centroiding. This eliminates invalid centroids in areas of high background (where findStars thinks there is usable signal, but there is not).
+	<li>starShape algorithm tweaked. It now appears to be pickier about what it will fit, but often seems to give a better answer for reasonable data. Tweaks include:
+	<ul>
+		<li>The initial guess has been greatly improved (at the expense of speed). It explores a wide range of possible fwhm (from 1 to rad*1.5 pixels).
+		<li>Modified to use Jim Gunn's original weighting function. This seems to give somewhat better its and fewer surprising failures (at least for the test code). However, chiSq is no longer even remotely normalized.
+		<li>Modified to use Jim Gunn's original weighting function. This seems to give somewhat better its and fewer surprising failures (at least for the test code). However, chiSq is no longer even remotely normalized.
+		<li>The initial guess has been greatly improved (at the expense of speed). It explores a wide range of possible fwhm (from 1 to rad*1.5 pixels).
+		<li>Uses Brent's method to fit. Note: the implementation of Brent's method was borrowed from scipy, but is built into PyGuide.
+	</ul>
+	<li>ImUtil.skyStats now uses ma.compressed() instead of ma.compressed().raw_data() on masked arrays. This is the right way to do it, but I'm not sure if it actually makes a difference.
+	<li>ImUtil.getQuartile now raises ValueError for arrays with less than 3 elements.
+	<li>doFindStars (a utility module which now does so many things that it should be renamed):
+	<ul>
+		<li>Added doCentroid function
+		<li>Added loadFiles function.
+		<li>Added an invertMask argument to the doFindStars function.
+	</ul>
+	<li>Moved the python source code up one level (and modifies setup.py accordingly) to make the layout more logical.
+</ul>
+
+<h2>1.2.1 2005-03-31</h2>
+
+<p>Improved doFindStars so that the mask can be specified as a file name and that parameters may be specified as keyword arguments (to easily override a default value).
+
+<p>Minor tweaks:
+<ul>
+	<li>findStars ds9 display (if ds9 true): displays the smoothed masked data in frame 3 if verbosity >= 2. Otherwise does not set frame 3, for a more space-efficient display.
+	<li>centroid: improved the debug output for where the walk is going. Slightly improved the efficiency of the test for "walked too far".
+	<li>radProf.radAsymmWeighted: fixed two errors in the doc string regarding the arguments and tweaked the description of ijCtr and rad arguments in all doc strings.
+</ul>
+
+<p>Bug fix: findStars failed while trying to display star data if verbosity >= 2.
+
+<h2>1.2 2005-02-08</h2>
+
+<p>Modified the main routines (listed below) to use conventional xy position instead of ij array index-based position: the axes are swapped and the zero point is has changed (see the manual for more information). As a result, the following routines have modified arguments and the first two also have modified return data:
+<ul>
+	<li> findStars
+	<li> centroid
+	<li> starShape
+	<li> FakeData.fakeStar
+	<li> ImUtil.subFrameCtr
+</ul>
+
+<p>Added coordinate conversion routines to ImUtil to convert between ij position, xy position and ds9 position.
+
+<h2>1.1.1 2005-01-31</h2>
+
+<p>Bug fixes:
+<ul>
+	<li>FakeData.py had __all__ == instead of __all__ =.
+</ul>
+
+<h2>1.1 2004-12-01</h2>
+
+<p>Visible Changes:
+<ul>
+	<li>doFindStars:
+	<ul>
+		<li>Renamed function from starUtil to doFindStars to match module name.
+		<li>Replaced arguments with globals to make it easier to change settings.
+	</ul>
+	<li>Constants: added NaN
+	<li>StarShape: StarShapeData: made NaN the default for all arguments.
+</ul>
+
+Bug fixes:
+- doFindStars: if starShape failed, crashed trying to set starData.
+
+Internal Changes:
+- Added __all__ to StarShape.py, ImUtil.py, FakeData.py
+
+
+<h2>1.0 2004-10-22</h2>
+
+<p>First public release.
+
+</body>
+</html>
