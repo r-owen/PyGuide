@@ -1,5 +1,6 @@
 #!/usr/local/bin/python
 from distutils.core import setup, Extension
+import distutils.sysconfig
 from numarray.numarrayext import NumarrayExtension
 import sys
 import os
@@ -28,3 +29,24 @@ setup(
 	packages = [PkgName],
 	scripts = ["doPyGuide.py"],
 )
+
+# create ups file for Fermi/Princeton packaging system
+sitePkgDir = distutils.sysconfig.get_python_lib()
+if not os.path.exists("ups"):
+	os.mkdir("ups")
+upsfile = file("ups/PyGuide.table", "w")
+try:
+	upsfile.write("""File=Table
+Product=PyGuide
+Group:
+Flavor=ANY
+Common:
+  Action=setup
+    proddir()
+    setupenv()
+    pathAppend(PATH, ${UPS_PROD_DIR}/bin)
+    pathAppend(PYTHONPATH, ${UPS_PROD_DIR}%s)
+End:
+""" % (sitePkgDir,))
+finally:
+	upsfile.close()
