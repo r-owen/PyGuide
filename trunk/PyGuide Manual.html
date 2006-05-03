@@ -36,7 +36,7 @@
 	<li>Python 2.2.1 or later, built to use IEEE floating point. Warning: I have only tested PyGuide under python 2.4.
 	<li>A C compiler that python distutils can use.
 	<li>Numarray (1.1 or later recommended).
-	<li>If you want findStars to display images in ds9 then ds9, xpa and RO.DS9 are required. ds9 and xpa are available from <a href="http://hea-www.harvard.edu/RD/ds9/">http://hea-www.harvard.edu/RD/ds9/</a>. RO.DS9 is part of the RO package available from <a href="http://www.astro.washington.edu/rowen/">http://www.astro.washington.edu/rowen/</a>. 
+	<li>If you want to use doPyGuide or to have findStars display images in ds9: ds9, xpa and RO.DS9 are required. ds9 and xpa are available from <a href="http://hea-www.harvard.edu/RD/ds9/">http://hea-www.harvard.edu/RD/ds9/</a>. RO.DS9 is part of the RO package available from <a href="http://www.astro.washington.edu/rowen/">http://www.astro.washington.edu/rowen/</a>. 
 </ul>
 
 <p>To install, use the standard python "distutils" procedure:<pre>
@@ -69,7 +69,7 @@
 <p>Other files of interest (in the source distribution, not installed):
 <ul>
 	<li><a href="PyGuide%20Version%20History.html">PyGuide Version History.html</a>: version history
-	<li>doFindStars.py: scan an image, display the image and some scan diagnostics in ds9 and report star centroids and shapes. Thus this is an example of how to use PyGuide and a very useful diagnostic tool.
+	<li>doPyGuide.py: an interactive script to run PyGuide routines on images and display the results in ds9. To use: ./doPyGuide.py
 	<li>test/...: code to check the various routines, plus test results.
 	<li>checkPyGuide: runs pychecker on PyGuide (if pychecker is installed).
 </ul>
@@ -127,7 +127,7 @@
 
 <h2><a name="License"></a>License</h2>
 
-<p>PyGuide is copyright 2004, 2005 by Russell E. Owen
+<p>PyGuide is copyright 2004, 2005, 2006 by Russell E. Owen
 
 <p>PyGuide is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
 

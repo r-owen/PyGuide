@@ -8,36 +8,28 @@
 
 <h1>PyGuide Version History</h1>
 
-<h2>2.1.1b3 2006-05-03</h2>
+<h2>2.1.1 2006-05-03</h2>
 
-<p>Optionally installs information for the Fermilab/Princeton UPS runtime loader (specify --ups as part of the install command).
-
-<h2>2.1.1b2 2006-04-17</h2>
-
-<p>This is primarily a bug-fix release.
+<p>This is primarily a bug-fix release. However, doFindStars was also renamed to doPyGuide.
 
 <ul>
+	<li>Optionally installs information for the Fermilab/Princeton UPS runtime loader (install using "python setup.py install --ups").
 	<li>doPyGuide:
 	<ul>
 		<li>Renamed from doFindStars
 		<li>Added to setup.py in such a way that its #!..../python line is corrected (if necessary) during installation.
 		<li>Bug fix: doCentroid mis-handled return values from loadFiles.
 	</ul>
-	<li>PyGuide.Centroid.checkSignal:
+	<li>PyGuide.Centroid:
 	<ul>
-		<li>Bug fix: returned the wrong thing in some cases.
+		<li>Bug fix: checkSignal returned the wrong thing in some cases.
 		<li>Workaround: some older versions of numarray would raise an exception if the initial guess that was too far off the image (due to mishandling empty regions).
 	</ul>
-</ul>
-
-<p>Changes from 2.1.1b1 (mostly fixes for issues caught by pychecker).
-<ul>
 	<li>python/StarShape.py
 	<ul>
 		<li>Bug fix: _fitRadProfile had bogus diagnostic print.
 		<li>Removed unused constants _FWHMMin/Max/Delta.
 	</ul>
-	<li> python/FindStars.py: ditch unused "import warnings".
 	<li> python/FitUtil.py: two raised exceptions were misspelled.
 	<li> python/ImUtil.py
 	<ul>
@@ -47,7 +39,6 @@
 		<li>Bug fix: subIJPosOK had an argument name issue.
 		<li>Bug fix: test code broken.
 	</ul> 
-	<li> python/Centroid.py: ditch unused "import warnings".
 </ul>
 
 <h2>2.1 2005-10-14</h2>
