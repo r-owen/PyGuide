@@ -26,6 +26,10 @@ History:
 					Bug fix: modified to handle nSat=None on output.
 2006-04-06 ROwen	Bug fix: doCentroid mis-handled return values from loadFiles.
 					Renamed doFindStars.py -> doPyGuide.py.
+2006-06-02 ROwen	Bug fix: doCentroid output would fail without a saturation mask.
+					Star data output is more robust. If formatting fails, the data
+					is printed unformatted (along with the error message).
+					One subroutine is now used to output all star data.
 """
 import numarray as num
 import PyGuide
@@ -95,7 +99,7 @@ def doFindStars(
 	**kargs)
 
 	print "%s stars found:" % (len(ctrDataList),)
-	print "   xctr    yctr    xerr    yerr          ampl   bkgnd    fwhm  |  rad     pix    nSat   chiSq"
+	printStarHeader()
 	for ctrData in ctrDataList:
 		# measure star shape
 		try:
@@ -108,17 +112,8 @@ def doFindStars(
 		except RuntimeError, e:
 			print "starShape failed: %s" % (e,)
 			shapeData = PyGuide.StarShapeData()
-		
-		# print results
-		if ctrData.nSat == None:
-			ctrData.nSat = 0
 
-		print "%7.2f %7.2f %7.2f %7.2f %13.1f %7.1f %7.1f %7d %7d %7d %7.1f" % (
-			ctrData.xyCtr[0], ctrData.xyCtr[1],
-			ctrData.xyErr[0], ctrData.xyErr[1],
-			shapeData.ampl, shapeData.bkgnd, shapeData.fwhm,
-			ctrData.rad, ctrData.pix, ctrData.nSat, shapeData.chiSq,
-		)
+		printStarData(ctrData, shapeData)
 
 def doCentroid(
 	imName = None,
@@ -164,7 +159,6 @@ def doCentroid(
 		print "centroid failed:", ctrData.msgStr
 		return
 
-	print "   xctr    yctr    xerr    yerr         ampl   bkgnd    fwhm  |  rad     pix    nSat  chiSq"
 	shapeData = PyGuide.starShape(
 		data = im,
 		mask = mask,
@@ -172,12 +166,8 @@ def doCentroid(
 		rad = ctrData.rad,
 	)
 	# print results
-	print "%7.2f %7.2f %7.2f %7.2f %13.1f %7.1f %7.1f %7d %7d %7d %7.1f" % (
-		ctrData.xyCtr[0], ctrData.xyCtr[1],
-		ctrData.xyErr[0], ctrData.xyErr[1],
-		shapeData.ampl, shapeData.bkgnd, shapeData.fwhm,
-		ctrData.rad, ctrData.pix, ctrData.nSat, shapeData.chiSq,
-	)
+	printStarHeader()
+	printStarData(ctrData, shapeData)
 
 	if not shapeData.isOK:
 		print "starShape failed:", shapeData.msgStr
@@ -205,6 +195,27 @@ def loadFiles(
 	if satMaskName:
 		satMaskfits = pyfits.open(satMaskName)
 	return im, mask, satMask
+
+def printStarHeader():
+	"""Print star position data header"""
+	print "   xctr    yctr    xerr    yerr          ampl     bkgnd    fwhm     rad     pix    nSat   chiSq"
+
+def printStarData(ctrData, shapeData):
+	"""Print star position data"""
+	# print results
+	try:
+		print "%7.2f %7.2f %7.2f %7.2f %13.1f %9.1f %7.1f %7d %7d %7s %7.1f" % (
+			ctrData.xyCtr[0], ctrData.xyCtr[1],
+			ctrData.xyErr[0], ctrData.xyErr[1],
+			shapeData.ampl, shapeData.bkgnd, shapeData.fwhm,
+			ctrData.rad, ctrData.pix, ctrData.nSat, shapeData.chiSq,
+		)
+	except (ValueError, TypeError), e:
+		print "(printing free-form due to format error: %s)" % (e,)
+		print ctrData.xyCtr[0], ctrData.xyCtr[1], \
+			ctrData.xyErr[0], ctrData.xyErr[1], \
+			shapeData.ampl, shapeData.bkgnd, shapeData.fwhm, \
+			ctrData.rad, ctrData.pix, ctrData.nSat, shapeData.chiSq
 
 def showDef():
 	"""Show current value of various global variables
