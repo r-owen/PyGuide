@@ -4,13 +4,7 @@
 # Wing IDE project file                                          #
 ##################################################################
 [project attributes]
-proj.file-list = [loc('PyGuide Manual.html'),
-                  loc('PyGuide Version History.html'),
-                  loc('PyGuide.wpr'),
-                  loc('PyGuide.wpu'),
-                  loc('checkPyGuide.py'),
-                  loc('doFindStars.py'),
-                  loc('gpl.txt'),
+proj.file-list = [loc('gpl.txt'),
                   loc('python/Centroid.py'),
                   loc('python/Constants.py'),
                   loc('python/FakeData.py'),
@@ -18,6 +12,7 @@ proj.file-list = [loc('PyGuide Manual.html'),
                   loc('python/FitUtil.py'),
                   loc('python/ImUtil.py'),
                   loc('python/StarShape.py'),
+                  loc('python/Version.py'),
                   loc('python/__init__.py'),
                   loc('setup.py'),
                   loc('src/RadProfModule.c'),
@@ -72,10 +67,10 @@ proj.file-list = [loc('PyGuide Manual.html'),
                   loc('tests/testStarShapeLong.py'),
                   loc('tests/timeCentroid.py'),
                   loc('trial StarShape/StarShape 2005-04-26.zip'),
-                  loc('trial StarShape/StarShape Gunn float.py'),
-                  loc('trial StarShape/StarShape Gunn int (2005-04-26).py'),
                   loc('trial StarShape/StarShape brent + Gunn 2.py'),
                   loc('trial StarShape/StarShape brent + Gunn no wp.py'),
                   loc('trial StarShape/StarShape brent + Gunn.py'),
-                  loc('trial StarShape/StarShape brent + svd ick.py')]
+                  loc('trial StarShape/StarShape brent + svd ick.py'),
+                  loc('trial StarShape/StarShape Gunn float.py'),
+                  loc('trial StarShape/StarShape Gunn int (2005-04-26).py')]
 proj.file-type = 'shared'
