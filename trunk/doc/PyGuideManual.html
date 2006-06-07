@@ -10,7 +10,7 @@
 
 <p>PyGuide offers image analysis routines for telescope guiding, including a star finder, centroider and star shape fitter. The algorithms are designed to work well with partial images, e.g. where much of the image of a star is lost down a spectrograph slit or off the edge of a coherent fiber optic bundle.
 
-<p><a href="http://www.astro.washington.edu/rowen/PyGuide%20Manual.html">PyGuide</a> was written by Russell E. Owen, based on algorithms and code by Jim Gunn, and with help from Connie Rockosi and Craig Loomis. The current version may be downloaded <a href="ftp://ftp.astro.washington.edu/pub/users/rowen/python/PyGuide.zip">here</a>, and older versions <a href="ftp://ftp.astro.washington.edu/pub/users/rowen/python/">here</a> (ignore any files whose name begins with a period).
+<p><a href="http://www.astro.washington.edu/rowen/PyGuideManual.html">PyGuide</a> was written by Russell E. Owen, based on algorithms and code by Jim Gunn, and with help from Connie Rockosi and Craig Loomis. The current version may be downloaded <a href="ftp://ftp.astro.washington.edu/pub/users/rowen/python/PyGuide.zip">here</a>, and older versions <a href="ftp://ftp.astro.washington.edu/pub/users/rowen/python/">here</a> (ignore any files whose name begins with a period).
 
 
 <h2>Contents</h2>
@@ -25,7 +25,7 @@
 		<li><a href="#Limitations">Limitations</a>
 	</ul>
 	<li><a href="#License">Software License</a>
-	<li><a href="PyGuide%20Version%20History.html">Version History</a>
+	<li><a href="PyGuideVersionHistory.html">Version History</a>
 </ul>
 
 <h2><a name="Requirements"></a>Requirements and Installation</h2>
@@ -61,14 +61,14 @@
 </ul>
 
 <p>See <a href="#Masks">Masks</a> and <a href=#Coordinates">Coordinates</a> for some important information about using these routines. For details about a particular package or subroutine, get help in the usual way (or read the comments at the beginning of each routine):<pre>
->>> import PyGuide
->>> help(PyGuide.centroid)
->>> help(PyGuide)
+&gt;&gt;&gt; import PyGuide
+&gt;&gt;&gt; help(PyGuide.centroid)
+&gt;&gt;&gt; help(PyGuide)
 </pre>
 
 <p>Other files of interest (in the source distribution, not installed):
 <ul>
-	<li><a href="PyGuide%20Version%20History.html">PyGuide Version History.html</a>: version history
+	<li><a href="PyGuideVersionHistory.html">PyGuideVersionHistory.html</a>: version history
 	<li>doPyGuide.py: an interactive script to run PyGuide routines on images and display the results in ds9. To use: ./doPyGuide.py
 	<li>test/...: code to check the various routines, plus test results.
 	<li>checkPyGuide: runs pychecker on PyGuide (if pychecker is installed).
