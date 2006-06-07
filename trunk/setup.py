@@ -4,6 +4,8 @@ import distutils.sysconfig
 from numarray.numarrayext import NumarrayExtension
 import sys
 import os
+sys.path.append("python")
+import Version
 
 if not hasattr(sys, 'version_info') or sys.version_info[0:2] < (2,2):
 	raise SystemExit("Python 2.2 or later required to build this module.")
@@ -45,7 +47,7 @@ radProfExt = NumarrayExtension(
 
 setup(
 	name = PkgName,
-	version = "2.0",
+	version = Version.__version__,
 	description = "Find stars for telescope guiding",
 	author = "Russell Owen",
 	url = "http://www.astro.washington.edu/rowen/",
@@ -54,5 +56,5 @@ setup(
 	package_dir = {'PyGuide': PyDir},
 	packages = [PkgName],
 	data_files = dataFiles,
-	scripts = ["doPyGuide.py"],
+	scripts = ["scripts/doPyGuide.py", "scripts/checkPyGuide.py"],
 )
