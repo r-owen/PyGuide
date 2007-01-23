@@ -3,10 +3,10 @@
 
 History:
 2004-08-03 ROwen
-2004-12-01 ROwen	Added NaN.
-2005-02-07 ROwen	Added PosMinusIndex.
-2005-05-18 ROwen	Added CCDInfo and DefThresh.
-2005-10-14 ROwen	Noted that satLevel is no longer used by PyGuide.
+2004-12-01 ROwen    Added NaN.
+2005-02-07 ROwen    Added PosMinusIndex.
+2005-05-18 ROwen    Added CCDInfo and DefThresh.
+2005-10-14 ROwen    Noted that satLevel is no longer used by PyGuide.
 """
 import math
 
@@ -36,29 +36,29 @@ NaN = float("nan")
 
 # Misc
 class CCDInfo:
-	"""Info about the CCD
-	
-	- bias		ccd bias (ADU)
-	- readNoise	ccd read noise (e-)
-	- ccdGain	ccd inverse gain (e-/ADU)
-	- satLevel	saturation level (ADU); ignored by PyFits
-				but potentially useful for generating saturated pixel masks.
-	"""
-	def __init__(self,
-		bias,
-		readNoise,
-		ccdGain,
-		satLevel = (2**16)-1,
-	):
-		self.bias = bias
-		self.readNoise = readNoise
-		self.ccdGain = ccdGain
-		self.satLevel = satLevel
-	
-	def __repr__(self):
-		dataList = []
-		for arg in ("bias", "readNoise", "ccdGain", "satLevel"):
-			val = getattr(self, arg)
-			if val not in (None, ""):
-				dataList.append("%s=%s" % (arg, val))
-		return "CCDInfo(%s)" % ", ".join(dataList)
+    """Info about the CCD
+    
+    - bias      ccd bias (ADU)
+    - readNoise ccd read noise (e-)
+    - ccdGain   ccd inverse gain (e-/ADU)
+    - satLevel  saturation level (ADU); ignored by PyFits
+                but potentially useful for generating saturated pixel masks.
+    """
+    def __init__(self,
+        bias,
+        readNoise,
+        ccdGain,
+        satLevel = (2**16)-1,
+    ):
+        self.bias = bias
+        self.readNoise = readNoise
+        self.ccdGain = ccdGain
+        self.satLevel = satLevel
+    
+    def __repr__(self):
+        dataList = []
+        for arg in ("bias", "readNoise", "ccdGain", "satLevel"):
+            val = getattr(self, arg)
+            if val not in (None, ""):
+                dataList.append("%s=%s" % (arg, val))
+        return "CCDInfo(%s)" % ", ".join(dataList)

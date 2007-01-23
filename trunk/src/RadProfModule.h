@@ -5,7 +5,7 @@
 Header file for RadProfModule.c, which see for information.
 
 History:
-2004-10-13 ROwen	modified libnumarray.h include to match numarray 1.1 docs.
+2004-10-13 ROwen    modified libnumarray.h include to match numarray 1.1 docs.
 */
 
 #include "Python.h"
@@ -24,61 +24,61 @@ static PyObject *Py_radSqProf(PyObject *obj, PyObject *args);
 
 // internal routines
 long g_radProf_setup(
-	long rad
+    long rad
 );
 void g_radProf_free(
-	void
+    void
 );
 long g_radAsymm_alloc(
-	long nElt
+    long nElt
 );
 void g_radAsymm_free(
-	void
+    void
 );
 long radAsymm(
-	long inLenI, long inLenJ,
-	Float32 data[inLenI][inLenJ],
-	Bool mask[inLenI][inLenJ],
-	long iCtr, long jCtr,
-	long rad,
-	Float64 *asymmPtr,
-	Float64 *totCountsPtr
+    long inLenI, long inLenJ,
+    Float32 data[inLenI][inLenJ],
+    Bool mask[inLenI][inLenJ],
+    long iCtr, long jCtr,
+    long rad,
+    Float64 *asymmPtr,
+    Float64 *totCountsPtr
 );
 long radAsymmWeighted(
-	long inLenI, long inLenJ,
-	Float32 data[inLenI][inLenJ],
-	Bool mask[inLenI][inLenJ],
-	long iCtr, long jCtr,
-	long rad,
-	long bias,
-	Float64 readNoise,
-	Float64 ccdGain,
-	Float64 *asymmPtr,
-	Float64 *totCountsPtr
+    long inLenI, long inLenJ,
+    Float32 data[inLenI][inLenJ],
+    Bool mask[inLenI][inLenJ],
+    long iCtr, long jCtr,
+    long rad,
+    long bias,
+    Float64 readNoise,
+    Float64 ccdGain,
+    Float64 *asymmPtr,
+    Float64 *totCountsPtr
 );
 long radProf(
-	long inLenI, long inLenJ,
-	Float32 data[inLenI][inLenJ],
-	Bool mask[inLenI][inLenJ],
-	long iCtr, long jCtr,
-	long rad,
-	long outLen,
-	Float64 *mean,
-	Float64 *var,
-	Int32 *nPts,
-	Float64 *totCountsPtr
+    long inLenI, long inLenJ,
+    Float32 data[inLenI][inLenJ],
+    Bool mask[inLenI][inLenJ],
+    long iCtr, long jCtr,
+    long rad,
+    long outLen,
+    Float64 *mean,
+    Float64 *var,
+    Int32 *nPts,
+    Float64 *totCountsPtr
 );
 long radSqProf(
-	long inLenI, long inLenJ,
-	Float32 data[inLenI][inLenJ],
-	Bool mask[inLenI][inLenJ],
-	long iCtr, long jCtr,
-	long rad,
-	long outLen,
-	Float64 *mean,
-	Float64 *var,
-	Int32 *nPts,
-	Float64 *totCountsPtr
+    long inLenI, long inLenJ,
+    Float32 data[inLenI][inLenJ],
+    Bool mask[inLenI][inLenJ],
+    long iCtr, long jCtr,
+    long rad,
+    long outLen,
+    Float64 *mean,
+    Float64 *var,
+    Int32 *nPts,
+    Float64 *totCountsPtr
 );
 
 #ifdef __cplusplus

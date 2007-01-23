@@ -2,7 +2,7 @@
 
 Presently includes:
 brent       ---     Use Brent's method to minimize a 1-d function
-					(does not need inital guess)
+                    (does not need inital guess)
 bracket     ---      Find a bracket containing the minimum.
 """
 # ******NOTICE***************
@@ -93,19 +93,19 @@ def brent(func, args=(), brack=None, tol=1.48e-8, full_output=False, maxiter=500
     of golden section method.
     
     Inputs:
-    - func	the function to minimize;
-    		- the first argument is x, the value being found
-    		- additional arguments may be provided in the args argument
-    - args	a sequence of one or more additional arguments for func
-    		(supplied after x, the first argument)
-    - brack	a triple (a,b,c) where (a<b<c) and func(b) < func(a),func(c).
-    		If bracket is two numbers then they are assumed to be
-    		a starting interval for a downhill bracket search
-		    (see bracket)
-	- tol	final precision (if < _mintol, silently increased)
-	- full_output	if True, return xmin, func(xmin), # iters, # func calls
-			else return xmin
-	- maxiter	maximum number of iterations
+    - func  the function to minimize;
+            - the first argument is x, the value being found
+            - additional arguments may be provided in the args argument
+    - args  a sequence of one or more additional arguments for func
+            (supplied after x, the first argument)
+    - brack a triple (a,b,c) where (a<b<c) and func(b) < func(a),func(c).
+            If bracket is two numbers then they are assumed to be
+            a starting interval for a downhill bracket search
+            (see bracket)
+    - tol   final precision (if < _mintol, silently increased)
+    - full_output   if True, return xmin, func(xmin), # iters, # func calls
+            else return xmin
+    - maxiter   maximum number of iterations
     """
     _mintol = 1.0e-11
     _cg = 0.3819660
