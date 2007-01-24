@@ -1,4 +1,4 @@
-#!/usr/local/bin/python
+#!/usr/bin/env python
 """Test PyGuide.starShape with lots of fake data.
 
 Limitations:

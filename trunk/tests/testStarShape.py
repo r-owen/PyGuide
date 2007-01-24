@@ -1,4 +1,4 @@
-#!/usr/local/bin/python
+#!/usr/bin/env python
 """Test the star shape code.
 
 Warning; this is a very minimal test.

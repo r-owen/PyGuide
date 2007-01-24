@@ -1,4 +1,4 @@
-#!/usr/local/bin/python -i
+#!/usr/bin/env python -i
 """Measures stars in a given image file, displaying the image in ds9
 and reporting star positions and shape information on stdout.
 
@@ -30,6 +30,7 @@ History:
                     Star data output is more robust. If formatting fails, the data
                     is printed unformatted (along with the error message).
                     One subroutine is now used to output all star data.
+2007-01-23 ROwen    Changed #!/usr/local/bin/python -i to #!/usr/bin/env python -i
 """
 import numarray as num
 import PyGuide

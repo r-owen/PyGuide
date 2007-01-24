@@ -1,4 +1,4 @@
-#!/usr/local/bin/python
+#!/usr/bin/env python
 """StarShape
 
 Fit a a star to a symmetrical double gaussian.

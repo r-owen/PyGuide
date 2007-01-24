@@ -1,4 +1,4 @@
-#!/usr/local/bin/python
+#!/usr/bin/env python
 """Time PyGuide.centroid and related routines.
 
 History:
