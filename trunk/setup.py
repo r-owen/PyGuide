@@ -18,14 +18,15 @@ UPSArg = "--ups"
 dataFiles = []
 if UPSArg in sys.argv and "install" in sys.argv:
     # create data file for the Fermi/Princeton UPS runtime loader
+    upsFileName = "ups/%s.table" % (PkgName,)
     sys.argv.pop(sys.argv.index(UPSArg))
     sitePkgDir = distutils.sysconfig.get_python_lib(prefix="")
     if not os.path.exists("ups"):
         os.mkdir("ups")
-    upsfile = file("ups/PyGuide.table", "w")
+    upsFile = file(upsFileName, "w")
     try:
-        upsfile.write("""File=Table
-    Product=PyGuide
+        upsFile.write("""File=Table
+    Product=%s
     Group:
     Flavor=ANY
     Common:
@@ -35,10 +36,10 @@ if UPSArg in sys.argv and "install" in sys.argv:
     pathAppend(PATH, ${UPS_PROD_DIR}/bin)
     pathAppend(PYTHONPATH, ${UPS_PROD_DIR}/%s)
     End:
-    """ % (sitePkgDir,))
+    """ % (PkgName, sitePkgDir,))
     finally:
-        upsfile.close()
-    dataFiles.append(["ups", ["ups/PyGuide.table"]])
+        upsFile.close()
+    dataFiles.append(["ups", [upsFileName]])
 
 radProfExt = NumarrayExtension(
     "radProf",
