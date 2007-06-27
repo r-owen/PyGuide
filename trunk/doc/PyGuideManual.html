@@ -10,8 +10,7 @@
 
 <p>PyGuide offers image analysis routines for telescope guiding, including a star finder, centroider and star shape fitter. The algorithms are designed to work well with partial images, e.g. where much of the image of a star is lost down a spectrograph slit or off the edge of a coherent fiber optic bundle.
 
-<p><a href="http://www.astro.washington.edu/rowen/PyGuideManual.html">PyGuide</a> was written by Russell E. Owen, based on algorithms and code by Jim Gunn, and with help from Connie Rockosi and Craig Loomis. The current version may be downloaded <a href="ftp://ftp.astro.washington.edu/pub/users/rowen/python/PyGuide.zip">here</a>, and older versions <a href="ftp://ftp.astro.washington.edu/pub/users/rowen/python/">here</a> (ignore any files whose name begins with a period).
-
+<p><a href="http://www.astro.washington.edu/rowen/PyGuide/PyGuideManual.html">PyGuide</a> was written by Russell E. Owen, based on algorithms and code by Jim Gunn, and with help from Connie Rockosi and Craig Loomis. The current version may be downloaded <a href="http://www.astro.washington.edu/rowen/PyGuide/files/PyGuide.zip">here</a>, and older versions <a href="http://www.astro.washington.edu/rowen/PyGuide/files/">here</a>.
 
 <h2>Contents</h2>
 
@@ -35,7 +34,7 @@
 <ul>
 	<li>Python 2.2.1 or later, built to use IEEE floating point. Warning: I have only tested PyGuide under python 2.4.
 	<li>A C compiler that python distutils can use.
-	<li>numarray (1.1 or later recommended). Note: the next major release will use numpy instead of numarray.
+	<li>Numarray (1.1 or later recommended).
 	<li>If you want to use doPyGuide or to have findStars display images in ds9: ds9, xpa and RO.DS9 are required. ds9 and xpa are available from <a href="http://hea-www.harvard.edu/RD/ds9/">http://hea-www.harvard.edu/RD/ds9/</a>. RO.DS9 is part of the RO package available from <a href="http://www.astro.washington.edu/rowen/">http://www.astro.washington.edu/rowen/</a>. 
 </ul>
 
@@ -60,7 +59,7 @@
 	<li>PyGuide.FakeData: routines to construct images with fairly realistic stars and noise (but no aberrations and no cosmic rays).
 </ul>
 
-<p>See <a href="#Masks">Masks</a> and <a href=#Coordinates">Coordinates</a> for some important information about using these routines. For details about a particular package or subroutine, get help in the usual way (or read the comments at the beginning of each routine):<pre>
+<p>See <a href="#Masks">Masks</a> and <a href="#Coordinates">Coordinates</a> for some important information about using these routines. For details about a particular package or subroutine, get help in the usual way (or read the comments at the beginning of each routine):<pre>
 &gt;&gt;&gt; import PyGuide
 &gt;&gt;&gt; help(PyGuide.centroid)
 &gt;&gt;&gt; help(PyGuide)
@@ -91,7 +90,7 @@
 
 	<li>If you are centroiding a slit image or other partially obscured image:
 	<ul>
-		<li>Specify a good <a href=#Masks">mask</a>. It must be big enough to include the transitional area of the slit (where the light is partially dimmed).
+		<li>Specify a good <a href="#Masks">mask</a>. It must be big enough to include the transitional area of the slit (where the light is partially dimmed).
 
 		<li>Use a radius large enough to include the whole star. This is crucial with a slit viewer, because the star will usually be seen as two blobs (one on either side of the slit), and if the radius is too small, the centroider will jump to the center of one of those blobs.
 	</ul>
