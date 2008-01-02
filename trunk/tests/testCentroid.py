@@ -12,6 +12,7 @@ History:
                     Modified to show estimated error.
 2005-05-19 ROwen    Updated for PyGuide 2.0.
 2005-10-14 ROwen    Supply null satMask for PyGuide 2.1.
+2008-01-02 ROwen    Added DoSmooth constant.
 """
 import sys
 import numarray as num
@@ -19,6 +20,7 @@ import numarray.random_array as num_random
 import PyGuide
 import RO.DS9
 
+DoSmooth = True
 Sky = 1000,     # sky level, in ADU
 CCDInfo = PyGuide.CCDInfo(
     bias = 2176,    # image bias, in ADU
@@ -72,6 +74,7 @@ for arrShape, actCtr, sigma, ampl, scanRadFactor, maskLim in testData:
         xyGuess = xyGuess,
         rad = scanRad,
         ccdInfo = CCDInfo,
+        doSmooth = DoSmooth,
     )
     
     if not ctrData.isOK:
@@ -93,6 +96,7 @@ for arrShape, actCtr, sigma, ampl, scanRadFactor, maskLim in testData:
         xyGuess = xyGuess,
         rad = scanRad,
         ccdInfo = CCDInfo,
+        doSmooth = DoSmooth,
     )
     measCtr = ctrData.xyCtr
     nCounts = ctrData.counts

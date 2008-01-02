@@ -14,6 +14,7 @@ History:
                     Shows inputs when centroid fails.
                     Shows centroid warnings.
 2005-10-14 ROwen    Supply null satMask for PyGuide 2.1.
+2008-01-02 ROwen    Added DoSmooth constant.
 """
 import numarray as num
 import numarray.random_array as num_random
@@ -21,6 +22,8 @@ import PyGuide
 from Stats import Stats
 
 # settings
+
+DoSmooth = True
 ImWidth = 64
 Sky = 1000,     # sky level, in ADU
 CCDInfo = PyGuide.CCDInfo(
@@ -104,6 +107,7 @@ for ampl in AmplValues:
                     rad = fwhm * 3.0,
                     ccdInfo = CCDInfo,
                     thresh = Thresh,
+                    doSmooth = DoSmooth,
                 )
                 if not ctrData.isOK:
                     print "%s   %s  %s  NaN NaN NaN NaN NaN NaN NaN %s  %r" % (
