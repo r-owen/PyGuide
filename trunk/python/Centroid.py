@@ -47,21 +47,12 @@ How it works:
 
 To do:
 - Improve the estimate of centroid error.
-- Cosider smoothing the data before centroiding it to handle cosmic rays;
-    perhaps gaussian smoothing or a median filter.
-  I have at least two major concerns about this:
-    - Masked pixels must be handled correctly. This is tricky to do well,
-      especially because the brightest pixels may be against the edge
-      of a slit mask.
-    - Make sure the smoothing does not degrade the accuracy of the centroid
-      by too much.
 
 Acknowledgements:
 - The centroiding algorithm was invented by Jim Gunn
-- The code uses a new asymmetry weighting function
-    developed with help from Connie Rockosi
-- This code is adapted from the SDSS centroiding code,
-    which was written by Jim Gunn and cleaned up by Connie Rockosi.
+- The code uses a new asymmetry weighting function developed with help from Connie Rockosi
+- This code is adapted from the SDSS centroiding code, which was written by Jim Gunn
+  and cleaned up by Connie Rockosi.
     
 History:
 2004-03-22 ROwen    First release.
@@ -106,12 +97,12 @@ History:
 2005-10-14 ROwen    Added satMask argument to centroid and basicCentroid;
                     they now ignore ccdInfo.satLevel.
                     Modified to use Float32 omage data instead of UInt16.
-                    
 2006-04-06 ROwen    CentroidData: stores null ImUtil.ImStats instance if imStats=None.
                     checkSignal:
                     - bug fix: sometimes returned the wrong thing
                     - improved compatibility when the subregion has no pixels
 2006-04-17 ROwen    Ditch unused "import warnings" (thanks to pychecker).
+2008-01-12 ROwen    Added doSmooth flag to the centroid function, as suggested by Adam Ginsburg.
 """
 __all__ = ['CentroidData', 'centroid',]
 
@@ -442,6 +433,7 @@ def centroid(
     rad,
     ccdInfo,
     thresh = Constants.DefThresh,
+    doSmooth = True,
     verbosity = 0,
     doDS9 = False,
     checkSig = (True, True),
@@ -459,6 +451,7 @@ def centroid(
     - thresh    determines the point above which pixels are considered data;
                 valid data >= thresh * standard deviation + median
                 values less than PyGuide.Constants.MinThresh are silently increased
+    - doSmooth  if True apply a 3x3 median filter to smooth the data
     - verbosity 0: no output, 1: print warnings, 2: print information, 3: print iteration info.
                 Note: there are no warnings at this time
     - doDS9     if True, display diagnostic images in ds9
@@ -477,6 +470,7 @@ def centroid(
             xyCtr = xyGuess,
             rad = rad,
             thresh = thresh,
+            doSmooth = doSmooth,
             verbosity = verbosity,
         )
         if not signalOK:
@@ -503,6 +497,7 @@ def centroid(
             xyCtr = ctrData.xyCtr,
             rad = rad,
             thresh = thresh,
+            doSmooth = doSmooth,
             verbosity = verbosity,
         )
         ctrData.imStats = imStats
@@ -518,6 +513,7 @@ def checkSignal(
     xyCtr,
     rad,
     thresh = Constants.DefThresh,
+    doSmooth = True,
     verbosity = 0,
 ):
     """Check that there is usable signal in a given circle.
@@ -532,6 +528,7 @@ def checkSignal(
     - thresh    determines the point above which pixels are considered data;
                 valid data >= thresh * standard deviation + median
                 values less than PyGuide.Constants.MinThresh are silently increased
+    - doSmooth  if True apply a 3x3 median filter to smooth the data
     - verbosity 0: no output, 1: print warnings, 2: print information, 3: print iteration info.
                 Note: there are no warnings at this time
     
@@ -608,7 +605,8 @@ def checkSignal(
         mask = num.logical_or(subMask, circleMask),
     )
     smoothedData = dataPixels.filled(imStats.med)
-    num.nd_image.median_filter(smoothedData, 3, output=smoothedData)
+    if doSmooth:
+        num.nd_image.median_filter(smoothedData, 3, output=smoothedData)
     del(dataPixels)
     
     # look for a blob of at least 2x2 adjacent pixels with smoothed value >= dataCut

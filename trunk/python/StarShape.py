@@ -81,6 +81,7 @@ History:
                     instead of raising an exception when fitting fails.
 2006-04-17 ROwen    Bug fix: _fitRadProfile had bogus diagnostic print (thanks to pychecker).
                     Removed unused constants _FWHMMin/Max/Delta (thanks to pychecker).
+2008-01-12 ROwen    Fixed bug in StarShapeData.__repr__ (thanks to Adam Ginsburg).
 """
 __all__ = ["StarShapeData", "starShape"]
 
@@ -130,7 +131,7 @@ class StarShapeData:
             val = getattr(self, arg)
             if val not in (None, ""):
                 dataList.append("%s=%s" % (arg, val))
-        return "%s(%s)" % ", ".join(self.__class__.__name__, dataList)
+        return "%s(%s)" % (self.__class__.__name__, ", ".join(dataList))
 
 
 def starShape(
