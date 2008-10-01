@@ -6,6 +6,7 @@ Header file for RadProfModule.c, which see for information.
 
 History:
 2004-10-13 ROwen    modified libnumarray.h include to match numarray 1.1 docs.
+2008-10-01 ROwen    radAsymmWeighted: changed bias from long to Float64.
 */
 
 #include "Python.h"
@@ -50,7 +51,7 @@ long radAsymmWeighted(
     Bool mask[inLenI][inLenJ],
     long iCtr, long jCtr,
     long rad,
-    long bias,
+    Float64 bias,
     Float64 readNoise,
     Float64 ccdGain,
     Float64 *asymmPtr,

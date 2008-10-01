@@ -31,10 +31,18 @@ History:
                     is printed unformatted (along with the error message).
                     One subroutine is now used to output all star data.
 2007-01-23 ROwen    Changed #!/usr/local/bin/python -i to #!/usr/bin/env python -i
+2008-10-01 ROwen    Added support for the DATASEC keyword.
+                    Removed invertMask support.
+                    Added help strings for doFindStars and doCentroid
+                    and improved other help strings and various output.
+                    Set NUMERIX to make PyFits use numarray
 """
+import os
+os.environ["NUMERIX"] = "numarray" # make pyfits use numarray
+import sys
 import numarray as num
-import PyGuide
 import pyfits
+import PyGuide
 import RO.DS9
 
 im = None
@@ -58,7 +66,11 @@ verbosity = 1
 doDS9 = True
 
 # set up a ds9 window
-ds9Win = RO.DS9.DS9Win(PyGuide.Constants.DS9Title)
+try:
+    ds9Win = RO.DS9.DS9Win(PyGuide.Constants.DS9Title)
+except Exception, e:
+    print "Cannot use ds9; error = %s" % (e,)
+    doDS9 = False
 
 CCDInfoNames = ("bias", "readNoise", "ccdGain", "satLevel")
 FindParamNames = CCDInfoNames + ("thresh", "radMult", "rad", "verbosity", "doDS9")
@@ -71,6 +83,11 @@ def doFindStars(
     invertMask = False,
     **kargs
 ):
+    """Find stars and centroid and shape-fit them.
+    
+    Inputs:
+    - all the arguments for loadFiles plus values shown by showDef
+    """
     global isSat, sd
     im, mask, satMask = loadFiles(imName, maskName, satMaskName, invertMask)
     
@@ -92,6 +109,7 @@ def doFindStars(
     ccdInfo = PyGuide.CCDInfo(**ccdInfoDict)
     
     # find stars and centroid
+    print "Calling PyGuide.findStars"
     ctrDataList, imStats = PyGuide.findStars(
         data = im,
         mask = mask,
@@ -124,6 +142,11 @@ def doCentroid(
     invertMask = False,
     **kargs
 ):
+    """Centroid and shape-fit a star
+    
+    Inputs:
+    - all the arguments for loadFiles plus most values shown by showDef
+    """
     global im, imFits, mask, maskFits, satMask, satMaskFits, isSat, sd
     im, mask, satMask = loadFiles(imName, maskName, satMaskName, invertMask)
     if xyGuess == None:
@@ -180,22 +203,64 @@ def loadFiles(
     invertMask = False,
 ):
     """Load a new image and/or mask and/or satMask from a fits file.
-    invertMask is ignored unless maskName is specified
-    and only applies to mask, not to satMask.
+
+    Inputs:
+    - imName: path to image FITS file; None to use current image
+    - maskName: path to bad pixel mask; 0=good unless invertMask is true;
+            None to use current mask, if any
+    - satMaskName: path to saturated pixel mask; 0=good regardless of invertMask;
+            None to use current mask, if any
     """
     global im, imFits, mask, maskFits, satMask, satMaskFits, isSat, sd
     if imName:
         imFits = pyfits.open(imName)
-        im = imFits[0].data
+        print "Loading image %s into imFits and im" % (imName,)
+        dataSec = parseDataSec(imFits[0].header.get("DATASEC"))
+        dataShape = imFits[0].data.shape
+        if dataSec == None:
+            dataSec = [0, dataShape[0], 0, dataShape[1]]
+        im = imFits[0].data[dataSec[0]:dataSec[1], dataSec[2]:dataSec[3]]
     if maskName:
+        print "Loading bad pixel mask %s into maskFits and mask" % (maskName,)
         maskFits = pyfits.open(maskName)
-        if invertMask:
-            mask = maskFits[0].data < 0.1
-        else:
-            mask = maskFits[0].data > 0.1
+        mask = maskFits[0].data[dataSec[0]:dataSec[1], dataSec[2]:dataSec[3]] > 0.1
     if satMaskName:
-        satMaskfits = pyfits.open(satMaskName)
+        print "Loading saturated pixel mask %s into satMaskFits and satMask" % (satMaskName,)
+        satMaskFits = pyfits.open(satMaskName)
+        satMask = satMaskFits[0].data[dataSec[0]:dataSec[1], dataSec[2]:dataSec[3]] > 0.1
     return im, mask, satMask
+
+def parseDataSec(dataSecStr):
+    """Parse DATASEC and return (beg x, end+1 x, beg y, end+1 y)
+    
+    DATASEC has an origin of 1 and the end is inclusive (FITS standard) and has x and y swapped
+    The return value has an origin of 0 and the end is exclusive (numarray/numpy/C++ standard)
+    
+    Return None if DATASEC is None or cannot be parsed.
+    
+    Input:
+    - dataSecStr: a DATASEC in the form [begx:endx,begy:endy]; if None then None is returned
+    
+    On error prints a message to stderr and returns None
+    """
+    if dataSecStr == None:
+        return None
+    try:
+        trimStr = dataSecStr[1:-1]
+        xyStrList = trimStr.split(",")
+        if len(xyStrList) != 2:
+            raise RuntimeError("Could not split %s" % (trimStr,))
+        xyStrList.reverse()
+        retValList = []
+        for strList in xyStrList:
+            begEndStrList = strList.split(":")
+            if len(begEndStrList) != 2:
+                raise RuntimeError("Could not split %s" % (begEndStrList))
+            retValList += [int(begEndStrList[0]) - 1, int(begEndStrList[1])]
+        return retValList
+    except Exception, e:
+        sys.stderr.write("Could not parse %r; error=%s" % (dataSecStr, e))
+        return None
 
 def printStarHeader():
     """Print star position data header"""
@@ -229,27 +294,45 @@ def showDef():
     print
 
 showDef()
-print """
-Computed values:
-im: image data array
-mask: mask data array, or None if no mask
-sd: star data returned by PyGuide.findStars
+print """The following variables are available:
+
+Default aguments for doFindStars and doCentroid:
+bias        bias remaining in the data, if any (ADU)
+readNoise   ccd read noise (e-)
+ccdGain     ccd inverse gain (e-/ADU)
+satLevel    saturation level (ADU); ignored by PyFits
+            but potentially useful for generating saturated pixel masks.
+rad         centroid radius (pix); if None then doFindStars computes rad using radMult
+radMult     for doFindStars: if rad = None then centroid radius is computed as follows:
+            centroid radius = radMult * max(rad * blob size x, rad * blob size y);
+thresh      for doFindStars: determines the point above which pixels are considered data;
+            valid data >= thresh * standard deviation + median
+            values less than PyGuide.Constants.MinThresh are silently increased
+verbosity   0: no output, 1: print warnings, 2: print information and
+            (if doDS9 true) show smoothed image in ds9 frame 3.
+doDS9       if True, shows current image and other info in ds9 in current frame.
+            For this to work, you must have the RO package installed.
+
+Computed data:
+im          image data array (set by loadFiles)
+mask        mask data array, or None if no mask (set by loadFiles)
+satMask     saturated mask data array, or None of no saturated mask (set by loadFiles)
+sd          star data returned by PyGuide.findStars
 
 Reported values include::
-rad: radius used to compute centroid
-pix: the number of unmasked pixels used to compute the centroid
-chiSq: chi squared for shape fit
+rad         radius used to compute centroid
+pix         the number of unmasked pixels used to compute the centroid
+chiSq       chi squared for shape fit
 
 Notes:
 - For a slitviewer image, be sure to specify a suitable mask.
 - For optimal centroiding and a reasonable centroid error estimate
   you must set bias, readNoise and ccdGain correctly for your image.
-- invertMask is ignored unless maskName is specified.
 
 Function calls:
-doFindStars(imName=None, maskName=None, invertMask=False, [, optional_named_params])
-doCentroid(imName=None, maskName=None, invertMask=False, xyGuess=(x,y) [, optional_named_params])
-loadFiles(imName, maskname, satMaskName, invertMask) loads a new image, mask and/or satMask
+doFindStars(imName=None, maskName=None, [, optional_named_params])
+doCentroid(imName=None, maskName=None, xyGuess=(x,y) [, optional_named_params])
+loadFiles(imName, maskname, satMaskName) loads a new image, mask and/or satMask
 ds9Win.showArray(arry) displays an array in ds9
 showDef() prints the current defaults
 """

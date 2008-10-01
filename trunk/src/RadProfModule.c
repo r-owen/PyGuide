@@ -31,6 +31,7 @@ History:
 2005-10-14 ROwen    Modified to use Float32 image data, not UInt16.
 2006-07-11 ROwen    Use PyMODINIT_FUNC as the type of return for the init function
                     instead of void (apparently recc. for python 2.3 and later).
+2008-10-01 ROwen    Changed bias from long to Float64.
 */
 
 // global working arrays for radProf
@@ -178,11 +179,11 @@ char Py_radAsymmWeighted_doc [] =
 static PyObject *Py_radAsymmWeighted(PyObject *self, PyObject *args) {
     PyObject *dataObj, *maskObj;
     PyArrayObject *dataArry, *maskArry;
-    long iCtr, jCtr, rad, bias, totPts;
-    Float64 readNoise, ccdGain, asymm, totCounts;
+    long iCtr, jCtr, rad, totPts;
+    Float64 bias, readNoise, ccdGain, asymm, totCounts;
     char ModName[] = "radAsymm";
 
-    if (!PyArg_ParseTuple(args, "OO(ll)lldd",
+    if (!PyArg_ParseTuple(args, "OO(ll)lddd",
             &dataObj, &maskObj, &iCtr, &jCtr, &rad, &bias, &readNoise, &ccdGain))
         return NULL;
     
@@ -864,7 +865,7 @@ long radAsymmWeighted(
     Bool mask[inLenI][inLenJ],
     long iCtr, long jCtr,
     long rad,
-    long bias,
+    Float64 bias,
     Float64 readNoise,
     Float64 ccdGain,
     Float64 *asymmPtr,
@@ -909,7 +910,7 @@ long radAsymmWeighted(
     for(ind=0; ind<nElt; ind++){
         nPts = g_radAsymm_nPts[ind];
         if (nPts > 1) {
-            pixNoiseSq = readNoiseSqADU + ((g_radAsymm_mean[ind] - (Float64) bias) / ccdGain);
+            pixNoiseSq = readNoiseSqADU + ((g_radAsymm_mean[ind] - bias) / ccdGain);
             weight = sqrt(2.0 * (Float64) (nPts - 1)) * pixNoiseSq / (Float64) nPts;
             *asymmPtr += g_radAsymm_var[ind] / weight;
         }

@@ -7,6 +7,7 @@ History:
 2005-02-07 ROwen    Added PosMinusIndex.
 2005-05-18 ROwen    Added CCDInfo and DefThresh.
 2005-10-14 ROwen    Noted that satLevel is no longer used by PyGuide.
+2008-10-01 ROwen    CCDInfo now casts its arguments (except satLevel).
 """
 import math
 
@@ -50,9 +51,9 @@ class CCDInfo:
         ccdGain,
         satLevel = (2**16)-1,
     ):
-        self.bias = bias
-        self.readNoise = readNoise
-        self.ccdGain = ccdGain
+        self.bias = float(bias)
+        self.readNoise = float(readNoise)
+        self.ccdGain = float(ccdGain)
         self.satLevel = satLevel
     
     def __repr__(self):
