@@ -46,7 +46,7 @@ if not versOK.lower() == "y":
 print "Subversion repository OK"
 
 exportRoot = os.environ["HOME"]
-exportFileName = "%s_%s_Source" % (PkgName, Version.__version__)
+exportFileName = "%s_%s" % (PkgName, Version.__version__)
 exportPath = os.path.abspath(os.path.join(exportRoot, exportFileName))
 zipFileName = "%s.zip" % (exportFileName,)
 zipFilePath = os.path.abspath(os.path.join(exportRoot, zipFileName))
