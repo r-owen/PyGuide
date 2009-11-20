@@ -17,7 +17,7 @@ History:
 2008-01-02 ROwen    Added DoSmooth constant.
 """
 import numarray as num
-import numarray.random_array as num_random
+import numarray.random as num_random
 import PyGuide
 from Stats import Stats
 
@@ -35,7 +35,7 @@ Thresh = 2.5
 
 imShape = (ImWidth, ImWidth)
 nomCtr = (ImWidth // 2, ImWidth // 2)
-mask = num.zeros(imShape, num.Bool)
+mask = numpy.zeros(imShape, numpy.Bool)
 NaN = float("NaN")
 
 # settings

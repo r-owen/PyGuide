@@ -1,14 +1,12 @@
 #!/usr/bin/env python
-from distutils.core import setup, Extension
 import distutils.sysconfig
-from numarray.numarrayext import NumarrayExtension
+import numpy.distutils.core
+import numpy.distutils.misc_util
 import sys
 import os
-sys.path.append("python")
+rootDir = os.path.abspath(os.path.dirname(__file__))
+sys.path.append(os.path.join(rootDir, "python"))
 import Version
-
-if not hasattr(sys, 'version_info') or sys.version_info[0:2] < (2,2):
-    raise SystemExit("Python 2.2 or later required to build this module.")
 
 PkgName = "PyGuide"
 SrcDir = "src"
@@ -41,21 +39,24 @@ if UPSArg in sys.argv and "install" in sys.argv:
         upsFile.close()
     dataFiles.append(["ups", [upsFileName]])
 
-radProfExt = NumarrayExtension(
-    "radProf",
-    sources = [os.path.join(SrcDir, "RadProfModule.c")],
-)
+def configuration(parent_package = '', top_path = None):
+    config = numpy.distutils.misc_util.Configuration(
+        name = PkgName,
+        parent_package = parent_package,
+        top_path = top_path,
+        version = Version.__version__,
+        description = "Find stars for telescope guiding",
+        author = "Russell Owen",
+        url = "http://www.astro.washington.edu/rowen/",
+        package_dir = {'PyGuide': PyDir},
+        packages = [PkgName],
+        data_files = dataFiles,
+        scripts = ["scripts/doPyGuide.py", "scripts/checkPyGuide.py"],
+    )
+    config.add_extension(
+        "radProf",
+        sources = [os.path.join(SrcDir, "RadProfModule.c")],
+    )
+    return config
 
-setup(
-    name = PkgName,
-    version = Version.__version__,
-    description = "Find stars for telescope guiding",
-    author = "Russell Owen",
-    url = "http://www.astro.washington.edu/rowen/",
-    ext_package = PkgName,
-    ext_modules = [radProfExt],
-    package_dir = {'PyGuide': PyDir},
-    packages = [PkgName],
-    data_files = dataFiles,
-    scripts = ["scripts/doPyGuide.py", "scripts/checkPyGuide.py"],
-)
+numpy.distutils.core.setup(configuration=configuration)

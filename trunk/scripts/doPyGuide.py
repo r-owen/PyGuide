@@ -36,11 +36,11 @@ History:
                     Added help strings for doFindStars and doCentroid
                     and improved other help strings and various output.
                     Set NUMERIX to make PyFits use numarray
+2009-11-19 ROwen    Stop setting NUMERIX.
 """
 import os
-os.environ["NUMERIX"] = "numarray" # make pyfits use numarray
 import sys
-import numarray as num
+import numpy
 import pyfits
 import PyGuide
 import RO.DS9
@@ -234,7 +234,7 @@ def parseDataSec(dataSecStr):
     """Parse DATASEC and return (beg x, end+1 x, beg y, end+1 y)
     
     DATASEC has an origin of 1 and the end is inclusive (FITS standard) and has x and y swapped
-    The return value has an origin of 0 and the end is exclusive (numarray/numpy/C++ standard)
+    The return value has an origin of 0 and the end is exclusive (numpy/C++ standard)
     
     Return None if DATASEC is None or cannot be parsed.
     

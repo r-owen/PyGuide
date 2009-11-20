@@ -89,8 +89,8 @@ import math
 import sys
 import traceback
 import warnings
-import numarray as num
-import numarray.ma
+import numpy
+import numpy.ma
 import radProf as RP
 from Constants import FWHMPerSigma, NaN
 import ImUtil
@@ -146,8 +146,8 @@ def starShape(
     """Fit a double gaussian profile to a star
     
     Inputs:
-    - data      a numarray array of signed integer data
-    - mask      a numarray boolean array, or None if no mask (all data valid).
+    - data      a numpy array of float32 data
+    - mask      a numpy array of bool, or None if no mask (all data valid).
                 If supplied, mask must be the same shape as data
                 and elements are True for masked (invalid data).
     - med       median (used as the background)
@@ -177,9 +177,9 @@ def starShape(
 
     # compute radial profile and associated data
     radIndArrLen = rad + 2 # radial index arrays need two extra points
-    radProf = num.zeros([radIndArrLen], num.Float32)
-    var = num.zeros([radIndArrLen], num.Float32)
-    nPts = num.zeros([radIndArrLen], num.Long)
+    radProf = numpy.zeros([radIndArrLen], numpy.float32)
+    var = numpy.zeros([radIndArrLen], numpy.float32)
+    nPts = numpy.zeros([radIndArrLen], numpy.long)
     RP.radProf(data, mask, ijCtrInd, rad, radProf, var, nPts)
     
     # fit data
@@ -233,15 +233,15 @@ def _fitRadProfile(radProf, var, nPts, rad, verbosity=0, doPlot=False):
             (len(radProf), radProf, len(var), var, nPts, rad)
 
     radSq = RP.radSqByRadInd(len(radProf))
-    totPnts = num.sum(nPts)
-    totCounts = num.sum(nPts*radProf)
+    totPnts = numpy.sum(nPts)
+    totCounts = numpy.sum(nPts*radProf)
     
     # This radial weight is the one used by Jim Gunn and it seems to do as well
     # as anything else I tried. however, it results in a chiSq that is not normalized.
 #   radWeight = nPts
 
     # try a simple normalization
-    meanVar = num.sum(var) / float(num.sum(nPts > 1))
+    meanVar = numpy.sum(var) / float(numpy.sum(nPts > 1))
     radWeight = nPts / meanVar
 
     if doPlot:
@@ -273,9 +273,9 @@ def _fitRadProfile(radProf, var, nPts, rad, verbosity=0, doPlot=False):
         fwhmArr.append(fwhm)
         fwhm += fwhm * 0.1
     nTrials = len(fwhmArr)
-#   amplArr = num.zeros([nTrials], num.Float32)
-#   bkgndArr = num.zeros([nTrials], num.Float32)
-    chiSqArr = num.zeros([nTrials], num.Float32)
+#   amplArr = numpy.zeros([nTrials], numpy.float32)
+#   bkgndArr = numpy.zeros([nTrials], numpy.float32)
+    chiSqArr = numpy.zeros([nTrials], numpy.float32)
     
     minInd = 0
     BadChiSq = 9.9e99
@@ -335,9 +335,9 @@ def _fitIter(radProf, nPts, radWeight, radSq, totPnts, totCounts, fwhm, verbosit
     
     # compute sums
     nPtsSeeProf = nPts*seeProf # temporary array
-    sumSeeProf = num.sum(nPtsSeeProf)
-    sumSeeProfSq = num.sum(nPtsSeeProf*seeProf)
-    sumSeeProfRadProf = num.sum(nPtsSeeProf*radProf)
+    sumSeeProf = numpy.sum(nPtsSeeProf)
+    sumSeeProfSq = numpy.sum(nPtsSeeProf*seeProf)
+    sumSeeProfRadProf = numpy.sum(nPtsSeeProf*radProf)
 
     if verbosity >= 3:
         print "_fitIter sumSeeProf=%s, sumSeeProfSq=%s, totCounts=%s, sumSeeProfRadProf=%s, totPnts=%s" % \
@@ -352,7 +352,7 @@ def _fitIter(radProf, nPts, radWeight, radSq, totPnts, totCounts, fwhm, verbosit
         bkgnd = ((sumSeeProfSq * totCounts) - (sumSeeProf * sumSeeProfRadProf)) / disc
         # diff is the weighted difference between the data and the model
         diff = radProf - (ampl * seeProf) - bkgnd
-        chiSq = num.sum(radWeight * diff**2) / totPnts
+        chiSq = numpy.sum(radWeight * diff**2) / totPnts
     except ArithmeticError, e:
         sys.stderr.write("_fitIter failed on fwhm=%s\n" % fwhm)
         traceback.print_exc(file=sys.stderr)
@@ -373,4 +373,4 @@ def _seeProf(radSq, fwhm):
     """
     norm = 1.0/1.1
     x = radSq * (-0.5 * (FWHMPerSigma / fwhm)**2)
-    return (num.exp(x) + (0.1*num.exp(0.25*x))) * norm
+    return (numpy.exp(x) + (0.1*numpy.exp(0.25*x))) * norm

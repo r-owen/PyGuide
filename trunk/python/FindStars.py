@@ -76,9 +76,9 @@ History:
 """
 __all__ = ['findStars']
 
-import numarray as num
-import numarray.nd_image
-import numarray.ma
+import numpy
+import scipy.ndimage
+import numpy.ma
 import Centroid
 import Constants
 import ImUtil
@@ -109,7 +109,7 @@ def findStars(
     """Find and centroid stars.
     
     Inputs:
-    - data      the image data [i,j]; this is converted to an Float32 numarray if necessary
+    - data      the image data [i,j]; this is converted to a numpy array of float32, if necessary
     - mask      a mask of invalid data (1 if invalid, 0 if valid); None if no mask.
     - satMask   a maks of of saturated pixels (1 if saturated, 0 if not); None if no mask.
     - ccdInfo   bias, read noise, etc: a PyGuide.CCDInfo object.
@@ -166,7 +166,7 @@ def findStars(
         ds9Win.xpaset("frame 1")
     
     # compute background statistics
-    maskedData = num.ma.array(data, mask=mask)
+    maskedData = numpy.ma.array(data, mask=mask)
     imStats = ImUtil.skyStats(maskedData, thresh)
     if verbosity >= 1:
         print "imStats=%s" % (imStats,)
@@ -174,22 +174,22 @@ def findStars(
     # get a copy with the median used to fill in masked areas
     # and apply a filter to get rid of speckle
     smoothedData = maskedData.filled(imStats.med)
-    num.nd_image.median_filter(smoothedData, 3, output=smoothedData)
+    scipy.ndimage.median_filter(smoothedData, 3, output=smoothedData)
     if ds9Win and verbosity >= 2:
         ds9Win.xpaset("frame 3")
         ds9Win.showArray(smoothedData)
         ds9Win.xpaset("frame 1")
     
     # look for points larger than median + dataCut * stdDev
-    shapeArry = num.ones((3,3))
-    labels, numElts = num.nd_image.label(smoothedData>imStats.dataCut, shapeArry)
+    shapeArry = numpy.ones((3,3))
+    labels, numElts = scipy.ndimage.label(smoothedData>imStats.dataCut, shapeArry)
     smoothedData = None # release the storage
     if verbosity >= 2:
         print "findStars found %s possible stars above dataCut=%s" % (numElts, imStats.dataCut)
 
     # examine the candidate stars and compute centroids
     countsCentroidList = []
-    slices = num.nd_image.find_objects(labels)
+    slices = scipy.ndimage.find_objects(labels)
     for ijSlice in slices:
         ijSize = [slc.stop - slc.start for slc in ijSlice]
         ijCtrInd = [(slc.stop + slc.start) / 2.0 for slc in ijSlice]

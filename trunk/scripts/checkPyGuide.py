@@ -6,10 +6,8 @@ History:
 2007-01-23 ROwen    Changed #!/usr/local/bin/python to #!/usr/bin/env python
 """
 # import modules that I don't want checked
-import numarray
-import numarray.nd_image
-import numarray.random_array
-import numarray.ma
+import numpy
+import scipy.ndimage
 
 # start checking
 import pychecker.checker

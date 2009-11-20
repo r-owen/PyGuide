@@ -30,7 +30,7 @@ __all__ = ["ImStats", "getQuartile", "skyStats", "subFrameCtr",
 
 import math
 import warnings
-import numarray as num
+import numpy
 import Constants
 
 _QuartileResidRatios = (
@@ -108,7 +108,7 @@ def skyStats(
     """Computes sky statistics.
     
     Inputs:
-    - dataArr: an n-dimensional array or numarray.ma masked array
+    - dataArr: an n-dimensional array or numpy.ma masked array
     - thresh: a threshold for valid data: dataCut = med + (stdDev * thresh);
         values less than PyGuide.Constants.MinThresh are silently increased
     - verbosity 0: no output, 1: print warnings, 2: print information
@@ -122,14 +122,14 @@ def skyStats(
     Standard deviation is computed as stdDev = 0.741 * (Q3 - Q1)
     """
     # creating sorted data
-    if isinstance(dataArr, num.ma.array):
+    if isinstance(dataArr, numpy.ma.array):
         sortedData = dataArr.compressed()
     else:
-        sortedData = num.array(dataArr, copy=True).getflat()
+        sortedData = numpy.array(dataArr, copy=True).getflat()
     dataLen = len(sortedData)
     if verbosity >= 2:
         print "skyStats sorting %d elements" % (dataLen)
-    sortedData = num.sort(sortedData)
+    sortedData = numpy.sort(sortedData)
     
     # find sky stats; the iteration improves the values slightly
     MaxIter = 3
@@ -141,7 +141,7 @@ def skyStats(
             print "skyStats med=%s, q1=%s, q4=%s, stdDev=%s, cutVal=%s" % (med, q1, q3, stdDev, cutVal)
         if ii == MaxIter:
             break
-        cutInd = num.searchsorted(sortedData, [cutVal])[0]
+        cutInd = numpy.searchsorted(sortedData, [cutVal])[0]
         if verbosity >= 2:
             print "skStats cutInd=%d, sortedData[cutInd]=%d" % (cutInd, sortedData[cutInd])
         if cutInd < 3:
@@ -180,7 +180,7 @@ class SubFrame:
         desBegInd,
         desEndInd,
     ):
-        self.dataArr = num.array(dataArr)
+        self.dataArr = numpy.array(dataArr)
         #print "SubFrame(data%s, desBegInd=%s, desEndInd=%s)" % (self.dataArr.shape, desBegInd, desEndInd)
         
         # round desired i,j index (just in case)
@@ -201,7 +201,7 @@ class SubFrame:
         return tuple(self.begInd) + tuple(self.endInd)
     
     def getSubFrame(self):
-        """Return the subframe as a numarray array.
+        """Return the subframe as a numpy array.
         Warning: this is a pointer to the data in the full frame, not a copy.
         """
         return self.dataArr[self.begInd[0]:self.endInd[0], self.begInd[1]:self.endInd[1]]
@@ -257,7 +257,7 @@ def subFrameCtr(data, xyCtr, xySize):
                 e.g. (5,7) returns a 5x7 subframe
     
     Returns the following:
-    - subFrame  a SubFrame object; see getSubFrame to get a numarray.
+    - subFrame  a SubFrame object; see getSubFrame to get the data as a numpy array.
     
     With ctr in the middle of a pixel:
     - a size of 0.0 to 1.999... returns 1 pixel
@@ -332,7 +332,7 @@ def openDS9Win(title=Constants.DS9Title, doRaise=False):
     return None
 
 if __name__ == "__main__":
-    a = num.arange(121, shape=[11, 11])
+    a = numpy.arange(121, shape=[11, 11])
     print a
     
     for xyCtr, xySize in [

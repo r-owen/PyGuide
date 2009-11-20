@@ -7,7 +7,6 @@
 #include <signal.h>
 #include <ctype.h>
 
-
 /*
 Python extension module to extract radial profiles
 and measure radial symmetry. Useful for centroiding.
@@ -28,21 +27,25 @@ History:
                     and so use its include of Python.h and numarray.h.
 2005-03-31 ROwen    Fixed doc string for Py_radAsymmWeighted_doc
                     and tried to clarify the documentation for ctr.
-2005-10-14 ROwen    Modified to use Float32 image data, not UInt16.
+2005-10-14 ROwen    Modified to use double image data, not UInt16.
 2006-07-11 ROwen    Use PyMODINIT_FUNC as the type of return for the init function
                     instead of void (apparently recc. for python 2.3 and later).
-2008-10-01 ROwen    Changed bias from long to Float64.
+2008-10-01 ROwen    Changed bias from int to double.
+2009-11-19 ROwen    Modified to use numpy instead of numarray.
 */
 
 // global working arrays for radProf
 static long *g_radProf_radIndByRadSq;
-static long g_radProf_nElt = 0;
+static int g_radProf_nElt = 0;
 
 // global working arrays for radAsymm
-static Float64 *g_radAsymm_mean;
-static Float64 *g_radAsymm_var;
-static Int32 *g_radAsymm_nPts;
-static long g_radAsymm_nElt = 0;
+static double *g_radAsymm_mean;
+static double *g_radAsymm_var;
+static long *g_radAsymm_nPts;
+static int g_radAsymm_nElt = 0;
+
+#define MAX(A,B) ((A) > (B) ? (A) : (B))
+#define MIN(A,B) ((A) < (B) ? (A) : (B))
 
 char radProfModule_doc [] =
 "Code to obtain radial profiles of 2-d arrays\n"
@@ -59,8 +62,8 @@ char Py_radAsymm_doc [] =
 "sum over rad of var(rad) * nPts(rad).\n"
 "\n"
 "Input (by position only):\n"
-"- data         a 2-d array [i,j] (Float32)\n"
-"- mask         mask array [i,j] (Bool); True for values to mask out (ignore).\n"
+"- data         a 2-d array [i,j] (float32)\n"
+"- mask         mask array [i,j] (bool); True for values to mask out (ignore).\n"
 "               None if no mask array.\n"
 "- ijCtr        i,j center of scan (int)\n"
 "- rad          radius of scan (int)\n"
@@ -78,49 +81,46 @@ char Py_radAsymm_doc [] =
 "The code is more efficient if the arrays have the suggested type\n"
 "and are continuous.\n"
 ;
-static PyObject *Py_radAsymm(PyObject *self, PyObject *args) {
-    PyObject *dataObj, *maskObj;
-    PyArrayObject *dataArry, *maskArry;
-    long iCtr, jCtr, rad, totPts;
-    Float64 asymm, totCounts;
+static PyObject *Py_radAsymm(PyObject *dumObj, PyObject *args) {
+    PyObject *dataObj  = NULL, *maskObj  = NULL;
+    PyArrayObject *dataArry = NULL, *maskArry = NULL;
+    int iCtr, jCtr, rad, totPts;
+    double asymm, totCounts;
     char ModName[] = "radAsymm";
 
     if (!PyArg_ParseTuple(args, "OO(ll)l",
-            &dataObj, &maskObj, &iCtr, &jCtr, &rad))
-        return NULL;
+        &dataObj, &maskObj, &iCtr, &jCtr, &rad)) return NULL;
     
     // Convert arrays to well-behaved arrays of correct type and verify
     // These arrays MUST be decrefed before return.
-    dataArry = NA_InputArray(dataObj, tFloat32, NUM_C_ARRAY);
-    if (maskObj == Py_None) {
-        maskArry = NULL;
-    } else {
-        maskArry = NA_InputArray(maskObj, tBool, NUM_C_ARRAY);
-    }
-
-    // Check the input arrays
-    if (!dataArry) {
+    dataArry = (PyArrayObject *)PyArray_FROM_OTF(dataObj, NPY_FLOAT32, NPY_IN_ARRAY);
+    if (dataArry == NULL) {
         PyErr_Format(PyExc_ValueError, "%s: error converting data input", ModName);
         goto errorExit;
     }
-    if (!maskArry && maskObj != Py_None) {
-        PyErr_Format(PyExc_ValueError, "%s: error converting mask input", ModName);
-        goto errorExit;
+    if (maskObj != Py_None) {
+        maskArry = (PyArrayObject *)PyArray_FROM_OTF(maskObj, NPY_BOOL, NPY_IN_ARRAY);
+        if (maskArry == NULL) {
+            PyErr_Format(PyExc_ValueError, "%s: error converting mask input", ModName);
+            goto errorExit;
+        }
     }
-    if (dataArry->nd != 2) {
+
+    // Check the input arrays
+    if (PyArray_NDIM(dataArry) != 2) {
         PyErr_Format(PyExc_ValueError, "%s: data must be 2-dimensional", ModName);
         goto errorExit;
     }
-    if (maskArry && !NA_ShapeEqual(dataArry, maskArry)) {
+    if (maskArry && !PyArray_SAMESHAPE(dataArry, maskArry)) {
         PyErr_Format(PyExc_ValueError, "%s: mask must be the same shape as data", ModName);
         goto errorExit;
     }
     
     // Call the C code
     totPts = radAsymm(
-        dataArry->dimensions[0], dataArry->dimensions[1],
-        NA_OFFSETDATA(dataArry),
-        maskArry? NA_OFFSETDATA(maskArry): NULL,
+        PyArray_DIM(dataArry, 0), PyArray_DIM(dataArry, 1),
+        PyArray_DATA(dataArry),
+        maskArry? PyArray_DATA(maskArry): NULL,
         iCtr, jCtr,
         rad,
         &asymm,
@@ -176,11 +176,11 @@ char Py_radAsymmWeighted_doc [] =
 "The code is more efficient if the arrays have the suggested type\n"
 "and are continuous.\n"
 ;
-static PyObject *Py_radAsymmWeighted(PyObject *self, PyObject *args) {
+static PyObject *Py_radAsymmWeighted(PyObject *dumObj, PyObject *args) {
     PyObject *dataObj, *maskObj;
     PyArrayObject *dataArry, *maskArry;
-    long iCtr, jCtr, rad, totPts;
-    Float64 bias, readNoise, ccdGain, asymm, totCounts;
+    int iCtr, jCtr, rad, totPts;
+    double bias, readNoise, ccdGain, asymm, totCounts;
     char ModName[] = "radAsymm";
 
     if (!PyArg_ParseTuple(args, "OO(ll)lddd",
@@ -189,36 +189,34 @@ static PyObject *Py_radAsymmWeighted(PyObject *self, PyObject *args) {
     
     // Convert arrays to well-behaved arrays of correct type and verify
     // These arrays MUST be decrefed before return.
-    dataArry = NA_InputArray(dataObj, tFloat32, NUM_C_ARRAY);
-    if (maskObj == Py_None) {
-        maskArry = NULL;
-    } else {
-        maskArry = NA_InputArray(maskObj, tBool, NUM_C_ARRAY);
-    }
-
-    // Check the input arrays
-    if (!dataArry) {
+    dataArry = (PyArrayObject *)PyArray_FROM_OTF(dataObj, NPY_FLOAT32, NPY_IN_ARRAY);
+    if (dataArry == NULL) {
         PyErr_Format(PyExc_ValueError, "%s: error converting data input", ModName);
         goto errorExit;
     }
-    if (!maskArry && maskObj != Py_None) {
-        PyErr_Format(PyExc_ValueError, "%s: error converting mask input", ModName);
-        goto errorExit;
+    if (maskObj != Py_None) {
+        maskArry = (PyArrayObject *)PyArray_FROM_OTF(maskObj, NPY_BOOL, NPY_IN_ARRAY);
+        if (maskArry == NULL) {
+            PyErr_Format(PyExc_ValueError, "%s: error converting mask input", ModName);
+            goto errorExit;
+        }
     }
-    if (dataArry->nd != 2) {
+
+    // Check the input arrays
+    if (PyArray_NDIM(dataArry) != 2) {
         PyErr_Format(PyExc_ValueError, "%s: data must be 2-dimensional", ModName);
         goto errorExit;
     }
-    if (maskArry && !NA_ShapeEqual(dataArry, maskArry)) {
+    if (maskArry && !PyArray_SAMESHAPE(dataArry, maskArry)) {
         PyErr_Format(PyExc_ValueError, "%s: mask must be the same shape as data", ModName);
         goto errorExit;
     }
     
     // Call the C code
     totPts = radAsymmWeighted(
-        dataArry->dimensions[0], dataArry->dimensions[1],
-        NA_OFFSETDATA(dataArry),
-        maskArry? NA_OFFSETDATA(maskArry): NULL,
+        PyArray_DIM(dataArry, 0), PyArray_DIM(dataArry, 1),
+        PyArray_DATA(dataArry),
+        maskArry? PyArray_DATA(maskArry): NULL,
         iCtr, jCtr,
         rad,
         bias,
@@ -252,16 +250,16 @@ char Py_radProf_doc [] =
 "(an approximation of radius; see below for details)\n"
 "\n"
 "Inputs (by position only):\n"
-"- data         a 2-d array [i,j] (Float32)\n"
-"- mask         mask array [i,j] (Bool); True for values to mask out (ignore).\n"
+"- data         a 2-d array [i,j] (float32)\n"
+"- mask         mask array [i,j] (bool); True for values to mask out (ignore).\n"
 "               None if no mask array.\n"
 "- ijCtr        i,j center of profile (int)\n"
 "- rad          desired radius of profile (int)\n"
 "\n"
 "Outputs (by position only):\n"
-"- mean         the mean at each radial index; 0 if npts=0 (Float64)\n"
-"- var          the variance (stdDev^2) at each radial index; 0 if npts=0 (Float64)\n"
-"- nPts         the # of points at each radial index (Int32)\n"
+"- mean         the mean at each radial index; 0 if npts=0 (float64)\n"
+"- var          the variance (stdDev^2) at each radial index; 0 if npts=0 (float64)\n"
+"- nPts         the # of points at each radial index (int32)\n"
 "\n"
 "Returns:\n"
 "- totCounts    the total # of counts (sum of mean*nPts); float to avoid overflow\n"
@@ -292,11 +290,11 @@ char Py_radProf_doc [] =
 "All arguments are coerced to the correct data type,\n"
 "but the code is more efficient if the arrays have the suggested type.\n"
 ;
-static PyObject *Py_radProf(PyObject *self, PyObject *args) {
+static PyObject *Py_radProf(PyObject *dumObj, PyObject *args) {
     PyObject *dataObj, *maskObj, *meanObj, *varObj, *nPtsObj;
     PyArrayObject *dataArry, *maskArry, *meanArry, *varArry, *nPtsArry;
-    long iCtr, jCtr, rad, outLen, totPts;
-    Float64 totCounts;
+    int iCtr, jCtr, rad, outLen, totPts;
+    double totCounts;
     char ModName[] = "radProf";
     
     if (!PyArg_ParseTuple(args, "OO(ll)lOOO",
@@ -306,65 +304,63 @@ static PyObject *Py_radProf(PyObject *self, PyObject *args) {
     
     // Convert arrays to well-behaved arrays of correct type and verify
     // These arrays MUST be decrefed before return.
-    dataArry = NA_InputArray(dataObj, tFloat32, NUM_C_ARRAY);
-    if (maskObj == Py_None) {
-        maskArry = NULL;
-    } else {
-        maskArry = NA_InputArray(maskObj, tBool, NUM_C_ARRAY);
-    }
-    meanArry = NA_OutputArray(meanObj, tFloat64, NUM_C_ARRAY);
-    varArry = NA_OutputArray(varObj, tFloat64, NUM_C_ARRAY);
-    nPtsArry = NA_OutputArray(nPtsObj, tInt32, NUM_C_ARRAY);
-
-    // Check the input arrays
-    if (!dataArry) {
+    dataArry = (PyArrayObject *)PyArray_FROM_OTF(dataObj, NPY_FLOAT32, NPY_IN_ARRAY);
+    if (dataArry == NULL) {
         PyErr_Format(PyExc_ValueError, "%s: error converting data input", ModName);
         goto errorExit;
     }
-    if (!maskArry && maskObj != Py_None) {
-        PyErr_Format(PyExc_ValueError, "%s: error converting mask input", ModName);
-        goto errorExit;
+    if (maskObj != Py_None) {
+        maskArry = (PyArrayObject *)PyArray_FROM_OTF(maskObj, NPY_BOOL, NPY_IN_ARRAY);
+        if (maskArry == NULL) {
+            PyErr_Format(PyExc_ValueError, "%s: error converting mask input", ModName);
+            goto errorExit;
+        }
     }
-    if (dataArry->nd != 2) {
+    meanArry = (PyArrayObject *)PyArray_FROM_OTF(meanObj, NPY_DOUBLE, NPY_OUT_ARRAY);
+    varArry =  (PyArrayObject *)PyArray_FROM_OTF(varObj,  NPY_DOUBLE, NPY_OUT_ARRAY);
+    nPtsArry = (PyArrayObject *)PyArray_FROM_OTF(nPtsObj, NPY_LONG,   NPY_OUT_ARRAY);
+
+    // Check the input arrays
+    if (PyArray_NDIM(dataArry) != 2) {
         PyErr_Format(PyExc_ValueError, "%s: data must be 2-dimensional", ModName);
         goto errorExit;
     }
-    if (maskArry && !NA_ShapeEqual(dataArry, maskArry)) {
+    if (maskArry && !PyArray_SAMESHAPE(dataArry, maskArry)) {
         PyErr_Format(PyExc_ValueError, "%s: mask must be the same shape as data", ModName);
         goto errorExit;
     }
     
     // Check output arrays and compute outLen
-    if (!meanArry) {
+    if (meanArry == NULL) {
         PyErr_Format(PyExc_ValueError, "%s: error converting mean input", ModName);
         goto errorExit;
     }
-    if (!varArry) {
+    if (varArry == NULL) {
         PyErr_Format(PyExc_ValueError, "%s: error converting variance input", ModName);
         goto errorExit;
     }
-    if (!nPtsArry) {
+    if (nPtsArry == NULL) {
         PyErr_Format(PyExc_ValueError, "%s: error converting nPts input", ModName);
         goto errorExit;
     }
-    if (meanArry->nd != 1) {
+    if (PyArray_NDIM(meanArry) != 1) {
         PyErr_Format(PyExc_ValueError, "%s: mean must be 1-dimensional", ModName);
         goto errorExit;
     }
-    if (varArry->nd != 1) {
+    if (PyArray_NDIM(varArry) != 1) {
         PyErr_Format(PyExc_ValueError, "%s: variance must be 1-dimensional", ModName);
         goto errorExit;
     }
-    if (nPtsArry->nd != 1) {
+    if (PyArray_NDIM(nPtsArry) != 1) {
         PyErr_Format(PyExc_ValueError, "%s: nPts must be 1-dimensional", ModName);
         goto errorExit;
     }
-    outLen = meanArry->dimensions[0];
-    if (outLen != varArry->dimensions[0]) {
+    outLen = PyArray_DIM(meanArry, 0);
+    if (outLen != PyArray_DIM(varArry, 0)) {
         PyErr_Format(PyExc_ValueError, "%s: var array length != mean array length", ModName);
         goto errorExit;
     }
-    if (outLen != nPtsArry->dimensions[0]) {
+    if (outLen != PyArray_DIM(nPtsArry, 0)) {
         PyErr_Format(PyExc_ValueError, "%s: nPts array length != mean array length", ModName);
         goto errorExit;
     }
@@ -375,15 +371,15 @@ static PyObject *Py_radProf(PyObject *self, PyObject *args) {
     
     // Call the C code
     totPts = radProf(
-        dataArry->dimensions[0], dataArry->dimensions[1],
-        NA_OFFSETDATA(dataArry),
-        maskArry? NA_OFFSETDATA(maskArry): NULL,
+        PyArray_DIM(dataArry, 0), PyArray_DIM(dataArry, 1),
+        PyArray_DATA(dataArry),
+        maskArry? PyArray_DATA(maskArry): NULL,
         iCtr, jCtr,
         rad,
         outLen,
-        NA_OFFSETDATA(meanArry),
-        NA_OFFSETDATA(varArry),
-        NA_OFFSETDATA(nPtsArry),
+        PyArray_DATA(meanArry),
+        PyArray_DATA(varArry),
+        PyArray_DATA(nPtsArry),
         &totCounts
     );
     if (totPts < 0) {
@@ -424,10 +420,12 @@ char Py_radIndByRadSq_doc [] =
 "\n"
 "Raises ValueError if nElt < 0\n"
 ;
-static PyObject *Py_radIndByRadSq(PyObject *self, PyObject *args) {
-    long nElt;
+static PyObject *Py_radIndByRadSq(PyObject *dumObj, PyObject *args) {
+    int nElt;
     char ModName[] = "radIndByRadSq";
-
+    PyArrayObject *radProfPyArray;
+    npy_intp retArrDims[1] = {nElt};
+    
     if (!PyArg_ParseTuple(args, "l", &nElt))
         return NULL;
     
@@ -443,7 +441,10 @@ static PyObject *Py_radIndByRadSq(PyObject *self, PyObject *args) {
         return NULL;
     }
     
-    return (PyObject *) NA_NewArray((void *)g_radProf_radIndByRadSq, tLong, 1, nElt);
+    radProfPyArray = (PyArrayObject *)PyArray_SimpleNew(1, retArrDims, NPY_LONG);
+    long *radProfData = (long *)PyArray_DATA(radProfPyArray);
+    memcpy(radProfData, g_radProf_radIndByRadSq, nElt);
+    return PyArray_Return(radProfPyArray);
 }
 
 
@@ -461,12 +462,14 @@ char Py_radSqByRadInd_doc [] =
 "\n"
 "Raises ValueError if nElt < 0\n"
 ;
-static PyObject *Py_radSqByRadInd(PyObject *self, PyObject *args) {
-    long nElt;
-    Long radInd;
+static PyObject *Py_radSqByRadInd(PyObject *dumObj, PyObject *args) {
+    int nElt;
+    int radInd;
     char ModName[] = "radSqByRadInd";
-    Long *radSqByRadInd;
-
+    int *radSqByRadInd;
+    PyArrayObject *radSqByRadIndPyArray;
+    npy_intp retArrDims[1] = {nElt};
+    
     if (!PyArg_ParseTuple(args, "l", &nElt))
         return NULL;
     
@@ -474,23 +477,18 @@ static PyObject *Py_radSqByRadInd(PyObject *self, PyObject *args) {
         PyErr_Format(PyExc_ValueError, "%s: nPts < 0", ModName);
         return NULL;
     }
+
+    radSqByRadIndPyArray = (PyArrayObject *)PyArray_SimpleNew(1, retArrDims, NPY_LONG);
+    long *radSqByRadIndData = (long *)PyArray_DATA(radSqByRadIndPyArray);
     
-    // allocate max(3, nElt) elements (simplifies the computation
-    // and avoids calling calloc on 0 elements)
-    radSqByRadInd = calloc(MAX(nElt, 3), sizeof *radSqByRadInd);
-    if (radSqByRadInd == NULL) {
-        PyErr_Format(PyExc_MemoryError, "%s: insufficient memory", ModName);
-        return NULL;
-    }
-    
-    for (radInd=0; radInd<3; radInd++) {
-        radSqByRadInd[radInd] = radInd;
+    int firstEnd = nElt < 3 ? nElt: 3;
+    for (radInd=0; radInd < firstEnd; radInd++) {
+        radSqByRadIndData[radInd] = radInd;
     }
     for (radInd=3; radInd<nElt; radInd++) {
-        radSqByRadInd[radInd] = (radInd - 1) * (radInd - 1);
+        radSqByRadIndData[radInd] = (radInd - 1) * (radInd - 1);
     }
-    
-    return (PyObject *) NA_NewArray((void *)radSqByRadInd, tLong, 1, nElt);
+    return PyArray_Return(radSqByRadIndPyArray);
 }
 
 
@@ -500,15 +498,15 @@ char Py_radSqProf_doc [] =
 "Generate a radial profile as a function of radius squared\n"
 "\n"
 "Input (by position only):\n"
-"- data         a 2-d array [i,j] (Float32)\n"
-"- mask         mask array [i,j] (Bool); True for values to mask out (ignore).\n"
+"- data         a 2-d array [i,j] (float32)\n"
+"- mask         mask array [i,j] (bool); True for values to mask out (ignore).\n"
 "               None if no mask array.\n"
 "- ijCtr        i,j center of profile (int)\n"
 "- rad          radius of profile (int)\n"
 "Outputs (by position only):\n"
 "- mean         the mean at each radius squared; 0 if nPts=0 (float)\n"
 "- var          the variance (stdDev^2) at each radius squared; 0 if npts=0 (float)\n"
-"- nPts         the # of points at each radius squared (Int32)\n"
+"- nPts         the # of points at each radius squared (int)\n"
 "Returns\n"
 "- totCounts    the total # of counts (float to avoid overflow)\n"
 "- totPts       the total # of points (int)\n"
@@ -526,11 +524,11 @@ char Py_radSqProf_doc [] =
 "The code is more efficient if the arrays have the suggested type\n"
 "and are continuous.\n"
 ;
-static PyObject *Py_radSqProf(PyObject *self, PyObject *args) {
+static PyObject *Py_radSqProf(PyObject *dumObj, PyObject *args) {
     PyObject *dataObj, *maskObj, *meanObj, *varObj, *nPtsObj;
     PyArrayObject *dataArry, *maskArry, *meanArry, *varArry, *nPtsArry;
-    long iCtr, jCtr, rad, radSq, outLen, totPts;
-    Float64 totCounts;
+    int iCtr, jCtr, rad, radSq, outLen, totPts;
+    double totCounts;
     char ModName[] = "radSqProf";
     
     if (!PyArg_ParseTuple(args, "OO(ll)lOOO",
@@ -540,67 +538,65 @@ static PyObject *Py_radSqProf(PyObject *self, PyObject *args) {
     
     // Convert arrays to well-behaved arrays of correct type and verify
     // These arrays MUST be decrefed before return.
-    dataArry = NA_InputArray(dataObj, tFloat32, NUM_C_ARRAY);
-    if (maskObj == Py_None) {
-        maskArry = NULL;
-    } else {
-        maskArry = NA_InputArray(maskObj, tBool, NUM_C_ARRAY);
+    dataArry = (PyArrayObject *)PyArray_FROM_OTF(dataObj, NPY_FLOAT32, NPY_IN_ARRAY);
+    if (dataArry == NULL) {
+        PyErr_Format(PyExc_ValueError, "%s: error converting data input", ModName);
+        goto errorExit;
     }
-    meanArry = NA_OutputArray(meanObj, tFloat64, NUM_C_ARRAY);
-    varArry = NA_OutputArray(varObj, tFloat64, NUM_C_ARRAY);
-    nPtsArry = NA_OutputArray(nPtsObj, tInt32, NUM_C_ARRAY);
+    if (maskObj != Py_None) {
+        maskArry = (PyArrayObject *)PyArray_FROM_OTF(maskObj, NPY_BOOL, NPY_IN_ARRAY);
+        if (maskArry == NULL) {
+            PyErr_Format(PyExc_ValueError, "%s: error converting mask input", ModName);
+            goto errorExit;
+        }
+    }
+    meanArry = (PyArrayObject *)PyArray_FROM_OTF(meanObj, NPY_DOUBLE, NPY_OUT_ARRAY);
+    varArry =  (PyArrayObject *)PyArray_FROM_OTF(varObj,  NPY_DOUBLE, NPY_OUT_ARRAY);
+    nPtsArry = (PyArrayObject *)PyArray_FROM_OTF(nPtsObj, NPY_LONG,   NPY_OUT_ARRAY);
     
     radSq = rad*rad;
 
     // Check the input arrays
-    if (!dataArry) {
-        PyErr_Format(PyExc_ValueError, "%s: error converting data input", ModName);
-        goto errorExit;
-    }
-    if (!maskArry && maskObj != Py_None) {
-        PyErr_Format(PyExc_ValueError, "%s: error converting mask input", ModName);
-        goto errorExit;
-    }
-    if (dataArry->nd != 2) {
+    if (PyArray_NDIM(dataArry) != 2) {
         PyErr_Format(PyExc_ValueError, "%s: data must be 2-dimensional", ModName);
         goto errorExit;
     }
-    if (maskArry && !NA_ShapeEqual(dataArry, maskArry)) {
+    if (maskArry && !PyArray_SAMESHAPE(dataArry, maskArry)) {
         PyErr_Format(PyExc_ValueError, "%s: mask must be the same shape as data", ModName);
         goto errorExit;
     }
 
     // Check output arrays and compute outLen
-    if (!meanArry) {
+    if (meanArry == NULL) {
         PyErr_Format(PyExc_ValueError, "%s: error converting mean input", ModName);
         goto errorExit;
     }
-    if (!varArry) {
+    if (varArry == NULL) {
         PyErr_Format(PyExc_ValueError, "%s: error converting variance input", ModName);
         goto errorExit;
     }
-    if (!nPtsArry) {
+    if (nPtsArry == NULL) {
         PyErr_Format(PyExc_ValueError, "%s: error converting nPts input", ModName);
         goto errorExit;
     }
-    if (meanArry->nd != 1) {
+    if (PyArray_NDIM(meanArry) != 1) {
         PyErr_Format(PyExc_ValueError, "%s: mean must be 1-dimensional", ModName);
         goto errorExit;
     }
-    if (varArry->nd != 1) {
+    if (PyArray_NDIM(varArry) != 1) {
         PyErr_Format(PyExc_ValueError, "%s: variance must be 1-dimensional", ModName);
         goto errorExit;
     }
-    if (nPtsArry->nd != 1) {
+    if (PyArray_NDIM(nPtsArry) != 1) {
         PyErr_Format(PyExc_ValueError, "%s: nPts must be 1-dimensional", ModName);
         goto errorExit;
     }
-    outLen = meanArry->dimensions[0];
-    if (outLen != varArry->dimensions[0]) {
+    outLen = PyArray_DIM(meanArry, 0);
+    if (outLen != PyArray_DIM(varArry, 0)) {
         PyErr_Format(PyExc_ValueError, "%s: variance length != mean", ModName);
         goto errorExit;
     }
-    if (outLen != nPtsArry->dimensions[0]) {
+    if (outLen != PyArray_DIM(nPtsArry, 0)) {
         PyErr_Format(PyExc_ValueError, "%s: nPts length != mean", ModName);
         goto errorExit;
     }
@@ -611,15 +607,15 @@ static PyObject *Py_radSqProf(PyObject *self, PyObject *args) {
     
     // Call the C code
     totPts = radSqProf(
-        dataArry->dimensions[0], dataArry->dimensions[1],
-        NA_OFFSETDATA(dataArry),
-        maskArry? NA_OFFSETDATA(maskArry): NULL,
+        PyArray_DIM(dataArry, 0), PyArray_DIM(dataArry, 1),
+        PyArray_DATA(dataArry),
+        maskArry? PyArray_DATA(maskArry): NULL,
         iCtr, jCtr,
         rad,
         outLen,
-        NA_OFFSETDATA(meanArry),
-        NA_OFFSETDATA(varArry),
-        NA_OFFSETDATA(nPtsArry),
+        PyArray_DATA(meanArry),
+        PyArray_DATA(varArry),
+        PyArray_DATA(nPtsArry),
         &totCounts
     );
     if (totPts < 0) {
@@ -659,16 +655,16 @@ If there is not sufficient memory, deallocates all of them.
 
 Returns 1 on success, 0 on failure (insufficient memory).
 */
-long g_radProf_setup(
-    long rad
+int g_radProf_setup(
+    int rad
 ) {
-    long nElt, radSq;
+    int nElt, radSq;
     
-    // compute nElt and make sure it is long enough for the initialization code
+    // compute nElt and make sure it is int enough for the initialization code
     nElt = MAX(rad*rad + 1, 3);
 
     if (g_radProf_nElt >= nElt) {
-        // array is already long enough; bail out.
+        // array is already int enough; bail out.
         return 1;
     }
     
@@ -685,7 +681,7 @@ long g_radProf_setup(
         g_radProf_radIndByRadSq[radSq] = radSq;
     }
     for (radSq=3; radSq<nElt; radSq++) {
-        g_radProf_radIndByRadSq[radSq] = (int)(sqrt((Float64)(radSq)) + 1.5);
+        g_radProf_radIndByRadSq[radSq] = (int)(sqrt((double)(radSq)) + 1.5);
     }
     
     return 1;
@@ -713,10 +709,10 @@ If there is not sufficient memory, deallocates all of them.
 
 Returns 1 on success, 0 on failure.
 */
-long g_radAsymm_alloc(
-    long rad
+int g_radAsymm_alloc(
+    int rad
 ) {
-    long nElt = rad + 2;
+    int nElt = rad + 2;
 
     if (g_radAsymm_nElt >= nElt) {
         return 1;
@@ -773,18 +769,18 @@ Error Conditions:
 Points off the data array are ignored.
 Thus the center need not be on the array.
 */
-long radAsymm(
-    long inLenI, long inLenJ,
-    Float32 data[inLenI][inLenJ],
-    Bool mask[inLenI][inLenJ],
-    long iCtr, long jCtr,
-    long rad,
-    Float64 *asymmPtr,
-    Float64 *totCountsPtr
+int radAsymm(
+    int inLenI, int inLenJ,
+    npy_float data[inLenI][inLenJ],
+    npy_bool mask[inLenI][inLenJ],
+    int iCtr, int jCtr,
+    int rad,
+    double *asymmPtr,
+    double *totCountsPtr
 ) {
-    long nElt = rad + 2;
-    long ind;
-    long totPts;
+    int nElt = rad + 2;
+    int ind;
+    int totPts;
 
     // initialize outputs
     *asymmPtr = 0.0;
@@ -815,7 +811,7 @@ long radAsymm(
     
     // asymm = sum(std dev^2)
     for(ind=0; ind<nElt; ind++){
-        *asymmPtr += g_radAsymm_var[ind] * (Float64) g_radAsymm_nPts[ind];
+        *asymmPtr += g_radAsymm_var[ind] * (double) g_radAsymm_nPts[ind];
     }
         
     return totPts;
@@ -859,25 +855,25 @@ Error Conditions:
 Points off the data array are ignored.
 Thus the center need not be on the array.
 */
-long radAsymmWeighted(
-    long inLenI, long inLenJ,
-    Float32 data[inLenI][inLenJ],
-    Bool mask[inLenI][inLenJ],
-    long iCtr, long jCtr,
-    long rad,
-    Float64 bias,
-    Float64 readNoise,
-    Float64 ccdGain,
-    Float64 *asymmPtr,
-    Float64 *totCountsPtr
+int radAsymmWeighted(
+    int inLenI, int inLenJ,
+    npy_float data[inLenI][inLenJ],
+    npy_bool mask[inLenI][inLenJ],
+    int iCtr, int jCtr,
+    int rad,
+    double bias,
+    double readNoise,
+    double ccdGain,
+    double *asymmPtr,
+    double *totCountsPtr
 ) {
-    long nElt = rad + 2;
-    long ind;
-    long totPts;
-    long nPts;
-    Float64 readNoiseSqADU = (readNoise * readNoise) / (ccdGain * ccdGain);
-    Float64 pixNoiseSq;
-    Float64 weight;
+    int nElt = rad + 2;
+    int ind;
+    int totPts;
+    int nPts;
+    double readNoiseSqADU = (readNoise * readNoise) / (ccdGain * ccdGain);
+    double pixNoiseSq;
+    double weight;
 
     // initialize outputs
     *asymmPtr = 0.0;
@@ -911,7 +907,7 @@ long radAsymmWeighted(
         nPts = g_radAsymm_nPts[ind];
         if (nPts > 1) {
             pixNoiseSq = readNoiseSqADU + ((g_radAsymm_mean[ind] - bias) / ccdGain);
-            weight = sqrt(2.0 * (Float64) (nPts - 1)) * pixNoiseSq / (Float64) nPts;
+            weight = sqrt(2.0 * (double) (nPts - 1)) * pixNoiseSq / (double) nPts;
             *asymmPtr += g_radAsymm_var[ind] / weight;
         }
     }
@@ -954,24 +950,24 @@ Error Conditions:
 Points off the data array are ignored.
 Thus the center need not be on the array.
 */
-long radProf(
-    long inLenI, long inLenJ,
-    Float32 data[inLenI][inLenJ],
-    Bool mask[inLenI][inLenJ],
-    long iCtr, long jCtr,
-    long rad,
-    long outLen,
-    Float64 *mean,
-    Float64 *var,
-    Int32 *nPts,
-    Float64 *totCountsPtr
+int radProf(
+    int inLenI, int inLenJ,
+    npy_float data[inLenI][inLenJ],
+    npy_bool mask[inLenI][inLenJ],
+    int iCtr, int jCtr,
+    int rad,
+    int outLen,
+    double *mean,
+    double *var,
+    long *nPts,
+    double *totCountsPtr
 ) {
-    long desOutLen = rad + 2;
-    long maxRadSq = rad*rad;
-    long jj, ii, currRadSq, outInd;
-    long minJJ, maxJJ, minII, maxII;
-    long totPts;
-    Float64 d;
+    int desOutLen = rad + 2;
+    int maxRadSq = rad*rad;
+    int jj, ii, currRadSq, outInd;
+    int minJJ, maxJJ, minII, maxII;
+    int totPts;
+    double d;
     char ModName[]="radProf";
     
     // test inputs
@@ -1012,7 +1008,7 @@ long radProf(
                     return -3;
                 }
     
-                d = (Float64) data[ii][jj];
+                d = (double) data[ii][jj];
                 mean[outInd] += d;
                 var[outInd] += d*d;
                 nPts[outInd]++;
@@ -1026,7 +1022,7 @@ long radProf(
     for(outInd=0; outInd<desOutLen; outInd++) {
         if (nPts[outInd] != 0) {
             mean[outInd] /= nPts[outInd];
-            var[outInd] = (var[outInd]/(Float64)nPts[outInd]) - (mean[outInd]*mean[outInd]);
+            var[outInd] = (var[outInd]/(double)nPts[outInd]) - (mean[outInd]*mean[outInd]);
         }
     }
     
@@ -1064,23 +1060,23 @@ If outLen < radSq**2 + 1, returns -1.
 Points off the data array are ignored.
 Thus the center need not be on the array.
 */
-long radSqProf(
-    long inLenI, long inLenJ,
-    Float32 data[inLenI][inLenJ],
-    Bool mask[inLenI][inLenJ],
-    long iCtr, long jCtr,
-    long rad,
-    long outLen,
-    Float64 *mean,
-    Float64 *var,
-    Int32 *nPts,
-    Float64 *totCountsPtr
+int radSqProf(
+    int inLenI, int inLenJ,
+    npy_float data[inLenI][inLenJ],
+    npy_bool mask[inLenI][inLenJ],
+    int iCtr, int jCtr,
+    int rad,
+    int outLen,
+    double *mean,
+    double *var,
+    long *nPts,
+    double *totCountsPtr
 ) {
-    long desOutLen = rad*rad + 1;
-    long jj, ii, outInd;
-    long minJJ, maxJJ, minII, maxII;
-    Float64 d;
-    long totPts;
+    int desOutLen = rad*rad + 1;
+    int jj, ii, outInd;
+    int minJJ, maxJJ, minII, maxII;
+    double d;
+    int totPts;
     
     // test inputs
     if (outLen < desOutLen) {
@@ -1108,7 +1104,7 @@ long radSqProf(
                 if (outInd >= desOutLen)
                     continue;
     
-                d = (Float64) data[ii][jj];
+                d = (double) data[ii][jj];
                 mean[outInd] += d;
                 var[outInd] += d*d;
                 nPts[outInd]++;
@@ -1122,7 +1118,7 @@ long radSqProf(
     for(outInd=0; outInd<desOutLen; outInd++) {
         if (nPts[outInd] != 0) {
             mean[outInd] /= nPts[outInd];
-            var[outInd] = (var[outInd]/(Float64)nPts[outInd]) - (mean[outInd]*mean[outInd]);
+            var[outInd] = (var[outInd]/(double)nPts[outInd]) - (mean[outInd]*mean[outInd]);
         }
     }
     return totPts;
@@ -1136,16 +1132,15 @@ static PyMethodDef radProfMethods[] = {
     {"radIndByRadSq", Py_radIndByRadSq, METH_VARARGS, Py_radIndByRadSq_doc},
     {"radSqByRadInd", Py_radSqByRadInd, METH_VARARGS, Py_radSqByRadInd_doc},
     {"radSqProf", Py_radSqProf, METH_VARARGS, Py_radSqProf_doc},
-    {NULL, NULL} /* Sentinel */
+    {NULL, NULL, 0, NULL} /* Sentinel */
 };
 
 // Module initialization function
 PyMODINIT_FUNC initradProf(void) {
     PyObject *m;
     m = Py_InitModule3("radProf", radProfMethods, radProfModule_doc);
-    
     if (m == NULL)
         return;
 
-    import_libnumarray();
+    import_array();
 }

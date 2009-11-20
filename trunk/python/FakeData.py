@@ -13,8 +13,8 @@ History:
 """
 __all__ = ["fakeStar", "addNoise"]
 
-import numarray as num
-import numarray.random_array as rand
+import numpy
+import numpy.random
 import ImUtil
 
 _MaxValUInt16 = 2**16 - 1
@@ -45,10 +45,10 @@ def fakeStar(
     def peakFunc(i, j):
         radSq = (i - ijCtr[0])**2 + (j - ijCtr[1])**2
         expArg = - radSq / (2.0 * sigma**2)
-        gauss = ampl * (num.exp(expArg)  + 0.1*num.exp(0.25*expArg))
-        gauss = num.where(gauss <= _MaxValUInt16, gauss, _MaxValUInt16)
-        return gauss.astype(num.UInt16)
-    return num.fromfunction(peakFunc, arrShape)
+        gauss = ampl * (numpy.exp(expArg)  + 0.1*numpy.exp(0.25*expArg))
+        gauss = numpy.where(gauss <= _MaxValUInt16, gauss, _MaxValUInt16)
+        return gauss.astype(numpy.uint16)
+    return numpy.fromfunction(peakFunc, arrShape)
 
 def addNoise(
     data,
@@ -62,10 +62,10 @@ def addNoise(
     - sky       sky level, in ADU
     - ccdInfo   a PyGuide.CCDInfo object
     """
-    outData = num.add(data, sky).astype(num.Int32)
-    outData = rand.poisson(mean = outData * ccdInfo.ccdGain) / ccdInfo.ccdGain
-    outData += rand.normal(mean = ccdInfo.bias, std = ccdInfo.readNoise/float(ccdInfo.ccdGain), shape = data.shape)
+    outData = numpy.add(data, sky).astype(numpy.int)
+    outData = numpy.random.poisson(mean = outData * ccdInfo.ccdGain) / ccdInfo.ccdGain
+    outData += numpy.random.normal(mean = ccdInfo.bias, std = ccdInfo.readNoise/float(ccdInfo.ccdGain), shape = data.shape)
     # truncate data and return as UInt16
-    outData = num.where(outData >= 0, outData, 0)
-    outData = num.where(outData <= _MaxValUInt16, outData, _MaxValUInt16)
-    return outData.astype(num.UInt16)
+    outData = numpy.where(outData >= 0, outData, 0)
+    outData = numpy.where(outData <= _MaxValUInt16, outData, _MaxValUInt16)
+    return outData.astype(numpy.uint16)

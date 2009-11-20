@@ -15,8 +15,8 @@ History:
 2008-01-02 ROwen    Added DoSmooth constant.
 """
 import sys
-import numarray as num
-import numarray.random_array as num_random
+import numpy
+import numarray.random as num_random
 import PyGuide
 import RO.DS9
 
@@ -86,7 +86,7 @@ for arrShape, actCtr, sigma, ampl, scanRadFactor, maskLim in testData:
     nPts = ctrData.pix
     print "meas err   = %6.2f, %6.2f; est err = %.2f, %.2f; nCounts = %.0f; nPts = %d" % \
         (measCtr[0] - actCtr[0], measCtr[1] - actCtr[1], ctrData.xyErr[0], ctrData.xyErr[1], nCounts, nPts)
-    mask = num.zeros(arrShape, num.Bool)
+    mask = numpy.zeros(arrShape, numpy.bool)
     for row in range(maskLim[0], maskLim[1]+1):
         mask[row,:] = 1
     ctrData = PyGuide.centroid(

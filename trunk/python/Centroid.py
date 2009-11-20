@@ -110,9 +110,9 @@ import math
 import sys
 import traceback
 # import warnings
-import numarray as num
-import numarray.nd_image
-import numarray.ma
+import numpy
+import scipy.ndimage
+import numpy.ma
 import radProf
 import Constants
 import ImUtil
@@ -270,9 +270,9 @@ def basicCentroid(
         # OK, use this as first guess at maximum. Extract radial profiles in
         # a 3x3 gridlet about this, and walk to find minimum fitting error
         maxi, maxj = ijIndGuess
-        asymmArr = num.zeros([3,3], num.Float64)
-        totPtsArr = num.zeros([3,3], num.Int32)
-        totCountsArr = num.zeros([3,3], num.Float64)
+        asymmArr = numpy.zeros([3,3], numpy.double)
+        totPtsArr = numpy.zeros([3,3], numpy.int)
+        totCountsArr = numpy.zeros([3,3], numpy.double)
         
         niter = 0
         while True:
@@ -298,7 +298,7 @@ def basicCentroid(
                             (asymmArr[i, j], totPtsArr[i, j], totCountsArr[i, j])
     
             # have error matrix. Find minimum
-            ii, jj = num.nd_image.minimum_position(asymmArr)
+            ii, jj = scipy.ndimage.minimum_position(asymmArr)
             ii -= 1
             jj -= 1
     
@@ -318,9 +318,9 @@ def basicCentroid(
                     raise RuntimeError("could not find star within %r pixels" % (rad,))
                 
                 # shift asymmArr and totPtsArr to minimum is in center again
-                asymmArr = num.nd_image.shift(asymmArr, (-ii, -jj))
-                totCountsArr = num.nd_image.shift(totCountsArr, (-ii, -jj))
-                totPtsArr = num.nd_image.shift(totPtsArr, (-ii, -jj))
+                asymmArr = scipy.ndimage.shift(asymmArr, (-ii, -jj))
+                totCountsArr = scipy.ndimage.shift(totCountsArr, (-ii, -jj))
+                totPtsArr = scipy.ndimage.shift(totPtsArr, (-ii, -jj))
             else:
                 # Have minimum. Get out and go home.
                 break
@@ -383,7 +383,7 @@ def basicCentroid(
 
             def makeDisk(i, j):
                 return ((i-subCtrIJ[0])**2 + (j-subCtrIJ[1])**2) <= rad**2
-            maybeSatPixel = num.fromfunction(makeDisk, subSatMask.shape)
+            maybeSatPixel = numpy.fromfunction(makeDisk, subSatMask.shape)
 
             if mask != None:
                 subMaskObj = ImUtil.subFrameCtr(
@@ -392,10 +392,10 @@ def basicCentroid(
                     xySize = (subSize, subSize),
                 )
                 subMask = subMaskObj.getSubFrame()
-                num.logical_and(maybeSatPixel, num.logical_not(subMask), maybeSatPixel)
+                numpy.logical_and(maybeSatPixel, numpy.logical_not(subMask), maybeSatPixel)
             
-            num.logical_and(subSatMask, maybeSatPixel, maybeSatPixel)
-            nSat = num.nd_image.sum(maybeSatPixel)
+            numpy.logical_and(subSatMask, maybeSatPixel, maybeSatPixel)
+            nSat = scipy.ndimage.sum(maybeSatPixel)
     
         ctrData = CentroidData(
             isOK = True,
@@ -556,7 +556,7 @@ def checkSignal(
         xyCtr = xyCtr,
         xySize = (outerRad, outerRad),
     )
-    subData = subDataObj.getSubFrame().astype(num.Float32) # force type and copy
+    subData = subDataObj.getSubFrame().astype(numpy.float32) # force type and copy
     if subData.size() < _MinPixForStats:
         return False, ImUtil.ImStats(
             nPts = subData.size(),
@@ -569,25 +569,25 @@ def checkSignal(
             xyCtr = xyCtr,
             xySize = (outerRad, outerRad),
         )
-        subMask = subMaskObj.getSubFrame().astype(num.Bool) # force type and copy
+        subMask = subMaskObj.getSubFrame().astype(numpy.bool) # force type and copy
     else:
-        subMask = num.zeros(subData.shape, type=num.Bool)
+        subMask = numpy.zeros(subData.shape, type=numpy.bool)
 
     # create circleMask; a centered circle of radius rad
     # with 0s in the middle and 1s outside
     def makeCircle(i, j):
         return ((i-subCtrIJ[0])**2 + (j-subCtrIJ[1])**2) > rad**2
-    circleMask = num.fromfunction(makeCircle, subData.shape)
+    circleMask = numpy.fromfunction(makeCircle, subData.shape)
     
     # make a copy of the data outside a circle of radius "rad";
     # use this to compute background stats
-    bkgndPixels = num.ma.array(
+    bkgndPixels = numpy.ma.array(
         subData,
-        mask = num.logical_or(subMask, num.logical_not(circleMask)),
+        mask = numpy.logical_or(subMask, numpy.logical_not(circleMask)),
     )
     if bkgndPixels.count() < _OuterRadAdd**2:
         # too few unmasked pixels in outer region; try not masking off the star
-        bkgndPixels = num.ma.array(
+        bkgndPixels = numpy.ma.array(
             subData,
             mask = subMask,
         )
@@ -600,22 +600,22 @@ def checkSignal(
     del(bkgndPixels)
 
     # median filter the inner data and look for signal > dataCut
-    dataPixels = num.ma.array(
+    dataPixels = numpy.ma.array(
         subData,
-        mask = num.logical_or(subMask, circleMask),
+        mask = numpy.logical_or(subMask, circleMask),
     )
     smoothedData = dataPixels.filled(imStats.med)
     if doSmooth:
-        num.nd_image.median_filter(smoothedData, 3, output=smoothedData)
+        scipy.ndimage.median_filter(smoothedData, 3, output=smoothedData)
     del(dataPixels)
     
     # look for a blob of at least 2x2 adjacent pixels with smoothed value >= dataCut
     # note: it'd be much simpler but less safe to simply test:
     #    if max(smoothedData) < dataCut: # have signal
-    shapeArry = num.ones((3,3))
-    labels, numElts = num.nd_image.label(smoothedData>imStats.dataCut, shapeArry)
+    shapeArry = numpy.ones((3,3))
+    labels, numElts = scipy.ndimage.label(smoothedData>imStats.dataCut, shapeArry)
     del(smoothedData)
-    slices = num.nd_image.find_objects(labels)
+    slices = scipy.ndimage.find_objects(labels)
     for ijSlice in slices:
         minSize = min([slc.stop - slc.start for slc in ijSlice])
         if minSize >= 2:
@@ -629,7 +629,7 @@ def conditionData(data):
     
     Warning: does not copy the data unless necessary.
     """
-    return conditionArr(data, desType=num.Float32)
+    return conditionArr(data, desType=numpy.float32)
 
 def conditionMask(mask):
     """Convert mask to the correct type
@@ -641,14 +641,14 @@ def conditionMask(mask):
     """
     if mask == None:
         return None
-    return conditionArr(mask, num.Bool)
+    return conditionArr(mask, numpy.bool)
 
 def conditionArr(arr, desType):
-    """Convert a sequence to a numarray array of the desired type.
+    """Convert a sequence to a numpy array of the desired type.
 
     Warning: does not copy the data unless necessary.
     """
-    arr = num.asarray(arr, type=desType)
+    arr = numpy.asarray(arr, dtype=desType)
     if not arr.iscontiguous():
         arr = arr.copy()
     return arr

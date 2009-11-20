@@ -23,7 +23,7 @@ History:
 import sys
 import traceback
 import numarray as num
-import numarray.random_array as num_random
+import numarray.random as num_random
 import PyGuide
 from Stats import Stats
 
@@ -48,7 +48,7 @@ NumTries = 10
 
 imShape = (ImWidth, ImWidth)
 nomCtr = (ImWidth // 2, ImWidth // 2)
-mask = num.zeros(imShape, num.Bool)
+mask = numpy.zeros(imShape, numpy.bool)
 
 print "Compare star shape fit values to correct values"
 print "over a range of fake data"
@@ -109,7 +109,7 @@ for ampl in AmplValues:
                     ccdInfo = CCDInfo,
                 )
                 
-                maskedData = num.ma.array(data, mask=mask)
+                maskedData = numpy.ma.array(data, mask=mask)
                 
                 if DoCentroid:
                     ctrData = PyGuide.centroid(

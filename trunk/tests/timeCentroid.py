@@ -68,14 +68,14 @@ def timeRadProf(data, mask, niter, rad):
     print "timeRadProf: niter=%2d; rad=%3d;" % (niter, rad,),
     
     radSqLen = rad**2 + 1
-    radSqMean = num.zeros([radSqLen], num.Float64)
-    radSqVar = num.zeros([radSqLen], num.Float64)
-    radSqNPts = num.zeros([radSqLen], num.Int32)
+    radSqMean = numpy.zeros([radSqLen], numpy.Float64)
+    radSqVar = numpy.zeros([radSqLen], numpy.Float64)
+    radSqNPts = numpy.zeros([radSqLen], numpy.Int32)
 
     radLen = rad + 2
-    radMean = num.zeros([radLen], num.Float64)
-    radVar = num.zeros([radLen], num.Float64)
-    radNPts = num.zeros([radLen], num.Int32)
+    radMean = numpy.zeros([radLen], numpy.Float64)
+    radVar = numpy.zeros([radLen], numpy.Float64)
+    radNPts = numpy.zeros([radLen], numpy.Int32)
     
     begTime = time.time()
     for ii in range(niter):
@@ -95,7 +95,7 @@ def timeRadProf(data, mask, niter, rad):
 def runTests():
     # generate fake data
     imShape = (ImWidth, ImWidth)
-    xyCtr = num.divide(imShape, 2.0)
+    xyCtr = numpy.divide(imShape, 2.0)
     sigma = FWHM / PyGuide.FWHMPerSigma
     cleanData = PyGuide.FakeData.fakeStar(imShape, xyCtr, sigma, Ampl)
     data = PyGuide.FakeData.addNoise(
@@ -103,10 +103,10 @@ def runTests():
         sky = Sky,
         ccdInfo = CCDInfo,
     )
-    data = data.astype(num.Int16)
+    data = data.astype(numpy.Int16)
     
     # let centroiding walk a bit to find the center
-    xyGuess = num.add(xyCtr, (2, -2))
+    xyGuess = numpy.add(xyCtr, (2, -2))
 
     print "Time various parts of centroiding as a function of radius"
     print
@@ -122,7 +122,7 @@ def runTests():
     print "Read Noise =", CCDInfo.readNoise, "e-"
     print "CCD Gain   =", CCDInfo.ccdGain, "e-/ADU"
 
-    allZerosMask = data.astype(num.Bool)
+    allZerosMask = data.astype(numpy.bool)
     allZerosMask[:] = 0
     
     maskData = (
