@@ -35,7 +35,7 @@ Thresh = 2.5
 
 imShape = (ImWidth, ImWidth)
 nomCtr = (ImWidth // 2, ImWidth // 2)
-mask = numpy.zeros(imShape, numpy.Bool)
+mask = numpy.zeros(imShape, numpy.bool)
 NaN = float("NaN")
 
 # settings
