@@ -11,7 +11,7 @@ History:
 2005-10-14 ROwen    Supply null satMask for PyGuide 2.1.
 """
 import time
-import numarray as num
+import numpy
 import PyGuide
 
 # settings

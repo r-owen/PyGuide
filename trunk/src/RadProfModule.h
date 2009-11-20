@@ -65,9 +65,9 @@ int radProf(
     int iCtr, int jCtr,
     int rad,
     int outLen,
-    double *mean,
-    double *var,
-    long *nPts,
+    npy_float64 *mean,
+    npy_float64 *var,
+    npy_int32 *nPts,
     double *totCountsPtr
 );
 int radSqProf(
@@ -77,9 +77,9 @@ int radSqProf(
     int iCtr, int jCtr,
     int rad,
     int outLen,
-    double *mean,
-    double *var,
-    long *nPts,
+    npy_float64 *mean,
+    npy_float64 *var,
+    npy_int32 *nPts,
     double *totCountsPtr
 );
 

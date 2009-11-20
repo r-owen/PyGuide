@@ -16,8 +16,7 @@ History:
 2005-10-14 ROwen    Supply null satMask for PyGuide 2.1.
 2008-01-02 ROwen    Added DoSmooth constant.
 """
-import numarray as num
-import numpy.random as num_random
+import numpy
 import PyGuide
 from Stats import Stats
 
@@ -88,9 +87,9 @@ for ampl in AmplValues:
             if maskRad > 0:
                 mask[nomCtr[0] - maskRad: nomCtr[0] + maskRad + 1, :] = 1
 
-            num_random.seed(1, 1000)
+            numpy.random.seed(1)
             for ii in range(NumTries):
-                actCtr = num_random.uniform(-fwhm/2.0, fwhm/2.0, shape=(2,)) + nomCtr
+                actCtr = numpy.random.uniform(-fwhm/2.0, fwhm/2.0, size=(2,)) + nomCtr
 
                 cleanData = PyGuide.FakeData.fakeStar(imShape, actCtr, sigma, ampl)
                 data = PyGuide.FakeData.addNoise(
