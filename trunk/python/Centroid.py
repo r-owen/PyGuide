@@ -648,7 +648,4 @@ def conditionArr(arr, desType):
 
     Warning: does not copy the data unless necessary.
     """
-    arr = numpy.asarray(arr, dtype=desType)
-    if not arr.iscontiguous():
-        arr = arr.copy()
-    return arr
+    return numpy.array(arr, dtype=desType, order="C")

@@ -424,7 +424,8 @@ static PyObject *Py_radIndByRadSq(PyObject *dumObj, PyObject *args) {
     int nElt;
     char ModName[] = "radIndByRadSq";
     PyArrayObject *radProfPyArray;
-    npy_intp retArrDims[1] = {nElt};
+    npy_intp retArrDims[1];
+    int i;
     
     if (!PyArg_ParseTuple(args, "l", &nElt))
         return NULL;
@@ -441,9 +442,10 @@ static PyObject *Py_radIndByRadSq(PyObject *dumObj, PyObject *args) {
         return NULL;
     }
     
+    retArrDims[0] = nElt;
     radProfPyArray = (PyArrayObject *)PyArray_SimpleNew(1, retArrDims, NPY_LONG);
     long *radProfData = (long *)PyArray_DATA(radProfPyArray);
-    memcpy(radProfData, g_radProf_radIndByRadSq, nElt);
+    memcpy(radProfData, g_radProf_radIndByRadSq, nElt * (sizeof *radProfData));
     return PyArray_Return(radProfPyArray);
 }
 
@@ -468,7 +470,7 @@ static PyObject *Py_radSqByRadInd(PyObject *dumObj, PyObject *args) {
     char ModName[] = "radSqByRadInd";
     int *radSqByRadInd;
     PyArrayObject *radSqByRadIndPyArray;
-    npy_intp retArrDims[1] = {nElt};
+    npy_intp retArrDims[1];
     
     if (!PyArg_ParseTuple(args, "l", &nElt))
         return NULL;
@@ -478,6 +480,7 @@ static PyObject *Py_radSqByRadInd(PyObject *dumObj, PyObject *args) {
         return NULL;
     }
 
+    retArrDims[0] = nElt;
     radSqByRadIndPyArray = (PyArrayObject *)PyArray_SimpleNew(1, retArrDims, NPY_LONG);
     long *radSqByRadIndData = (long *)PyArray_DATA(radSqByRadIndPyArray);
     
