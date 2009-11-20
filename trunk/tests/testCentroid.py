@@ -16,7 +16,7 @@ History:
 """
 import sys
 import numpy
-import numarray.random as num_random
+import numpy.random as num_random
 import PyGuide
 import RO.DS9
 
@@ -58,7 +58,7 @@ for arrShape, actCtr, sigma, ampl, scanRadFactor, maskLim in testData:
     scanRad = scanRadFactor * sigma
 
     cleanData = PyGuide.FakeData.fakeStar(arrShape, actCtr, sigma, ampl)
-    num_random.seed(1, 1000)
+    num_random.seed(1)
     data = PyGuide.FakeData.addNoise(
         cleanData,
         sky = Sky,

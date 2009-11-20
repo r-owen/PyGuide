@@ -166,7 +166,7 @@ def findStars(
         ds9Win.xpaset("frame 1")
     
     # compute background statistics
-    maskedData = numpy.ma.array(data, mask=mask)
+    maskedData = numpy.ma.masked_array(data, mask=mask)
     imStats = ImUtil.skyStats(maskedData, thresh)
     if verbosity >= 1:
         print "imStats=%s" % (imStats,)

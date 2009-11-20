@@ -17,7 +17,7 @@ History:
 2008-01-02 ROwen    Added DoSmooth constant.
 """
 import numarray as num
-import numarray.random as num_random
+import numpy.random as num_random
 import PyGuide
 from Stats import Stats
 

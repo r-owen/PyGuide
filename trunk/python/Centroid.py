@@ -557,9 +557,9 @@ def checkSignal(
         xySize = (outerRad, outerRad),
     )
     subData = subDataObj.getSubFrame().astype(numpy.float32) # force type and copy
-    if subData.size() < _MinPixForStats:
+    if subData.size < _MinPixForStats:
         return False, ImUtil.ImStats(
-            nPts = subData.size(),
+            nPts = subData.size,
         )
     subCtrIJ = subDataObj.subIJFromFullIJ(ImUtil.ijPosFromXYPos(xyCtr))
     
@@ -571,7 +571,7 @@ def checkSignal(
         )
         subMask = subMaskObj.getSubFrame().astype(numpy.bool) # force type and copy
     else:
-        subMask = numpy.zeros(subData.shape, type=numpy.bool)
+        subMask = numpy.zeros(subData.shape, dtype=numpy.bool)
 
     # create circleMask; a centered circle of radius rad
     # with 0s in the middle and 1s outside
@@ -581,13 +581,13 @@ def checkSignal(
     
     # make a copy of the data outside a circle of radius "rad";
     # use this to compute background stats
-    bkgndPixels = numpy.ma.array(
+    bkgndPixels = numpy.ma.masked_array(
         subData,
         mask = numpy.logical_or(subMask, numpy.logical_not(circleMask)),
     )
     if bkgndPixels.count() < _OuterRadAdd**2:
         # too few unmasked pixels in outer region; try not masking off the star
-        bkgndPixels = numpy.ma.array(
+        bkgndPixels = numpy.ma.masked_array(
             subData,
             mask = subMask,
         )
@@ -600,7 +600,7 @@ def checkSignal(
     del(bkgndPixels)
 
     # median filter the inner data and look for signal > dataCut
-    dataPixels = numpy.ma.array(
+    dataPixels = numpy.ma.masked_array(
         subData,
         mask = numpy.logical_or(subMask, circleMask),
     )

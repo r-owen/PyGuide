@@ -63,8 +63,8 @@ def addNoise(
     - ccdInfo   a PyGuide.CCDInfo object
     """
     outData = numpy.add(data, sky).astype(numpy.int)
-    outData = numpy.random.poisson(mean = outData * ccdInfo.ccdGain) / ccdInfo.ccdGain
-    outData += numpy.random.normal(mean = ccdInfo.bias, std = ccdInfo.readNoise/float(ccdInfo.ccdGain), shape = data.shape)
+    outData = numpy.random.poisson(lam = outData * ccdInfo.ccdGain) / ccdInfo.ccdGain
+    outData += numpy.random.normal(loc = ccdInfo.bias, scale = ccdInfo.readNoise/float(ccdInfo.ccdGain), size = data.shape)
     # truncate data and return as UInt16
     outData = numpy.where(outData >= 0, outData, 0)
     outData = numpy.where(outData <= _MaxValUInt16, outData, _MaxValUInt16)

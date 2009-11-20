@@ -122,7 +122,7 @@ def skyStats(
     Standard deviation is computed as stdDev = 0.741 * (Q3 - Q1)
     """
     # creating sorted data
-    if isinstance(dataArr, numpy.ma.array):
+    if isinstance(dataArr, numpy.ma.masked_array):
         sortedData = dataArr.compressed()
     else:
         sortedData = numpy.array(dataArr, copy=True).getflat()

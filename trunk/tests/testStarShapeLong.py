@@ -23,7 +23,7 @@ History:
 import sys
 import traceback
 import numarray as num
-import numarray.random as num_random
+import numpy.random as num_random
 import PyGuide
 from Stats import Stats
 
@@ -109,7 +109,7 @@ for ampl in AmplValues:
                     ccdInfo = CCDInfo,
                 )
                 
-                maskedData = numpy.ma.array(data, mask=mask)
+                maskedData = numpy.ma.masked_array(data, mask=mask)
                 
                 if DoCentroid:
                     ctrData = PyGuide.centroid(
