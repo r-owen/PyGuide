@@ -164,6 +164,10 @@ char Py_radAsymmWeighted_doc [] =
 "Points off the data array are ignored.\n"
 "Thus the center need not be on the array.\n"
 "\n"
+"bias is silently reduced if less than\n"
+"the smallest mean value in the radial profile.\n"
+"This greatly reduces the harm from too large a bias.\n"
+"\n"
 "If mask is not None then it must have the same shape as data,\n"
 "else raises ValueError;\n"
 "\n"
@@ -458,10 +462,10 @@ static PyObject *Py_radSqByRadInd(PyObject *dumObj, PyObject *args) {
     long *radSqByRadIndData = (long *)PyArray_DATA(radSqByRadIndPyArray);
     
     int firstEnd = nElt < 3 ? nElt: 3;
-    for (radInd=0; radInd < firstEnd; radInd++) {
+    for (radInd = 0; radInd < firstEnd; ++radInd) {
         radSqByRadIndData[radInd] = radInd;
     }
-    for (radInd=3; radInd<nElt; radInd++) {
+    for (radInd = 3; radInd < nElt; ++radInd) {
         radSqByRadIndData[radInd] = (radInd - 1) * (radInd - 1);
     }
     return PyArray_Return(radSqByRadIndPyArray);
@@ -638,10 +642,10 @@ int g_radProf_setup(
     }
     g_radProf_nElt = nElt;
     
-    for (radSq=0; radSq<3; radSq++) {
+    for (radSq = 0; radSq < 3; ++radSq) {
         g_radProf_radIndByRadSq[radSq] = radSq;
     }
-    for (radSq=3; radSq<nElt; radSq++) {
+    for (radSq = 3; radSq < nElt; ++radSq) {
         g_radProf_radIndByRadSq[radSq] = (int)(sqrt((double)(radSq)) + 1.5);
     }
     
@@ -705,8 +709,7 @@ void g_radAsymm_free() {
 
 /* radAsymm ============================================================
 
-Compute a measure of radial asymmetry:
-sum over rad of var(rad)^2 * nPts(rad).
+Compute a measure of radial asymmetry: sum over rad of var(rad)^2 * nPts(rad).
 
 Inputs:
 - inLenI, inLenJ    dimensions of data and mask
@@ -727,8 +730,7 @@ Error Conditions:
 - If insufficient memory to generate a working array, returns -2.
 - Any other negative return value indicates a bug.
 
-Points off the data array are ignored.
-Thus the center need not be on the array.
+Points off the data array are ignored. Thus the center need not be on the array.
 */
 int radAsymm(
     int inLenI, int inLenJ,
@@ -771,7 +773,7 @@ int radAsymm(
     }
     
     // asymm = sum(std dev^2)
-    for(ind=0; ind<nElt; ind++){
+    for (ind = 0; ind < nElt; ++ind){
         *asymmPtr += g_radAsymm_var[ind] * (double) g_radAsymm_nPts[ind];
     }
         
@@ -805,9 +807,10 @@ Outputs:
 Returns:
 - totPts            the total # of points (sum of nPts); <0 on error
 
-Note:
-- asymm does not include contributions where nPts(rad) < 1
-  but totPts and totCounts *do* include such data.
+Notes:
+- asymm does not include contributions where nPts(rad) < 1, but totPts and totCounts *do* include such data.
+- bias is silently reduced if less than the smallest mean value in the radial profile.
+  This greatly reduces the harm from too large a bias.
 
 Error Conditions:
 - If insufficient memory to generate a working array, returns -2.
@@ -863,8 +866,14 @@ int radAsymmWeighted(
         return totPts;
     }
     
+    // force bias < smallest mean value, if necessary,
+    // to prevent bogus bias from really messing up the results
+    for (ind = 0; ind < nElt; ++ind) {
+        if (g_radAsymm_mean[ind] < bias) bias = g_radAsymm_mean[ind];
+    }
+    
     // asymm = sum(std dev^2)
-    for(ind=0; ind<nElt; ind++){
+    for (ind = 0; ind < nElt; ++ind) {
         nPts = g_radAsymm_nPts[ind];
         if (nPts > 1) {
             pixNoiseSq = readNoiseSqADU + ((g_radAsymm_mean[ind] - bias) / ccdGain);
@@ -957,8 +966,8 @@ int radProf(
     minJJ = MAX(jCtr - rad, 0);
     maxII = MIN(iCtr + rad, inLenI - 1);
     maxJJ = MIN(jCtr + rad, inLenJ - 1);
-    for (ii=minII; ii<=maxII; ii++) {
-        for (jj=minJJ; jj<=maxJJ; jj++) {
+    for (ii = minII; ii <= maxII; ++ii) {
+        for (jj = minJJ; jj <= maxJJ; ++jj) {
             if (mask==NULL || !mask[ii][jj]) {
                 currRadSq = (ii - iCtr)*(ii - iCtr) + (jj - jCtr)*(jj - jCtr);
                 if (currRadSq > maxRadSq)
@@ -1058,8 +1067,8 @@ int radSqProf(
     minJJ = MAX(jCtr - rad, 0);
     maxII = MIN(iCtr + rad, inLenI - 1);
     maxJJ = MIN(jCtr + rad, inLenJ - 1);
-    for (ii=minII; ii<=maxII; ii++) {
-        for (jj=minJJ; jj<=maxJJ; jj++) {
+    for (ii = minII; ii <= maxII; ++ii) {
+        for (jj = minJJ; jj <= maxJJ; ++jj) {
             if (mask==NULL || !mask[ii][jj]) {
                 outInd = (ii - iCtr)*(ii - iCtr) + (jj - jCtr)*(jj - jCtr);
                 if (outInd >= desOutLen)

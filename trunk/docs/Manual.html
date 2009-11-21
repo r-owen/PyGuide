@@ -86,8 +86,6 @@
 <p>PyGuide.centroid is capable of doing a very good job of centroiding. However, it is also capable of returning garbage of you are not careful. To get good results:
 
 <ul>
-	<li>Specify realistic bias, read noise and ccd gain. In particular, if the bias is too large (e.g. larger than the background of the image), you'll get NaN for the centroid error estimate and nonsense for the centroid.
-
 	<li>If you are centroiding a slit image or other partially obscured image:
 	<ul>
 		<li>Specify a good <a href="#Masks">mask</a>. It must be big enough to include the transitional area of the slit (where the light is partially dimmed).
@@ -96,6 +94,8 @@
 	</ul>
 
 	<li>Do not try to centroid on a star that has nearby bright neighbors. You must be especially careful of this if your star will be partially obscured, because the relative brightness of the neighbors increases as the main star's light is obscured.
+	
+	<li>Note: before version 2.2.0 a bias that was too large could cause serious problems. Now the bias is reduced as required internally to avoid such problems. (Still, providing realistic values for gain, bias and read noise should improve the quality of the results.)
 </ul>
 
 <h3><a name="Coordinates"></a>Coordinate Systems</h3>

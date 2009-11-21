@@ -55,7 +55,7 @@ satMaskFits = None
 
 # Default Parameters
 # these settings are for the new NA2 guider
-bias = 0
+bias = 1000
 readNoise = 21.391
 ccdGain = 1.643 # e-/pixel
 # these are general settings
