@@ -73,6 +73,7 @@ History:
 2006-04-17 ROwen    Ditch unused "import warnings" (thanks to pychecker).
 2008-10-01 ROwen    Print image stats if verbosity >= 1.
                     Fixed bug in printing of centroid results.
+2009-11-20 ROwen    Modified to use numpy.
 """
 __all__ = ['findStars']
 
@@ -166,7 +167,7 @@ def findStars(
         ds9Win.xpaset("frame 1")
     
     # compute background statistics
-    maskedData = numpy.ma.masked_array(data, mask=mask)
+    maskedData = numpy.ma.masked_array(data, mask=mask, copy=True)
     imStats = ImUtil.skyStats(maskedData, thresh)
     if verbosity >= 1:
         print "imStats=%s" % (imStats,)
@@ -249,7 +250,7 @@ def findStars(
         print "findStars returning data for %s stars:" % len(centroidList)
         print "x ctr\ty ctr\tx err\ty err\t    pixels\tcounts\tradius"
         for cd in centroidList:
-            print "%5.1f\t%5.1f\t%5.1f\t%5.1f\t%10.0f\t%6.0f\t%5.1f" % \
+            print "%6.2f\t%6.2f\t%6.2f\t%6.2f\t%10.0f\t%6.0f\t%5.1f" % \
                 (cd.xyCtr[0], cd.xyCtr[1],
                  cd.xyErr[0], cd.xyErr[1],
                  cd.pix, cd.counts, cd.rad)

@@ -245,9 +245,9 @@ char Py_radProf_doc [] =
 "- rad          desired radius of profile (int)\n"
 "\n"
 "Outputs (by position only):\n"
-"- mean         the mean at each radius squared; 0 if nPts=0 (numpy.double)\n"
-"- var          the variance (stdDev^2) at each radius squared; 0 if npts=0 (numpy.double)\n"
-"- nPts         the # of points at each radius squared (numpy.long)\n"
+"- mean         the mean at each radius squared; 0 if nPts=0 (numpy.float64)\n"
+"- var          the variance (stdDev^2) at each radius squared; 0 if npts=0 (numpy.float64)\n"
+"- nPts         the # of points at each radius squared (numpy.int32)\n"
 "\n"
 "Returns:\n"
 "- totCounts    the total # of counts (sum of mean*nPts); float\n"
@@ -328,7 +328,6 @@ static PyObject *Py_radProf(PyObject *dumObj, PyObject *args) {
         goto errorExit;
     }
     outLen = PyArray_DIM(meanArry, 0);
-    printf("len(meanArry)=%d\n", outLen);
     if (outLen != PyArray_DIM(varArry, 0)) {
         PyErr_Format(PyExc_ValueError, "%s: var array length != mean array length", ModName);
         goto errorExit;
@@ -481,9 +480,9 @@ char Py_radSqProf_doc [] =
 "- ijCtr        i,j center of profile (int)\n"
 "- rad          radius of profile (int)\n"
 "Outputs (by position only):\n"
-"- mean         the mean at each radius squared; 0 if nPts=0 (numpy.double)\n"
-"- var          the variance (stdDev^2) at each radius squared; 0 if npts=0 (numpy.double)\n"
-"- nPts         the # of points at each radius squared (numpy.long)\n"
+"- mean         the mean at each radius squared; 0 if nPts=0 (numpy.float64)\n"
+"- var          the variance (stdDev^2) at each radius squared; 0 if npts=0 (numpy.float64)\n"
+"- nPts         the # of points at each radius squared (numpy.int32)\n"
 "Returns\n"
 "- totCounts    the total # of counts (float)\n"
 "- totPts       the total # of points (int)\n"

@@ -15,6 +15,7 @@ History:
                     Shows centroid warnings.
 2005-10-14 ROwen    Supply null satMask for PyGuide 2.1.
 2008-01-02 ROwen    Added DoSmooth constant.
+2009-11-20 ROwen    Modified to use numpy.
 """
 import numpy
 import PyGuide

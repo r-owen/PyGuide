@@ -9,6 +9,7 @@ History:
 2005-02-07 ROwen    Modified for PyGuide 1.2.
 2005-05-19 ROwen    Modified for PyGuide 2.0.
 2005-10-14 ROwen    Supply null satMask for PyGuide 2.1.
+2009-11-20 ROwen    Modified to use numpy.
 """
 import time
 import numpy
@@ -68,14 +69,14 @@ def timeRadProf(data, mask, niter, rad):
     print "timeRadProf: niter=%2d; rad=%3d;" % (niter, rad,),
     
     radSqLen = rad**2 + 1
-    radSqMean = numpy.zeros([radSqLen], numpy.Float64)
-    radSqVar = numpy.zeros([radSqLen], numpy.Float64)
-    radSqNPts = numpy.zeros([radSqLen], numpy.Int32)
+    radSqMean = numpy.zeros([radSqLen], numpy.float64)
+    radSqVar = numpy.zeros([radSqLen], numpy.float64)
+    radSqNPts = numpy.zeros([radSqLen], numpy.int32)
 
     radLen = rad + 2
-    radMean = numpy.zeros([radLen], numpy.Float64)
-    radVar = numpy.zeros([radLen], numpy.Float64)
-    radNPts = numpy.zeros([radLen], numpy.Int32)
+    radMean = numpy.zeros([radLen], numpy.float64)
+    radVar = numpy.zeros([radLen], numpy.float64)
+    radNPts = numpy.zeros([radLen], numpy.int32)
     
     begTime = time.time()
     for ii in range(niter):
@@ -103,7 +104,7 @@ def runTests():
         sky = Sky,
         ccdInfo = CCDInfo,
     )
-    data = data.astype(numpy.Int16)
+    data = data.astype(numpy.int16)
     
     # let centroiding walk a bit to find the center
     xyGuess = numpy.add(xyCtr, (2, -2))

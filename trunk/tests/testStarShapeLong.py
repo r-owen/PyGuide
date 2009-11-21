@@ -19,6 +19,7 @@ History:
                     does on realistic data.
                     Shows centroid and star shape warning messages.
 2005-10-14 ROwen    Supply null satMask for PyGuide 2.1.
+2009-11-20 ROwen    Modified to use numpy.
 """
 import sys
 import traceback
@@ -107,8 +108,6 @@ for ampl in AmplValues:
                     sky = Sky,
                     ccdInfo = CCDInfo,
                 )
-                
-                maskedData = numpy.ma.masked_array(data, mask=mask)
                 
                 if DoCentroid:
                     ctrData = PyGuide.centroid(

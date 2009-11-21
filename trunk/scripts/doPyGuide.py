@@ -36,7 +36,8 @@ History:
                     Added help strings for doFindStars and doCentroid
                     and improved other help strings and various output.
                     Set NUMERIX to make PyFits use numarray
-2009-11-19 ROwen    Stop setting NUMERIX.
+2009-11-20 ROwen    Modified to use numpy.
+                    Stop setting NUMERIX.
 """
 import os
 import sys
@@ -62,7 +63,7 @@ thresh = 3.0
 radMult = 1.0
 rad = None
 satLevel = (2**16)-1
-verbosity = 1
+verbosity = 0
 doDS9 = True
 
 # set up a ds9 window

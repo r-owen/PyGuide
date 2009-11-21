@@ -22,6 +22,7 @@ History:
                     Bug fix: subIJPosOK had an argument name issue.
                     Bug fix: test code broken.
                     Note: thanks to pychecker for catching most of these problems.
+2009-11-20 ROwen    Modified to use numpy.
 """
 __all__ = ["ImStats", "getQuartile", "skyStats", "subFrameCtr",
     "ijIndFromXYPos", "ijPosFromXYPos", "xyPosFromIJPos",
@@ -108,7 +109,7 @@ def skyStats(
     """Computes sky statistics.
     
     Inputs:
-    - dataArr: an n-dimensional array or numpy.ma masked array
+    - dataArr: an n-dimensional numpy array or numpy.ma masked array
     - thresh: a threshold for valid data: dataCut = med + (stdDev * thresh);
         values less than PyGuide.Constants.MinThresh are silently increased
     - verbosity 0: no output, 1: print warnings, 2: print information
@@ -125,7 +126,7 @@ def skyStats(
     if isinstance(dataArr, numpy.ma.masked_array):
         sortedData = dataArr.compressed()
     else:
-        sortedData = numpy.array(dataArr, copy=True).getflat()
+        sortedData = dataArr.flatten()
     dataLen = len(sortedData)
     if verbosity >= 2:
         print "skyStats sorting %d elements" % (dataLen)

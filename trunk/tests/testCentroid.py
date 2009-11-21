@@ -13,10 +13,10 @@ History:
 2005-05-19 ROwen    Updated for PyGuide 2.0.
 2005-10-14 ROwen    Supply null satMask for PyGuide 2.1.
 2008-01-02 ROwen    Added DoSmooth constant.
+2009-11-20 ROwen    Modified to use numpy.
 """
 import sys
 import numpy
-import numpy.random as num_random
 import PyGuide
 import RO.DS9
 
@@ -58,7 +58,7 @@ for arrShape, actCtr, sigma, ampl, scanRadFactor, maskLim in testData:
     scanRad = scanRadFactor * sigma
 
     cleanData = PyGuide.FakeData.fakeStar(arrShape, actCtr, sigma, ampl)
-    num_random.seed(1)
+    numpy.random.seed(1)
     data = PyGuide.FakeData.addNoise(
         cleanData,
         sky = Sky,

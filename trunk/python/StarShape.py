@@ -82,6 +82,7 @@ History:
 2006-04-17 ROwen    Bug fix: _fitRadProfile had bogus diagnostic print (thanks to pychecker).
                     Removed unused constants _FWHMMin/Max/Delta (thanks to pychecker).
 2008-01-12 ROwen    Fixed bug in StarShapeData.__repr__ (thanks to Adam Ginsburg).
+2009-11-20 ROwen    Modified to use numpy.
 """
 __all__ = ["StarShapeData", "starShape"]
 
@@ -91,10 +92,10 @@ import traceback
 import warnings
 import numpy
 import numpy.ma
-import radProf as RP
+import scipy.optimize
+import radProf as radProfModule
 from Constants import FWHMPerSigma, NaN
 import ImUtil
-import FitUtil
 
 # minimum radius
 _MinRad = 3.0
@@ -177,10 +178,10 @@ def starShape(
 
     # compute radial profile and associated data
     radIndArrLen = rad + 2 # radial index arrays need two extra points
-    radProf = numpy.zeros([radIndArrLen], numpy.float32)
-    var = numpy.zeros([radIndArrLen], numpy.float32)
-    nPts = numpy.zeros([radIndArrLen], numpy.long)
-    RP.radProf(data, mask, ijCtrInd, rad, radProf, var, nPts)
+    radProf = numpy.zeros([radIndArrLen], numpy.float64)
+    var = numpy.zeros([radIndArrLen], numpy.float64)
+    nPts = numpy.zeros([radIndArrLen], numpy.int32)
+    radProfModule.radProf(data, mask, ijCtrInd, rad, radProf, var, nPts)
     
     # fit data
     try:
@@ -232,7 +233,7 @@ def _fitRadProfile(radProf, var, nPts, rad, verbosity=0, doPlot=False):
         print "_fitRadProfile(radProf[%s]=%s\n, var[%s]=%s\n, nPts=%s, rad=%s)" % \
             (len(radProf), radProf, len(var), var, nPts, rad)
 
-    radSq = RP.radSqByRadInd(len(radProf))
+    radSq = radProfModule.radSqByRadInd(len(radProf))
     totPnts = numpy.sum(nPts)
     totCounts = numpy.sum(nPts*radProf)
     
@@ -273,9 +274,9 @@ def _fitRadProfile(radProf, var, nPts, rad, verbosity=0, doPlot=False):
         fwhmArr.append(fwhm)
         fwhm += fwhm * 0.1
     nTrials = len(fwhmArr)
-#   amplArr = numpy.zeros([nTrials], numpy.float32)
-#   bkgndArr = numpy.zeros([nTrials], numpy.float32)
-    chiSqArr = numpy.zeros([nTrials], numpy.float32)
+#   amplArr = numpy.zeros([nTrials], float)
+#   bkgndArr = numpy.zeros([nTrials], float)
+    chiSqArr = numpy.zeros([nTrials], float)
     
     minInd = 0
     BadChiSq = 9.9e99
@@ -310,7 +311,7 @@ def _fitRadProfile(radProf, var, nPts, rad, verbosity=0, doPlot=False):
     fwhmLast = fwhmArr[lastInd]
     fwhmBracket = (fwhmFirst, fwhmMin, fwhmLast)    
 
-    fwhmMin = FitUtil.brent(myfunc, brack=fwhmBracket)
+    fwhmMin = scipy.optimize.brent(myfunc, brack=fwhmBracket)
 
     # compute final answers at fwhmMin
     ampl, bkgnd, chiSq, seeProf = _fitIter(radProf, nPts, radWeight, radSq, totPnts, totCounts, fwhmMin)

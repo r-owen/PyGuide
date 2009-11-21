@@ -103,6 +103,7 @@ History:
                     - improved compatibility when the subregion has no pixels
 2006-04-17 ROwen    Ditch unused "import warnings" (thanks to pychecker).
 2008-01-12 ROwen    Added doSmooth flag to the centroid function, as suggested by Adam Ginsburg.
+2009-11-20 ROwen    Modified to use numpy.
 """
 __all__ = ['CentroidData', 'centroid',]
 
@@ -111,8 +112,8 @@ import sys
 import traceback
 # import warnings
 import numpy
-import scipy.ndimage
 import numpy.ma
+import scipy.ndimage
 import radProf
 import Constants
 import ImUtil
@@ -242,6 +243,8 @@ def basicCentroid(
     if len(xyGuess) != 2:
         raise ValueError("initial guess=%r must have 2 elements" % (xyGuess,))
     rad = int(round(max(rad, _MinRad)))
+    if verbosity > 2:
+        print "basicCentroid: rounded rad=%s" % (rad,)
 
     # compute index of pixel closest to initial guess
     ijIndGuess = ImUtil.ijIndFromXYPos(xyGuess)
@@ -270,9 +273,9 @@ def basicCentroid(
         # OK, use this as first guess at maximum. Extract radial profiles in
         # a 3x3 gridlet about this, and walk to find minimum fitting error
         maxi, maxj = ijIndGuess
-        asymmArr = numpy.zeros([3,3], numpy.double)
-        totPtsArr = numpy.zeros([3,3], numpy.int)
-        totCountsArr = numpy.zeros([3,3], numpy.double)
+        asymmArr = numpy.zeros([3,3], float)
+        totPtsArr = numpy.zeros([3,3], int)
+        totCountsArr = numpy.zeros([3,3], float)
         
         niter = 0
         while True:
@@ -294,8 +297,8 @@ def basicCentroid(
 #                       data, mask, (ii, jj), rad)
     
                     if verbosity > 3:
-                        print "basicCentroid: asymm = %10.1f, totPts = %s, totCounts = %s" % \
-                            (asymmArr[i, j], totPtsArr[i, j], totCountsArr[i, j])
+                        print "basicCentroid: ind=[%s, %s] ctr=(%s, %s) asymm=%10.1f, totPts=%s, totCounts=%s" % \
+                            (i, j, ii, jj, asymmArr[i, j], totPtsArr[i, j], totCountsArr[i, j])
     
             # have error matrix. Find minimum
             ii, jj = scipy.ndimage.minimum_position(asymmArr)
@@ -461,6 +464,8 @@ def centroid(
     Returns a CentroidData object (which see for more info).
     """
     if verbosity > 2:
+        print "data =", data
+        print "mask =", mask
         print "centroid(xyGuess=%s, rad=%s, ccdInfo=%s, thresh=%s)" % (xyGuess, rad, ccdInfo, thresh)
     
     if checkSig[0]:
@@ -530,7 +535,6 @@ def checkSignal(
                 values less than PyGuide.Constants.MinThresh are silently increased
     - doSmooth  if True apply a 3x3 median filter to smooth the data
     - verbosity 0: no output, 1: print warnings, 2: print information, 3: print iteration info.
-                Note: there are no warnings at this time
     
     Return:
     - signalOK  True if usable signal is present
@@ -539,8 +543,9 @@ def checkSignal(
     Details of usable signal:
     - Computes median and stdDev in a region extending from a circle of radius "rad"
       to a box of size (rad+_OuterRadAdd)*2 on a side.
-    - median-smooths the data inside a circle of radius "rad" and makes sure
-      there is usable signal: max(data) >= thresh*stdDev + median
+    - if doSmooth is True then median-smooths the umasked data
+    - makes sure that the (possibly smoothed) data contains usable signal:
+      max(data) >= thresh*stdDev + median
     """
     if verbosity > 2:
         print "checkSignal(xyCtr=%s, rad=%s, thresh=%s)" % (xyCtr, rad, thresh)
@@ -558,6 +563,9 @@ def checkSignal(
     )
     subData = subDataObj.getSubFrame().astype(numpy.float32) # force type and copy
     if subData.size < _MinPixForStats:
+        if verbosity > 1:
+            print "checkSignal: signalOK=False because subData.size = %d < %d = _MinPixForStats" %\
+                (subData.size, _MinPixForStats)
         return False, ImUtil.ImStats(
             nPts = subData.size,
         )
@@ -581,19 +589,18 @@ def checkSignal(
     
     # make a copy of the data outside a circle of radius "rad";
     # use this to compute background stats
-    bkgndPixels = numpy.ma.masked_array(
-        subData,
-        mask = numpy.logical_or(subMask, numpy.logical_not(circleMask)),
-    )
-    if bkgndPixels.count() < _OuterRadAdd**2:
+    bkgndPixels = numpy.extract(numpy.logical_and(circleMask, numpy.logical_not(subMask)), subData)
+    if bkgndPixels.size < _OuterRadAdd**2:
         # too few unmasked pixels in outer region; try not masking off the star
-        bkgndPixels = numpy.ma.masked_array(
-            subData,
-            mask = subMask,
-        )
-        if bkgndPixels.count() < _MinPixForStats:
+        if verbosity > 2:
+            print "checkSignal: too few good pixels in outer region; testing entire region"
+        bkgndPixels = numpy.extract(subData, numpy.logical_not(subMask))
+        if bkgndPixels.size < _MinPixForStats:
+            if verbosity > 1:
+                print "checkSignal: signalOK=False because bkgndPixels.size = %d < %d = _MinPixForStats" % \
+                    (bkgndPixels.size, _MinPixForStats)
             return False, ImUtil.ImStats(
-                nPts = bkgndPixels.count(),
+                nPts = bkgndPixels.size,
             )
     
     imStats = ImUtil.skyStats(bkgndPixels, thresh)
@@ -603,6 +610,7 @@ def checkSignal(
     dataPixels = numpy.ma.masked_array(
         subData,
         mask = numpy.logical_or(subMask, circleMask),
+        copy = True,
     )
     smoothedData = dataPixels.filled(imStats.med)
     if doSmooth:
@@ -613,13 +621,18 @@ def checkSignal(
     # note: it'd be much simpler but less safe to simply test:
     #    if max(smoothedData) < dataCut: # have signal
     shapeArry = numpy.ones((3,3))
-    labels, numElts = scipy.ndimage.label(smoothedData>imStats.dataCut, shapeArry)
+    labels, numElts = scipy.ndimage.label(smoothedData > imStats.dataCut, shapeArry)
     del(smoothedData)
+    if verbosity > 2:
+        print "number of candidate blobs = %s" % (numElts,)
     slices = scipy.ndimage.find_objects(labels)
     for ijSlice in slices:
         minSize = min([slc.stop - slc.start for slc in ijSlice])
         if minSize >= 2:
             return True, imStats
+
+    if verbosity > 1:
+        print "checkSignal: signalOK=False because no stars found"
     return False, imStats
 
 

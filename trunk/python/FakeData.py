@@ -10,6 +10,7 @@ History:
 2005-01-31 ROwen    Bug fix: used == instead of = for __all__.
 2005-02-07 ROwen    Changed fakeStar to accept xyCtr instead of (i,j) ctr.
 2005-05-16 ROwen    Modified addNoise to take ccdInfo instead of 3 args.
+2009-11-20 ROwen    Modified to use numpy.
 """
 __all__ = ["fakeStar", "addNoise"]
 
