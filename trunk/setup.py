@@ -51,7 +51,7 @@ def configuration(parent_package = '', top_path = None):
         package_dir = {'PyGuide': PyDir},
         packages = [PkgName],
         data_files = dataFiles,
-        scripts = ["scripts/doPyGuide.py", "scripts/checkPyGuide.py"],
+        scripts = ["scripts/doPyGuide.py"],
     )
     config.add_extension(
         "radProf",
