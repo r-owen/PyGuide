@@ -186,8 +186,8 @@ def starShape(
     try:
         gsData = _fitRadProfile(radProf, var, nPts, rad, verbosity=verbosity, doPlot=doPlot)
         if verbosity >= 2:
-            print "starShape: predFWHM=%.1f; ampl=%.1f; fwhm=%.1f; bkgnd=%.1f; chiSq=%.2f" % \
-                (predFWHM, gsData.ampl, gsData.fwhm, gsData.bkgnd, gsData.chiSq)
+            print "starShape: ampl=%.1f; fwhm=%.1f; bkgnd=%.1f; chiSq=%.2f" % \
+                (gsData.ampl, gsData.fwhm, gsData.bkgnd, gsData.chiSq)
     except (SystemExit, KeyboardInterrupt):
         raise
     except Exception, e:
@@ -229,8 +229,8 @@ def _fitRadProfile(radProf, var, nPts, rad, verbosity=0, doPlot=False):
     Returns a StarShapeData object
     """
     if verbosity >= 2:
-        print "_fitRadProfile(radProf[%s]=%s\n, var[%s]=%s\n, nPts=%s, rad=%s)" % \
-            (len(radProf), radProf, len(var), var, nPts, rad)
+        print "_fitRadProfile(radProf[%s]=%s\n, var[%s]=%s\n, nPts[%s]=%s, rad=%s)" % \
+            (len(radProf), radProf, len(var), var, len(nPts), nPts, rad)
 
     radSq = radProfModule.radSqByRadInd(len(radProf))
     totPnts = numpy.sum(nPts)
@@ -281,6 +281,7 @@ def _fitRadProfile(radProf, var, nPts, rad, verbosity=0, doPlot=False):
     BadChiSq = 9.9e99
     minChiSq = BadChiSq
     
+    print "find bracketing values"
     for ind in range(nTrials):
         fwhm = fwhmArr[ind]
         ampl, bkgnd, chiSq, seeProf = _fitIter(radProf, nPts, radWeight, radSq, totPnts, totCounts, fwhm)
@@ -304,13 +305,19 @@ def _fitRadProfile(radProf, var, nPts, rad, verbosity=0, doPlot=False):
             
     firstInd = max(0, minInd - 2)
     lastInd = min(nTrials-1, minInd + 2)
+    if verbosity > 2:
+        print "firstInd=%d; guess minInd=%d, lastInd=%d" % (firstInd, minInd, lastInd)
     
     fwhmFirst = fwhmArr[firstInd]
     fwhmMin = fwhmArr[minInd]
     fwhmLast = fwhmArr[lastInd]
     fwhmBracket = (fwhmFirst, fwhmMin, fwhmLast)    
+    if verbosity > 2:
+        print "fwhmFirst=%0.1f; guess fwhmMin=%0.1f; fwhmLast=%0.1f" % (fwhmFirst, fwhmMin, fwhmLast)
 
     fwhmMin = scipy.optimize.brent(myfunc, brack=fwhmBracket)
+    if verbosity > 2:
+        print "optimized fwhmMin=%0.1f" % (fwhmMin,)
 
     # compute final answers at fwhmMin
     ampl, bkgnd, chiSq, seeProf = _fitIter(radProf, nPts, radWeight, radSq, totPnts, totCounts, fwhmMin)
