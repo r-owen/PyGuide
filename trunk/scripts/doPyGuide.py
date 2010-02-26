@@ -171,6 +171,12 @@ def doCentroid(
         ccdInfoDict[paramName] = kargs.pop(paramName)
     ccdInfo = PyGuide.CCDInfo(**ccdInfoDict)
     
+    if kargs["rad"] == None:
+        print "rad argument is required because the default is presently None"
+        return
+    
+    verbosity = kargs["verbosity"]
+    
     # centroid
     ctrData = PyGuide.centroid(
         data = im,
@@ -189,10 +195,54 @@ def doCentroid(
         mask = mask,
         xyCtr = ctrData.xyCtr,
         rad = ctrData.rad,
+        verbosity = verbosity,
     )
     # print results
     printStarHeader()
     printStarData(ctrData, shapeData)
+
+    if not shapeData.isOK:
+        print "starShape failed:", shapeData.msgStr
+
+def doStarShape(
+    imName = None,
+    maskName = None,
+    xyCtr = None,
+    rad = rad,
+    invertMask = False,
+    verbosity = verbosity,
+):
+    """Shape-fit a star
+    
+    Inputs:
+    - Most of the arguments for loadFiles plus rad, xyCtr and verbosity.
+    """
+    global im, imFits, mask, maskFits
+    im, mask, satMask = loadFiles(imName, maskName, None, invertMask)
+    if xyCtr == None:
+        print "xyCtr is required"
+        return
+    
+    if rad == None:
+        print "rad argument is required because the default is presently None"
+        return
+    
+    shapeData = PyGuide.starShape(
+        data = im,
+        mask = mask,
+        xyCtr = xyCtr,
+        rad = rad,
+        verbosity = verbosity,
+    )
+
+    print "   xctr    yctr         ampl     bkgnd    fwhm     rad     chiSq"
+    try:
+        print "%7.2f %7.2f %13.1f %9.1f %7.1f %7d %7.1f" % (
+            xyCtr[0], xyCtr[1], shapeData.ampl, shapeData.bkgnd, shapeData.fwhm, rad, shapeData.chiSq,
+        )
+    except (ValueError, TypeError), e:
+        print "(printing free-form due to format error: %s)" % (e,)
+        print xyCtr[0], xyCtr[1], shapeData.ampl, shapeData.bkgnd, shapeData.fwhm, rad, shapeData.chiSq,
 
     if not shapeData.isOK:
         print "starShape failed:", shapeData.msgStr
@@ -294,8 +344,8 @@ def showDef():
         print "%s = %s" % (paramName, globalDict[paramName])
     print
 
-showDef()
-print """The following variables are available:
+def help():
+    print """The following variables are available:
 
 Default aguments for doFindStars and doCentroid:
 bias        bias remaining in the data, if any (ADU)
@@ -316,6 +366,7 @@ doDS9       if True, shows current image and other info in ds9 in current frame.
 
 Computed data:
 im          image data array (set by loadFiles)
+imFits      pyfits version of im (set by loadFiles)
 mask        mask data array, or None if no mask (set by loadFiles)
 satMask     saturated mask data array, or None of no saturated mask (set by loadFiles)
 sd          star data returned by PyGuide.findStars
@@ -332,9 +383,13 @@ Notes:
 
 Function calls:
 doFindStars(imName=None, maskName=None, [, optional_named_params])
-doCentroid(imName=None, maskName=None, xyGuess=(x,y) [, optional_named_params])
+doCentroid(imName=None, maskName=None, xyGuess=(x,y), rad=rad [, optional_named_params])
+doStarShape(imName=None, maskName=None, xyCtr=(x,y), rad=rad)
 loadFiles(imName, maskname, satMaskName) loads a new image, mask and/or satMask
 ds9Win.showArray(arry) displays an array in ds9
 showDef() prints the current defaults
+help() prints this text
 """
 
+showDef()
+help()

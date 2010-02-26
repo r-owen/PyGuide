@@ -142,8 +142,8 @@ class CentroidData:
     - imStats   image statistics such as median and std. dev. (if known); an ImUtil.ImStats object.
     
     star data:
-    - xyCtr     the x,y centroid (pixels)
-    - xyErr     the predicted 1-sigma uncertainty in xyCtr (pixels)
+    - xyCtr     the x,y centroid (pixels); None if unspecified
+    - xyErr     the predicted 1-sigma uncertainty in xyCtr (pixels); [nan, nan] if unspecified
 
     note: the following three values are computed for that radial profile
     centered on the pixel nearest the centroid (NOT the true centroid):
@@ -188,6 +188,8 @@ class CentroidData:
         self.imStats = imStats
 
         self.xyCtr = xyCtr
+        if xyErr == None:
+            xyErr = numpy.array([numpy.nan, numpy.nan])
         self.xyErr = xyErr
         
         self.asymm = asymm

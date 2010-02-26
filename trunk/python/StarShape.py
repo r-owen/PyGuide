@@ -151,7 +151,6 @@ def starShape(
     - mask      a numpy array of bool, or None if no mask (all data valid).
                 If supplied, mask must be the same shape as data
                 and elements are True for masked (invalid data).
-    - med       median (used as the background)
     - xyCtr     x,y center of star; use the convention specified by
                 PyGuide.Constants.PosMinusIndex
     - rad       radius of data to fit (pixels);
@@ -162,7 +161,7 @@ def starShape(
     - doPlot    if True, output diagnostics using matplotlib
     """
     if verbosity >= 2:
-        print "starShape: data[%s,%s]; xyCtr=%.2f, %.2f; rad=%.1f" % \
+        print "starShape(data[%s,%s]; xyCtr=%.2f, %.2f; rad=%.1f)" % \
             (data.shape[0], data.shape[1], xyCtr[0], xyCtr[1], rad)
 
     # compute index of nearest pixel center (pixel whose center is nearest xyCtr)
