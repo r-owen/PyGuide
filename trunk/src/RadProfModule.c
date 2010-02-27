@@ -35,7 +35,7 @@ History:
 */
 
 // global working arrays for radProf
-static long *g_radProf_radIndByRadSq;
+static npy_int32 *g_radProf_radIndByRadSq;
 static int g_radProf_nElt = 0;
 
 // global working arrays for radAsymm
@@ -420,7 +420,7 @@ static PyObject *Py_radIndByRadSq(PyObject *dumObj, PyObject *args) {
     
     retArrDims[0] = nElt;
     radProfPyArray = (PyArrayObject *)PyArray_SimpleNew(1, retArrDims, NPY_INT32);
-    long *radProfData = (long *)PyArray_DATA(radProfPyArray);
+    npy_int32 *radProfData = (npy_int32 *)PyArray_DATA(radProfPyArray);
     memcpy(radProfData, g_radProf_radIndByRadSq, nElt * (sizeof *radProfData));
     return PyArray_Return(radProfPyArray);
 }
@@ -457,7 +457,7 @@ static PyObject *Py_radSqByRadInd(PyObject *dumObj, PyObject *args) {
 
     retArrDims[0] = nElt;
     radSqByRadIndPyArray = (PyArrayObject *)PyArray_SimpleNew(1, retArrDims, NPY_INT32);
-    int *radSqByRadIndData = (int *)PyArray_DATA(radSqByRadIndPyArray);
+    npy_int32 *radSqByRadIndData = (npy_int32 *)PyArray_DATA(radSqByRadIndPyArray);
     
     int firstEnd = nElt < 3 ? nElt: 3;
     for (radInd = 0; radInd < firstEnd; ++radInd) {

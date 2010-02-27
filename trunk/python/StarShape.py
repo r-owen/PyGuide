@@ -235,7 +235,6 @@ def _fitRadProfile(radProf, var, nPts, rad, verbosity=0, doPlot=False):
     radSq = radProfModule.radSqByRadInd(len(radProf))
     totPnts = numpy.sum(nPts)
     totCounts = numpy.sum(nPts*radProf)
-    print "radSq=%s, totPnts=%s, totCounts=%s" % (radSq, totPnts, totCounts)
     
     # This radial weight is the one used by Jim Gunn and it seems to do as well
     # as anything else I tried. however, it results in a chiSq that is not normalized.
