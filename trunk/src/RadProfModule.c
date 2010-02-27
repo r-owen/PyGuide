@@ -88,7 +88,7 @@ static PyObject *Py_radAsymm(PyObject *dumObj, PyObject *args) {
     double asymm, totCounts;
     char ModName[] = "radAsymm";
 
-    if (!PyArg_ParseTuple(args, "OO(ll)l",
+    if (!PyArg_ParseTuple(args, "OO(ii)i",
         &dataObj, &maskObj, &iCtr, &jCtr, &rad)) return NULL;
     
     // Convert arrays to well-behaved arrays of correct type and verify
@@ -181,7 +181,7 @@ static PyObject *Py_radAsymmWeighted(PyObject *dumObj, PyObject *args) {
     double bias, readNoise, ccdGain, asymm, totCounts;
     char ModName[] = "radAsymm";
 
-    if (!PyArg_ParseTuple(args, "OO(ll)lddd",
+    if (!PyArg_ParseTuple(args, "OO(ii)iddd",
             &dataObj, &maskObj, &iCtr, &jCtr, &rad, &bias, &readNoise, &ccdGain))
         return NULL;
     
@@ -289,9 +289,11 @@ static PyObject *Py_radProf(PyObject *dumObj, PyObject *args) {
     double totCounts;
     char ModName[] = "radProf";
     
-    if (!PyArg_ParseTuple(args, "OO(ll)lOOO",
+    if (!PyArg_ParseTuple(args, "OO(ii)iOOO",
             &dataObj, &maskObj, &iCtr, &jCtr, &rad, &meanObj, &varObj, &nPtsObj))
         return NULL;
+
+    printf("iCtr=%d, jCtr=%d, rad=%d\n", iCtr, jCtr, rad);
     
     // Convert arrays to well-behaved arrays of correct type and verify
     // These arrays MUST be decrefed before return.
@@ -404,7 +406,7 @@ static PyObject *Py_radIndByRadSq(PyObject *dumObj, PyObject *args) {
     npy_intp retArrDims[1];
     int i;
     
-    if (!PyArg_ParseTuple(args, "l", &nElt))
+    if (!PyArg_ParseTuple(args, "i", &nElt))
         return NULL;
     
     if (nElt < 0) {
@@ -449,7 +451,7 @@ static PyObject *Py_radSqByRadInd(PyObject *dumObj, PyObject *args) {
     PyArrayObject *radSqByRadIndPyArray;
     npy_intp retArrDims[1];
     
-    if (!PyArg_ParseTuple(args, "l", &nElt))
+    if (!PyArg_ParseTuple(args, "i", &nElt))
         return NULL;
     
     if (nElt < 0) {
@@ -511,7 +513,7 @@ static PyObject *Py_radSqProf(PyObject *dumObj, PyObject *args) {
     double totCounts;
     char ModName[] = "radSqProf";
     
-    if (!PyArg_ParseTuple(args, "OO(ll)lOOO",
+    if (!PyArg_ParseTuple(args, "OO(ii)iOOO",
             &dataObj, &maskObj, &iCtr, &jCtr, &rad,
             &meanObj, &varObj, &nPtsObj))
         return NULL;
@@ -992,8 +994,6 @@ int radProf(
 
     /* normalize outputs */
     for(outInd=0; outInd<desOutLen; outInd++) {
-        printf("nPts[%d]=%d\n", outInd, nPts[outInd]);
-
         if (nPts[outInd] != 0) {
             mean[outInd] /= nPts[outInd];
             var[outInd] = (var[outInd]/(double)nPts[outInd]) - (mean[outInd]*mean[outInd]);
