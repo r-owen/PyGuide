@@ -457,7 +457,7 @@ static PyObject *Py_radSqByRadInd(PyObject *dumObj, PyObject *args) {
 
     retArrDims[0] = nElt;
     radSqByRadIndPyArray = (PyArrayObject *)PyArray_SimpleNew(1, retArrDims, NPY_INT32);
-    long *radSqByRadIndData = (long *)PyArray_DATA(radSqByRadIndPyArray);
+    int *radSqByRadIndData = (int *)PyArray_DATA(radSqByRadIndPyArray);
     
     int firstEnd = nElt < 3 ? nElt: 3;
     for (radInd = 0; radInd < firstEnd; ++radInd) {
