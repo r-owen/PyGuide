@@ -281,7 +281,8 @@ def _fitRadProfile(radProf, var, nPts, rad, verbosity=0, doPlot=False):
     BadChiSq = 9.9e99
     minChiSq = BadChiSq
     
-    print "find bracketing values"
+    if verbosity > 2:
+        print "find bracketing values"
     for ind in range(nTrials):
         fwhm = fwhmArr[ind]
         ampl, bkgnd, chiSq, seeProf = _fitIter(radProf, nPts, radWeight, radSq, totPnts, totCounts, fwhm)
@@ -337,6 +338,10 @@ def _fitRadProfile(radProf, var, nPts, rad, verbosity=0, doPlot=False):
     )
 
 def _fitIter(radProf, nPts, radWeight, radSq, totPnts, totCounts, fwhm, verbosity=0):
+    if verbosity >= 3:
+        print "_fitIter(radProf=%s, nPts=%s, radWeight=%s, radSq=%s, totPnts=%s, totCounts=%s, fwhm=%s)" % \
+            (radProf, nPts, radWeight, radSq, totPnts, totCounts, fwhm)
+
     # compute the seeing profile for the specified width parameter
     seeProf = _seeProf(radSq, fwhm)
     
