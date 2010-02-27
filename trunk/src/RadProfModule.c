@@ -292,8 +292,6 @@ static PyObject *Py_radProf(PyObject *dumObj, PyObject *args) {
     if (!PyArg_ParseTuple(args, "OO(ii)iOOO",
             &dataObj, &maskObj, &iCtr, &jCtr, &rad, &meanObj, &varObj, &nPtsObj))
         return NULL;
-
-    printf("iCtr=%d, jCtr=%d, rad=%d\n", iCtr, jCtr, rad);
     
     // Convert arrays to well-behaved arrays of correct type and verify
     // These arrays MUST be decrefed before return.
@@ -942,8 +940,6 @@ int radProf(
     double d;
     char ModName[]="radProf";
     
-    printf("inLenI=%d, inLenJ=%d; iCtr=%d, jCtr=%d, rad=%d, outLen=%d\n", inLenI, inLenJ, iCtr, jCtr, rad, outLen);
-    
     // test inputs
     if (outLen < desOutLen) {
         printf("%s: outLen too small\n", ModName);
@@ -978,7 +974,7 @@ int radProf(
                     continue;
                 outInd = g_radProf_radIndByRadSq[currRadSq];
                 if (outInd >= desOutLen) {
-                    printf("radProf failed: outInd=%ld, rad=%ld\n", outInd, rad);
+                    printf("radProf failed: outInd=%d, rad=%d\n", outInd, rad);
                     return -3;
                 }
     
