@@ -39,9 +39,9 @@ static long *g_radProf_radIndByRadSq;
 static int g_radProf_nElt = 0;
 
 // global working arrays for radAsymm
-static double *g_radAsymm_mean;
-static double *g_radAsymm_var;
-static long *g_radAsymm_nPts;
+static npy_float64 *g_radAsymm_mean;
+static npy_float64 *g_radAsymm_var;
+static npy_int32 *g_radAsymm_nPts;
 static int g_radAsymm_nElt = 0;
 
 #define MAX(A,B) ((A) > (B) ? (A) : (B))
@@ -402,7 +402,6 @@ static PyObject *Py_radIndByRadSq(PyObject *dumObj, PyObject *args) {
     char ModName[] = "radIndByRadSq";
     PyArrayObject *radProfPyArray;
     npy_intp retArrDims[1];
-    int i;
     
     if (!PyArg_ParseTuple(args, "i", &nElt))
         return NULL;
@@ -445,7 +444,6 @@ static PyObject *Py_radSqByRadInd(PyObject *dumObj, PyObject *args) {
     int nElt;
     int radInd;
     char ModName[] = "radSqByRadInd";
-    int *radSqByRadInd;
     PyArrayObject *radSqByRadIndPyArray;
     npy_intp retArrDims[1];
     
