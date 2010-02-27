@@ -940,6 +940,8 @@ int radProf(
     double d;
     char ModName[]="radProf";
     
+    printf("inLenI=%d, inLenJ=%d; iCtr=%d, jCtr=%d, rad=%d, outLen=%d\n", inLenI, inLenJ, iCtr, jCtr, rad, outLen);
+    
     // test inputs
     if (outLen < desOutLen) {
         printf("%s: outLen too small\n", ModName);
@@ -990,6 +992,8 @@ int radProf(
 
     /* normalize outputs */
     for(outInd=0; outInd<desOutLen; outInd++) {
+        printf("nPts[%d]=%d\n", outInd, nPts[outInd]);
+
         if (nPts[outInd] != 0) {
             mean[outInd] /= nPts[outInd];
             var[outInd] = (var[outInd]/(double)nPts[outInd]) - (mean[outInd]*mean[outInd]);
