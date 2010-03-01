@@ -1,0 +1,72 @@
+Running sitecustomize.pyc
+searching for stars
+star xyCtr=319.50, 316.57, radius=27
+starShape: data[340,340]; xyCtr=319.50, 316.57; rad=27.0
+Failed: wpInd has walked off the edge; wpInd=-1, iterNum=13
+
+star xyCtr=267.67, 37.54, radius=11
+starShape: data[340,340]; xyCtr=267.67, 37.54; rad=11.0
+starShape: predFWHM=11.0; ampl=2533.0; fwhm=3.6; bkgnd=148.6; chiSq=36.82
+starShape: ijOff=0.04, 0.17; offSq=0.03; rawFWHM=3.594; corrFWHM=3.593
+star ampl=2533.0, fwhm=3.6, bkgnd=148.6, chiSq=36.82
+
+star xyCtr=170.87, 302.13, radius=10
+starShape: data[340,340]; xyCtr=170.87, 302.13; rad=10.0
+starShape: predFWHM=10.0; ampl=1636.9; fwhm=3.7; bkgnd=142.5; chiSq=16.04
+starShape: ijOff=0.37, 0.37; offSq=0.28; rawFWHM=3.657; corrFWHM=3.654
+star ampl=1636.9, fwhm=3.7, bkgnd=142.5, chiSq=16.04
+
+star xyCtr=236.16, 52.71, radius=7
+starShape: data[340,340]; xyCtr=236.16, 52.71; rad=7.0
+starShape: predFWHM=7.0; ampl=1092.0; fwhm=3.5; bkgnd=143.0; chiSq=16.90
+starShape: ijOff=0.21, 0.34; offSq=0.16; rawFWHM=3.530; corrFWHM=3.528
+star ampl=1092.0, fwhm=3.5, bkgnd=143.0, chiSq=16.90
+
+star xyCtr=260.10, 12.95, radius=5
+starShape: data[340,340]; xyCtr=260.10, 12.95; rad=5.0
+starShape: predFWHM=5.0; ampl=348.6; fwhm=3.4; bkgnd=137.1; chiSq=3.21
+starShape: ijOff=0.45, 0.40; offSq=0.36; rawFWHM=3.437; corrFWHM=3.433
+star ampl=348.6, fwhm=3.4, bkgnd=137.1, chiSq=3.21
+
+star xyCtr=208.88, 105.21, radius=4
+starShape: data[340,340]; xyCtr=208.88, 105.21; rad=4.0
+starShape: predFWHM=4.0; ampl=106.4; fwhm=4.0; bkgnd=118.4; chiSq=1.53
+starShape: ijOff=0.29, 0.38; offSq=0.23; rawFWHM=3.993; corrFWHM=3.991
+star ampl=106.4, fwhm=4.0, bkgnd=118.4, chiSq=1.53
+
+star xyCtr=334.75, 172.48, radius=4
+starShape: data[340,340]; xyCtr=334.75, 172.48; rad=4.0
+starShape: predFWHM=4.0; ampl=27.5; fwhm=2.5; bkgnd=140.9; chiSq=0.17
+starShape: ijOff=0.02, 0.25; offSq=0.06; rawFWHM=2.493; corrFWHM=2.491
+star ampl=27.5, fwhm=2.5, bkgnd=140.9, chiSq=0.17
+
+star xyCtr=186.17, 68.46, radius=3
+starShape: data[340,340]; xyCtr=186.17, 68.46; rad=3.0
+starShape: predFWHM=3.0; ampl=99.6; fwhm=3.0; bkgnd=129.6; chiSq=2.18
+starShape: ijOff=0.04, 0.33; offSq=0.11; rawFWHM=2.969; corrFWHM=2.967
+star ampl=99.6, fwhm=3.0, bkgnd=129.6, chiSq=2.18
+
+star xyCtr=48.32, 190.86, radius=3
+starShape: data[340,340]; xyCtr=48.32, 190.86; rad=3.0
+starShape: predFWHM=3.0; ampl=41.6; fwhm=2.5; bkgnd=131.8; chiSq=0.52
+starShape: ijOff=0.36, 0.18; offSq=0.16; rawFWHM=2.484; corrFWHM=2.481
+star ampl=41.6, fwhm=2.5, bkgnd=131.8, chiSq=0.52
+
+star xyCtr=335.22, 14.42, radius=3
+starShape: data[340,340]; xyCtr=335.22, 14.42; rad=3.0
+starShape: predFWHM=3.0; ampl=42.6; fwhm=3.9; bkgnd=120.6; chiSq=0.32
+starShape: ijOff=0.08, 0.28; offSq=0.08; rawFWHM=3.930; corrFWHM=3.929
+star ampl=42.6, fwhm=3.9, bkgnd=120.6, chiSq=0.32
+
+star xyCtr=140.28, 280.44, radius=3
+starShape: data[340,340]; xyCtr=140.28, 280.44; rad=3.0
+starShape: predFWHM=3.0; ampl=38.1; fwhm=2.1; bkgnd=132.7; chiSq=0.48
+starShape: ijOff=0.06, 0.22; offSq=0.05; rawFWHM=2.119; corrFWHM=2.118
+star ampl=38.1, fwhm=2.1, bkgnd=132.7, chiSq=0.48
+
+star xyCtr=297.76, 326.13, radius=3
+starShape: data[340,340]; xyCtr=297.76, 326.13; rad=3.0
+starShape: predFWHM=3.0; ampl=5.3; fwhm=2.1; bkgnd=137.3; chiSq=0.26
+starShape: ijOff=0.37, 0.26; offSq=0.20; rawFWHM=2.141; corrFWHM=2.137
+star ampl=5.3, fwhm=2.1, bkgnd=137.3, chiSq=0.26
+
