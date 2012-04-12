@@ -1,0 +1,17 @@
+Failed on 2.0   100.0   3176.0  256.82  256.83  2.00: Singular matrix
+Failed on 2.0   100.0   3176.0  255.71  256.52  2.00: Singular matrix
+Failed on 2.0   100.0   3176.0  256.82  256.83  3.00: Singular matrix
+Failed on 2.0   100.0   3176.0  255.71  256.52  3.00: Singular matrix
+Failed on 3.0   100.0   3176.0  255.26  256.63  4.50: math range error
+Failed on 3.0   100.0   3176.0  255.79  256.38  4.50: (34, 'Result too large')
+Failed on 3.0   100.0   3176.0  254.93  255.52  6.00: math range error
+Failed on 4.0   100.0   3176.0  255.28  257.19  2.00: (34, 'Result too large')
+Failed on 4.0   100.0   3176.0  255.43  257.04  4.00: (34, 'Result too large')
+Failed on 4.0   100.0   3176.0  255.28  257.19  6.00: math range error
+Failed on 4.0   100.0   3176.0  254.58  255.36  8.00: math range error
+Failed on 4.0   100.0   3176.0  255.43  257.04  8.00: (34, 'Result too large')
+Failed on 2.0   10000.0 3176.0  255.50  256.42  4.00: math range error
+Failed on 3.0   10000.0 3176.0  255.51  256.81  3.00: (34, 'Result too large')
+Failed on 3.0   10000.0 3176.0  254.93  255.52  3.00: (34, 'Result too large')
+Failed on 3.0   10000.0 3176.0  254.93  255.52  4.50: math range error
+Failed on 3.0   10000.0 3176.0  254.98  257.37  4.50: math range error
