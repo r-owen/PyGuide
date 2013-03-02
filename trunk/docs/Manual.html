@@ -32,9 +32,10 @@
 <p>To install and use PyGuide you must have the following:
 
 <ul>
-	<li>Python 2.2.1 or later, built to use IEEE floating point. Warning: I have only tested PyGuide under python 2.4 and 2.5.
+	<li>Python 2.7
 	<li>A C compiler that python distutils can use.
-	<li>Numarray (1.1 or later recommended). I plan to convert to numpy someday, but PyGuide uses the "nd_image" module which is built into numarray but is a separate package for numpy. I will convert when I find time to figure out how to install scipy's nd_image and document the procedure.
+	<li>numpy
+	<li>scipy (uses the ndimage and optimize sub-packages)
 	<li>If you want to use doPyGuide or to have findStars display images in ds9: ds9, xpa and RO.DS9 are required. ds9 and xpa are available from <a href="http://hea-www.harvard.edu/RD/ds9/">http://hea-www.harvard.edu/RD/ds9/</a>. RO.DS9 is part of the RO package available from <a href="http://www.astro.washington.edu/rowen/">http://www.astro.washington.edu/rowen/</a>. 
 </ul>
 
@@ -125,8 +126,6 @@
 
 
 <h2><a name="License"></a>License</h2>
-
-<p>PyGuide is copyright 2004 and later by Russell E. Owen
 
 <p>PyGuide is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
 
