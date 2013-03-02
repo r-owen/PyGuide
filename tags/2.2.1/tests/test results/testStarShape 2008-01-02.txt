@@ -1,0 +1,31 @@
+searching for stars
+star xyCtr=267.67, 37.54, radius=11
+star ampl=2465.9, fwhm=3.7, bkgnd=144.1, chiSq=0.06
+
+star xyCtr=170.87, 302.13, radius=10
+star ampl=1612.4, fwhm=3.7, bkgnd=140.5, chiSq=0.01
+
+star xyCtr=236.16, 52.71, radius=7
+star ampl=1066.4, fwhm=3.7, bkgnd=137.2, chiSq=0.05
+
+star xyCtr=260.10, 12.95, radius=5
+star ampl=346.1, fwhm=3.5, bkgnd=135.6, chiSq=0.02
+
+star xyCtr=208.88, 105.21, radius=4
+star ampl=106.2, fwhm=3.7, bkgnd=122.9, chiSq=0.02
+
+star xyCtr=334.75, 172.48, radius=4
+star ampl=25.7, fwhm=2.9, bkgnd=139.8, chiSq=0.06
+
+star xyCtr=186.17, 68.46, radius=3
+star ampl=99.7, fwhm=2.7, bkgnd=133.5, chiSq=0.09
+
+star xyCtr=48.32, 190.86, radius=3
+star ampl=41.2, fwhm=2.8, bkgnd=129.4, chiSq=0.06
+
+star xyCtr=335.22, 14.42, radius=3
+star ampl=39.7, fwhm=3.3, bkgnd=125.9, chiSq=0.04
+
+star xyCtr=140.28, 280.44, radius=3
+star ampl=36.8, fwhm=2.4, bkgnd=130.8, chiSq=0.11
+
