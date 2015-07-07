@@ -188,9 +188,7 @@ def starShape(
         if verbosity >= 2:
             print "starShape: ampl=%.1f; fwhm=%.1f; bkgnd=%.1f; chiSq=%.2f" % \
                 (gsData.ampl, gsData.fwhm, gsData.bkgnd, gsData.chiSq)
-    except (SystemExit, KeyboardInterrupt):
-        raise
-    except Exception, e:
+    except Exception as e:
         return StarShapeData(isOK = False, msgStr = str(e))
     
     """Adjust the width for the fact that the centroid
@@ -365,7 +363,7 @@ def _fitIter(radProf, nPts, radWeight, radSq, totPnts, totCounts, fwhm, verbosit
         # diff is the weighted difference between the data and the model
         diff = radProf - (ampl * seeProf) - bkgnd
         chiSq = numpy.sum(radWeight * diff**2) / totPnts
-    except ArithmeticError, e:
+    except ArithmeticError as e:
         sys.stderr.write("_fitIter failed on fwhm=%s\n" % fwhm)
         traceback.print_exc(file=sys.stderr)
         raise RuntimeError("Could not compute shape: %s" % e)

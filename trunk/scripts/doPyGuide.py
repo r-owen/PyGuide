@@ -39,9 +39,7 @@ History:
 2009-11-20 ROwen    Modified to use numpy.
                     Stop setting NUMERIX.
 """
-import os
 import sys
-import numpy
 import pyfits
 import PyGuide
 import RO.DS9
@@ -69,7 +67,7 @@ doDS9 = True
 # set up a ds9 window
 try:
     ds9Win = RO.DS9.DS9Win(PyGuide.Constants.DS9Title)
-except Exception, e:
+except Exception as e:
     print "Cannot use ds9; error = %s" % (e,)
     doDS9 = False
 
@@ -129,7 +127,7 @@ def doFindStars(
                 xyCtr = ctrData.xyCtr,
                 rad = ctrData.rad,
             )
-        except RuntimeError, e:
+        except RuntimeError as e:
             print "starShape failed: %s" % (e,)
             shapeData = PyGuide.StarShapeData()
 
@@ -240,7 +238,7 @@ def doStarShape(
         print "%7.2f %7.2f %13.1f %9.1f %7.1f %7d %7.1f" % (
             xyCtr[0], xyCtr[1], shapeData.ampl, shapeData.bkgnd, shapeData.fwhm, rad, shapeData.chiSq,
         )
-    except (ValueError, TypeError), e:
+    except (ValueError, TypeError) as e:
         print "(printing free-form due to format error: %s)" % (e,)
         print xyCtr[0], xyCtr[1], shapeData.ampl, shapeData.bkgnd, shapeData.fwhm, rad, shapeData.chiSq,
 
@@ -309,7 +307,7 @@ def parseDataSec(dataSecStr):
                 raise RuntimeError("Could not split %s" % (begEndStrList))
             retValList += [int(begEndStrList[0]) - 1, int(begEndStrList[1])]
         return retValList
-    except Exception, e:
+    except Exception as e:
         sys.stderr.write("Could not parse %r; error=%s" % (dataSecStr, e))
         return None
 
@@ -327,7 +325,7 @@ def printStarData(ctrData, shapeData):
             shapeData.ampl, shapeData.bkgnd, shapeData.fwhm,
             ctrData.rad, ctrData.pix, ctrData.nSat, shapeData.chiSq,
         )
-    except (ValueError, TypeError), e:
+    except (ValueError, TypeError) as e:
         print "(printing free-form due to format error: %s)" % (e,)
         print ctrData.xyCtr[0], ctrData.xyCtr[1], \
             ctrData.xyErr[0], ctrData.xyErr[1], \

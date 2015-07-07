@@ -326,9 +326,7 @@ def openDS9Win(title=Constants.DS9Title, doRaise=False):
     try:
         import RO.DS9
         return RO.DS9.DS9Win(title, doRaise=doRaise)
-    except (SystemExit, KeyboardInterrupt):
-        raise
-    except Exception, e:
+    except Exception as e:
         warnings.warn("Could not open ds9 window: %s" % (e,))
     return None
 

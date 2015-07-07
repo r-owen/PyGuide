@@ -416,9 +416,7 @@ def basicCentroid(
             print "basicCentroid: %s" % (ctrData,)
         return ctrData
 
-    except (SystemExit, KeyboardInterrupt):
-        raise
-    except Exception, e:
+    except Exception as e:
         if verbosity > 1:
             traceback.print_exc(file=sys.stderr)
         elif verbosity > 0:

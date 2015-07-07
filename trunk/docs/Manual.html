@@ -78,7 +78,7 @@
 
 <p>A mask is required for images that have missing light, e.g. due to light going down a slit on a slitviewer image, or truncated by the edge of a fiber bundle. The mask tells PyGuide what portions of the image to ignore.
 
-<p>A mask consists of a boolean array (of type numarray.Bool) with the same dimensions as the image. A value of True masks out the corresponding pixel in the image, making PyGuide ignore that data.
+<p>A mask consists of a boolean array with the same dimensions as the image. A value of True masks out the corresponding pixel in the image, making PyGuide ignore that data.
 
 <p><b>Warning:</b> to get good results, you must mask out all bad areas of the image, including transitional areas where the image is dimmer but not completely dark. Thus, for example, you should mask out the edges of a slit (where you can still see some light but some of it is lost). If you fail to mask out transitional data, you will get garbage out of the centroider.
 
@@ -111,7 +111,7 @@
 
 <p>Another common convention is that used by iraf and ds9: the center of the lower left pixel is (1.0, 1.0) and the lower left corner of the image is (0.5, 0.5). PyGuide.ImUtil includes converters between ds9 position and xy position: ds9PosFromXYPos and xyPosFromDS9Pos. In addition, if you really dislike the zero-point convention for xy position, you can change it. The zero point is defined by PyGuide.Constants.PosMinusIndex. To modify PosMinusIndex, edit PyGuide/python/PyGuide/Constants.py and reinstall the software. PyGuide ships with PosMinusIndex = 0.5; to use the ds9 convention, change it to 1.0. (Note that ds9PosFromXYPos and xyPosFromDS9Pos work correctly regardless of how you set PosMinusIndex.)
 
-<p>In addition to xy position, PyGuide internally makes use of ij position: rounding ij position to the nearest integer gives the array index of the pixel containing that position. The main reason for ij position is because numarray swaps indices (like the C language): the x axis is the second axis of a numarray array. Thus conversion between ij and xy position involves swapping axes and a small offset (PosMinusIndex).
+<p>In addition to xy position, PyGuide internally makes use of ij position: rounding ij position to the nearest integer gives the array index of the pixel containing that position. The main reason for ij position is because numpy swaps indices (like the C language): the x axis is the second axis of a numpy array. Thus conversion between ij and xy position involves swapping axes and a small offset (PosMinusIndex).
 
 <p>PyGuide.ImUtil offers routines to convert between ds9 position, xy position, ij position and ij index. If you are doing any array manipulation in your own code, you will probably find these very useful.
 

@@ -32,7 +32,7 @@ def timeCentroid(data, mask, xyGuess, niter, rad=20):
         (xyGuess[0], xyGuess[1], niter, rad),
     begTime = time.time()
     for ii in range(niter):
-        ctrData = PyGuide.centroid(
+        PyGuide.centroid(
             data = data,
             mask = mask,
             satMask = None,
@@ -149,14 +149,14 @@ def runTests():
         for rad, niter in radNiterList:
             try:
                 timeRadProf(data, mask, niter, rad)
-            except Exception, e:
+            except Exception as e:
                 print "timeRadProf(niter=%s, rad=%s) failed: %s" % (niter, rad, e)
         
         print
         for rad, niter in radNiterList:
             try:
                 timeRadAsymmWeighted(data, mask, niter, rad)
-            except Exception, e:
+            except Exception as e:
                 print "timeRadAsymmWeighted(niter=%s, rad=%s) failed: %s" % (niter, rad, e)
 
         radNiterList = (
@@ -173,7 +173,7 @@ def runTests():
         for rad, niter in radNiterList:
             try:
                 timeCentroid(data, mask, xyGuess, niter, rad)
-            except Exception, e:
+            except Exception as e:
                 raise
 #               print "timeCentroid(niter=%s, rad=%s) failed: %s" % (niter, rad, e)
 
