@@ -90,7 +90,7 @@ static PyObject *Py_radAsymm(PyObject *dumObj, PyObject *args) {
 
     if (!PyArg_ParseTuple(args, "OO(ii)i",
         &dataObj, &maskObj, &iCtr, &jCtr, &rad)) return NULL;
-    
+
     // Convert arrays to well-behaved arrays of correct type and verify
     // These arrays MUST be decrefed before return.
     dataArry = (PyArrayObject *)PyArray_FROM_OTF(dataObj, NPY_FLOAT32, NPY_ARRAY_IN_ARRAY);
@@ -109,7 +109,7 @@ static PyObject *Py_radAsymm(PyObject *dumObj, PyObject *args) {
         PyErr_Format(PyExc_ValueError, "%s: mask must be the same shape as data", ModName);
         goto errorExit;
     }
-    
+
     // Call the C code
     totPts = radAsymm(
         PyArray_DIM(dataArry, 0), PyArray_DIM(dataArry, 1),
@@ -184,7 +184,7 @@ static PyObject *Py_radAsymmWeighted(PyObject *dumObj, PyObject *args) {
     if (!PyArg_ParseTuple(args, "OO(ii)iddd",
             &dataObj, &maskObj, &iCtr, &jCtr, &rad, &bias, &readNoise, &ccdGain))
         return NULL;
-    
+
     // Convert arrays to well-behaved arrays of correct type and verify
     // These arrays MUST be decrefed before return.
     dataArry = (PyArrayObject *)PyArray_FROM_OTF(dataObj, NPY_FLOAT32, NPY_ARRAY_IN_ARRAY);
@@ -203,7 +203,7 @@ static PyObject *Py_radAsymmWeighted(PyObject *dumObj, PyObject *args) {
         PyErr_Format(PyExc_ValueError, "%s: mask must be the same shape as data", ModName);
         goto errorExit;
     }
-    
+
     // Call the C code
     totPts = radAsymmWeighted(
         PyArray_DIM(dataArry, 0), PyArray_DIM(dataArry, 1),
@@ -288,11 +288,11 @@ static PyObject *Py_radProf(PyObject *dumObj, PyObject *args) {
     int iCtr, jCtr, rad, outLen, totPts;
     double totCounts;
     char ModName[] = "radProf";
-    
+
     if (!PyArg_ParseTuple(args, "OO(ii)iOOO",
             &dataObj, &maskObj, &iCtr, &jCtr, &rad, &meanObj, &varObj, &nPtsObj))
         return NULL;
-    
+
     // Convert arrays to well-behaved arrays of correct type and verify
     // These arrays MUST be decrefed before return.
     dataArry = (PyArrayObject *)PyArray_FROM_OTF(dataObj, NPY_FLOAT32, NPY_ARRAY_IN_ARRAY);
@@ -317,7 +317,7 @@ static PyObject *Py_radProf(PyObject *dumObj, PyObject *args) {
         PyErr_Format(PyExc_ValueError, "%s: mask must be the same shape as data", ModName);
         goto errorExit;
     }
-    
+
     // Check output arrays and compute outLen
     if (PyArray_NDIM(meanArry) != 1) {
         PyErr_Format(PyExc_ValueError, "%s: mean must be 1-dimensional", ModName);
@@ -344,8 +344,8 @@ static PyObject *Py_radProf(PyObject *dumObj, PyObject *args) {
         PyErr_Format(PyExc_ValueError, "%s: output arrays are too short", ModName);
         goto errorExit;
     }
-    
-    
+
+
     // Call the C code
     totPts = radProf(
         PyArray_DIM(dataArry, 0), PyArray_DIM(dataArry, 1),
@@ -402,10 +402,10 @@ static PyObject *Py_radIndByRadSq(PyObject *dumObj, PyObject *args) {
     char ModName[] = "radIndByRadSq";
     PyArrayObject *radProfPyArray;
     npy_intp retArrDims[1];
-    
+
     if (!PyArg_ParseTuple(args, "i", &nElt))
         return NULL;
-    
+
     if (nElt < 0) {
         PyErr_Format(PyExc_ValueError, "%s: nPts < 0", ModName);
         return NULL;
@@ -417,7 +417,7 @@ static PyObject *Py_radIndByRadSq(PyObject *dumObj, PyObject *args) {
         PyErr_Format(PyExc_MemoryError, "%s: insufficient memory", ModName);
         return NULL;
     }
-    
+
     retArrDims[0] = nElt;
     radProfPyArray = (PyArrayObject *)PyArray_SimpleNew(1, retArrDims, NPY_INT32);
     npy_int32 *radProfData = (npy_int32 *)PyArray_DATA(radProfPyArray);
@@ -446,10 +446,10 @@ static PyObject *Py_radSqByRadInd(PyObject *dumObj, PyObject *args) {
     char ModName[] = "radSqByRadInd";
     PyArrayObject *radSqByRadIndPyArray;
     npy_intp retArrDims[1];
-    
+
     if (!PyArg_ParseTuple(args, "i", &nElt))
         return NULL;
-    
+
     if (nElt < 0) {
         PyErr_Format(PyExc_ValueError, "%s: nPts < 0", ModName);
         return NULL;
@@ -458,7 +458,7 @@ static PyObject *Py_radSqByRadInd(PyObject *dumObj, PyObject *args) {
     retArrDims[0] = nElt;
     radSqByRadIndPyArray = (PyArrayObject *)PyArray_SimpleNew(1, retArrDims, NPY_INT32);
     npy_int32 *radSqByRadIndData = (npy_int32 *)PyArray_DATA(radSqByRadIndPyArray);
-    
+
     int firstEnd = nElt < 3 ? nElt: 3;
     for (radInd = 0; radInd < firstEnd; ++radInd) {
         radSqByRadIndData[radInd] = radInd;
@@ -508,12 +508,12 @@ static PyObject *Py_radSqProf(PyObject *dumObj, PyObject *args) {
     int iCtr, jCtr, rad, radSq, outLen, totPts;
     double totCounts;
     char ModName[] = "radSqProf";
-    
+
     if (!PyArg_ParseTuple(args, "OO(ii)iOOO",
             &dataObj, &maskObj, &iCtr, &jCtr, &rad,
             &meanObj, &varObj, &nPtsObj))
         return NULL;
-    
+
     // Convert arrays to well-behaved arrays of correct type and verify
     // These arrays MUST be decrefed before return.
     dataArry = (PyArrayObject *)PyArray_FROM_OTF(dataObj, NPY_FLOAT32, NPY_ARRAY_IN_ARRAY);
@@ -528,7 +528,7 @@ static PyObject *Py_radSqProf(PyObject *dumObj, PyObject *args) {
     if (varArry == NULL) goto errorExit;
     nPtsArry = (PyArrayObject *)PyArray_FROM_OTF(nPtsObj, NPY_INT32,   NPY_ARRAY_OUT_ARRAY);
     if (nPtsArry == NULL) goto errorExit;
-    
+
     radSq = rad*rad;
 
     // Check the input arrays
@@ -567,7 +567,7 @@ static PyObject *Py_radSqProf(PyObject *dumObj, PyObject *args) {
         PyErr_Format(PyExc_ValueError, "%s: output arrays are too short", ModName);
         goto errorExit;
     }
-    
+
     // Call the C code
     totPts = radSqProf(
         PyArray_DIM(dataArry, 0), PyArray_DIM(dataArry, 1),
@@ -622,7 +622,7 @@ int g_radProf_setup(
     int rad
 ) {
     int nElt, radSq;
-    
+
     // compute nElt and make sure it is int enough for the initialization code
     nElt = MAX(rad*rad + 1, 3);
 
@@ -630,23 +630,23 @@ int g_radProf_setup(
         // array is already int enough; bail out.
         return 1;
     }
-    
+
     g_radProf_free();
-    
+
     g_radProf_radIndByRadSq = calloc(nElt, sizeof *g_radProf_radIndByRadSq);
     if (g_radProf_radIndByRadSq == NULL) {
         g_radProf_free();
         return 0;
     }
     g_radProf_nElt = nElt;
-    
+
     for (radSq = 0; radSq < 3; ++radSq) {
         g_radProf_radIndByRadSq[radSq] = radSq;
     }
     for (radSq = 3; radSq < nElt; ++radSq) {
         g_radProf_radIndByRadSq[radSq] = (int)(sqrt((double)(radSq)) + 1.5);
     }
-    
+
     return 1;
 }
 
@@ -680,9 +680,9 @@ int g_radAsymm_alloc(
     if (g_radAsymm_nElt >= nElt) {
         return 1;
     }
-    
+
     g_radAsymm_free();
-    
+
     g_radAsymm_mean = calloc(nElt, sizeof *g_radAsymm_mean);
     g_radAsymm_var = calloc(nElt, sizeof *g_radAsymm_var);
     g_radAsymm_nPts = calloc(nElt, sizeof *g_radAsymm_nPts);
@@ -746,12 +746,12 @@ int radAsymm(
     // initialize outputs
     *asymmPtr = 0.0;
     *totCountsPtr = 0.0;
-    
+
     // reallocate working arrays if necessary
     if (!g_radAsymm_alloc(nElt)) {
         return -2;
     }
-    
+
     // compute radial profile stats
     totPts = radProf (
         inLenI, inLenJ,
@@ -769,12 +769,12 @@ int radAsymm(
         // <0 indicates a problem, 0 indicates no valid points
         return totPts;
     }
-    
+
     // asymm = sum(std dev^2)
     for (ind = 0; ind < nElt; ++ind){
         *asymmPtr += g_radAsymm_var[ind] * (double) g_radAsymm_nPts[ind];
     }
-        
+
     return totPts;
 }
 
@@ -840,12 +840,12 @@ int radAsymmWeighted(
     // initialize outputs
     *asymmPtr = 0.0;
     *totCountsPtr = 0.0;
-    
+
     // reallocate working arrays if necessary
     if (!g_radAsymm_alloc(nElt)) {
         return -2;
     }
-    
+
     // compute radial profile stats
     totPts = radProf (
         inLenI, inLenJ,
@@ -863,13 +863,13 @@ int radAsymmWeighted(
         // <0 indicates a problem, 0 indicates no valid points
         return totPts;
     }
-    
+
     // force bias < smallest mean value, if necessary,
     // to prevent bogus bias from really messing up the results
     for (ind = 0; ind < nElt; ++ind) {
         if (g_radAsymm_mean[ind] < bias) bias = g_radAsymm_mean[ind];
     }
-    
+
     // asymm = sum(std dev^2)
     for (ind = 0; ind < nElt; ++ind) {
         nPts = g_radAsymm_nPts[ind];
@@ -879,7 +879,7 @@ int radAsymmWeighted(
             *asymmPtr += g_radAsymm_var[ind] / weight;
         }
     }
-        
+
     return totPts;
 }
 
@@ -913,7 +913,7 @@ Error Conditions:
 
 - If outLen < rad + 2, returns -1.
 - If insufficient memory to generate a working array, returns -2.
-- If any value in g_radProf_radIndByRadSq[0:rad^2] > rad, returns -3. 
+- If any value in g_radProf_radIndByRadSq[0:rad^2] > rad, returns -3.
 
 Points off the data array are ignored.
 Thus the center need not be on the array.
@@ -937,13 +937,13 @@ int radProf(
     int totPts;
     double d;
     char ModName[]="radProf";
-    
+
     // test inputs
     if (outLen < desOutLen) {
         printf("%s: outLen too small\n", ModName);
         return -1;
     }
-    
+
     // set up index array
     if (!g_radProf_setup(rad)) {
         printf("%s: insufficient memory\n", ModName);
@@ -975,7 +975,7 @@ int radProf(
                     printf("radProf failed: outInd=%d, rad=%d\n", outInd, rad);
                     return -3;
                 }
-    
+
                 d = (double) data[ii][jj];
                 mean[outInd] += d;
                 var[outInd] += d*d;
@@ -993,7 +993,7 @@ int radProf(
             var[outInd] = (var[outInd]/(double)nPts[outInd]) - (mean[outInd]*mean[outInd]);
         }
     }
-    
+
     return totPts;
 }
 
@@ -1001,7 +1001,7 @@ int radProf(
 /* radSqProf ============================================================
 
 Generate a radial profile as a function of radius squared.
-    
+
 Inputs:
 - inLenI, inLenJ    dimensions of data and mask
 - data              data array [i,j]
@@ -1045,12 +1045,12 @@ int radSqProf(
     int minJJ, maxJJ, minII, maxII;
     double d;
     int totPts;
-    
+
     // test inputs
     if (outLen < desOutLen) {
         return -1;
     }
-    
+
     // initialize outputs to 0
     for(outInd=0; outInd<outLen; outInd++){
         nPts[outInd] = 0;
@@ -1071,7 +1071,7 @@ int radSqProf(
                 outInd = (ii - iCtr)*(ii - iCtr) + (jj - jCtr)*(jj - jCtr);
                 if (outInd >= desOutLen)
                     continue;
-    
+
                 d = (double) data[ii][jj];
                 mean[outInd] += d;
                 var[outInd] += d*d;
@@ -1103,12 +1103,34 @@ static PyMethodDef radProfMethods[] = {
     {NULL, NULL, 0, NULL} /* Sentinel */
 };
 
-// Module initialization function
-PyMODINIT_FUNC initradProf(void) {
-    PyObject *m;
-    m = Py_InitModule3("radProf", radProfMethods, radProfModule_doc);
-    if (m == NULL)
-        return;
 
-    import_array();
-}
+#if PY_MAJOR_VERSION >= 3
+
+    static struct PyModuleDef pyguidemodule = {
+        PyModuleDef_HEAD_INIT,
+        "radProf",   /* name of module */
+        radProfModule_doc, /* module documentation, may be NULL */
+        -1,       /* size of per-interpreter state of the module,
+                    or -1 if the module keeps state in global variables. */
+        radProfMethods
+    };
+
+    // Module initialization function
+    PyMODINIT_FUNC PyInit_radProf(void) {
+        import_array();
+        return PyModule_Create(&pyguidemodule);
+    }
+
+#else
+
+    // Module initialization function
+    PyMODINIT_FUNC initradProf(void) {
+        PyObject *m;
+        m = Py_InitModule3("radProf", radProfMethods, radProfModule_doc);
+        if (m == NULL)
+            return;
+
+        import_array();
+    }
+
+#endif

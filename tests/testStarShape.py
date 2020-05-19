@@ -17,6 +17,8 @@ History:
 2005-04-19 ROwen    Modified for PyGuide 2.0
 2005-10-14 ROwen    Supply null satMask for PyGuide 2.1.
 """
+from __future__ import print_function
+from __future__ import unicode_literals
 import os.path
 import sys
 import PyGuide
@@ -50,7 +52,7 @@ mask = None
 #mask = data < 0
 #mask[64:101, 78:92] = 1
 
-print "searching for stars"
+print("searching for stars")
 ctrDataList, imStats = PyGuide.findStars(
     data = data,
     mask = mask,
@@ -62,7 +64,7 @@ ctrDataList, imStats = PyGuide.findStars(
 for ctrData in ctrDataList:
     xyCtr = ctrData.xyCtr
     rad = ctrData.rad
-    print "star xyCtr=%.2f, %.2f, radius=%s" % (xyCtr[0], xyCtr[1], rad)
+    print("star xyCtr=%.2f, %.2f, radius=%s" % (xyCtr[0], xyCtr[1], rad))
     
     shapeData = PyGuide.starShape(
         data,
@@ -71,8 +73,8 @@ for ctrData in ctrDataList:
         rad = rad,
     )
     if not shapeData.isOK:
-        print "starShape failed: %s" % (shapeData.msgStr,)
+        print("starShape failed: %s" % (shapeData.msgStr,))
     else:
-        print "star ampl=%.1f, fwhm=%.1f, bkgnd=%.1f, chiSq=%.2f" %\
-            (shapeData.ampl,shapeData.fwhm, shapeData.bkgnd, shapeData.chiSq)
-    print
+        print("star ampl=%.1f, fwhm=%.1f, bkgnd=%.1f, chiSq=%.2f" %\
+            (shapeData.ampl,shapeData.fwhm, shapeData.bkgnd, shapeData.chiSq))
+    print()

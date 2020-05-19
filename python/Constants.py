@@ -1,4 +1,6 @@
 from __future__ import division, absolute_import, print_function
+from __future__ import unicode_literals
+
 """Constants and parameters
 
 History:
@@ -36,7 +38,7 @@ FWHMPerSigma = 2 * math.sqrt(2 * math.log(2))
 NaN = float("nan")
 
 # Misc
-class CCDInfo:
+class CCDInfo(object):
     """Info about the CCD
 
     - bias      ccd bias (ADU)

@@ -40,6 +40,7 @@ History:
 2009-11-20 ROwen    Modified to use numpy.
                     Stop setting NUMERIX.
 """
+from __future__ import unicode_literals
 import sys
 import pyfits
 import PyGuide
@@ -341,7 +342,7 @@ def showDef():
     globalDict = globals()
     for paramName in FindParamNames:
         print("%s = %s" % (paramName, globalDict[paramName]))
-    print
+    print()
 
 def help():
     print("""The following variables are available:

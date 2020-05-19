@@ -1,5 +1,14 @@
 #!/usr/bin/env python
-from __future__ import division, absolute_import, print_function
+from __future__ import absolute_import, division, print_function, unicode_literals
+
+
+
+import numpy
+
+import PyGuide
+import RO.DS9
+
+
 """Test PyGuide.centroid with masked data.
 
 History:
@@ -16,10 +25,6 @@ History:
 2008-01-02 ROwen    Added DoSmooth constant.
 2009-11-20 ROwen    Modified to use numpy.
 """
-import numpy
-import PyGuide
-import RO.DS9
-
 DoSmooth = True
 Sky = 1000,     # sky level, in ADU
 CCDInfo = PyGuide.CCDInfo(
@@ -76,11 +81,11 @@ for arrShape, actCtr, sigma, ampl, scanRadFactor, maskLim in testData:
         ccdInfo = CCDInfo,
         doSmooth = DoSmooth,
     )
-    
+
     if not ctrData.isOK:
         print("centroid failed: %s" % (ctrData.msgStr,))
         continue
-    
+
     measCtr = ctrData.xyCtr
     nCounts = ctrData.counts
     nPts = ctrData.pix

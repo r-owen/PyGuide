@@ -1,4 +1,8 @@
 from __future__ import division, absolute_import, print_function
+from __future__ import unicode_literals
+
+
+
 """StarShape
 
 Fit a a star to a symmetrical double gaussian.
@@ -102,7 +106,7 @@ from . import radProf as radProfModule
 # minimum radius
 _MinRad = 3.0
 
-class StarShapeData:
+class StarShapeData(object):
     """Guide star fit data
 
     Attributes:

@@ -21,6 +21,10 @@ History:
 2005-10-14 ROwen    Supply null satMask for PyGuide 2.1.
 2009-11-20 ROwen    Modified to use numpy.
 """
+from __future__ import division
+from __future__ import print_function
+from __future__ import unicode_literals
+
 import sys
 import traceback
 import numpy
@@ -50,31 +54,31 @@ imShape = (ImWidth, ImWidth)
 nomCtr = (ImWidth // 2, ImWidth // 2)
 mask = numpy.zeros(imShape, numpy.bool)
 
-print "Compare star shape fit values to correct values"
-print "over a range of fake data"
-print
-print "Settings:"
-print "Sky         =", Sky, "ADU"
-print "Read Noise  =", CCDInfo.readNoise, "e-"
-print "CCD Gain    =", CCDInfo.ccdGain, "e-/ADU"
-print "Bias        =", CCDInfo.bias, "ADU"
-print "DoCentroid  =", DoCentroid
+print("Compare star shape fit values to correct values")
+print("over a range of fake data")
+print()
+print("Settings:")
+print("Sky         =", Sky, "ADU")
+print("Read Noise  =", CCDInfo.readNoise, "e-")
+print("CCD Gain    =", CCDInfo.ccdGain, "e-/ADU")
+print("Bias        =", CCDInfo.bias, "ADU")
+print("DoCentroid  =", DoCentroid)
 if DoCentroid:
-    print "Thresh      =", Thresh
-print "Amplitudes  =", AmplValues, "ADU"
-print "FWHMs       =", FWHMValues, "pixels"
-print "Mask Widths =", MaskWidthsPerFWHM, "fractions of a FWHM"
-print "Num Tries   =", NumTries, "number of cases per star shape"
-print "CCD Size    =", ImWidth, "x", ImWidth, "pixels"
-print
-print "Each try is a star whose center is randomly distributed over"
-print "a range of -FWHM/2, FWHM/2 with respect to the"
-print "center of the CCD = the center of the slit."
-print
-print "Reported errors and statistics on these errors are in percent:"
-print "reported error (%) = 100 * (meas value - act value) / act value"
-print
-print "The slit is along y."
+    print("Thresh      =", Thresh)
+print("Amplitudes  =", AmplValues, "ADU")
+print("FWHMs       =", FWHMValues, "pixels")
+print("Mask Widths =", MaskWidthsPerFWHM, "fractions of a FWHM")
+print("Num Tries   =", NumTries, "number of cases per star shape")
+print("CCD Size    =", ImWidth, "x", ImWidth, "pixels")
+print()
+print("Each try is a star whose center is randomly distributed over")
+print("a range of -FWHM/2, FWHM/2 with respect to the")
+print("center of the CCD = the center of the slit.")
+print()
+print("Reported errors and statistics on these errors are in percent:")
+print("reported error (%) = 100 * (meas value - act value) / act value")
+print()
+print("The slit is along y.")
 
 def pctErr(meas, act):
     return (meas - act) * 100.0 / float(act)
@@ -85,8 +89,8 @@ bkgndStats = Stats()
 nBadCtr = 0
 nBad = 0
 
-print
-print "fwhm ampl    bg  xCtr    yCtr    maskWid xCtMeas yCtMeas fitFWHM fitAmpl fitBg   chiSq   fwhmErr amplErr bgErr   msgs"
+print()
+print("fwhm ampl    bg  xCtr    yCtr    maskWid xCtMeas yCtMeas fitFWHM fitAmpl fitBg   chiSq   fwhmErr amplErr bgErr   msgs")
 bkgnd = Sky + CCDInfo.bias
 for ampl in AmplValues:
     for fwhm in FWHMValues:
@@ -100,7 +104,7 @@ for ampl in AmplValues:
 
             numpy.random.seed(1)
             for ii in range(NumTries):
-                xyCtr = numpy.random.uniform(-fwhm/2.0, fwhm/2.0, size=(2,)) + nomCtr
+                xyCtr = numpy.random.uniform(-fwhm / 2.0, fwhm /2.0, size=(2,)) + nomCtr
 
                 cleanData = PyGuide.FakeData.fakeStar(imShape, xyCtr, sigma, ampl)
                 data = PyGuide.FakeData.addNoise(
@@ -108,7 +112,7 @@ for ampl in AmplValues:
                     sky = Sky,
                     ccdInfo = CCDInfo,
                 )
-                
+
                 if DoCentroid:
                     ctrData = PyGuide.centroid(
                         data = data,
@@ -120,11 +124,11 @@ for ampl in AmplValues:
                         thresh = Thresh,
                     )
                     if not ctrData.isOK:
-                        print "%.1f %.1f    %.1f    %.2f    %.2f    %.2f    NaN NaN NaN NaN NaN NaN NaN NaN NaN %r" % (
+                        print("%.1f %.1f    %.1f    %.2f    %.2f    %.2f    NaN NaN NaN NaN NaN NaN NaN NaN NaN %r" % (
                             fwhm, ampl, bkgnd,
                             xyCtr[0], xyCtr[1], maskWidth,
                             ctrData.msgStr,
-                        )
+                        ))
                         nBadCtr += 1
                         continue
                 else:
@@ -140,37 +144,37 @@ for ampl in AmplValues:
                     rad = fwhm * 3,
                 )
                 if not shapeData.isOK:
-                    print "%.1f %.1f    %.1f    %.2f    %.2f    %.2f    %.2f    %.2f    NaN NaN NaN NaN NaN NaN NaN %r" % (
+                    print("%.1f %.1f    %.1f    %.2f    %.2f    %.2f    %.2f    %.2f    NaN NaN NaN NaN NaN NaN NaN %r" % (
                         fwhm, ampl, bkgnd,
                         xyCtr[0], xyCtr[1], maskWidth, ctrData.xyCtr[0], ctrData.xyCtr[1],
                         shapeData.msgStr,
-                    )
+                    ))
                     nBad += 1
                     continue
-                    
+
                 fwhmErr = pctErr(shapeData.fwhm, fwhm)
                 amplErr = pctErr(shapeData.ampl, ampl)
                 bkgndErr = pctErr(shapeData.bkgnd, bkgnd)
-                print "%.1f %.1f    %.1f    %.2f    %.2f    %.2f    %.2f    %.2f    %.1f    %.1f    %.1f    %.2f    %.1f    %.1f    %.1f    %r" % (
+                print("%.1f %.1f    %.1f    %.2f    %.2f    %.2f    %.2f    %.2f    %.1f    %.1f    %.1f    %.2f    %.1f    %.1f    %.1f    %r" % (
                     fwhm, ampl, bkgnd,
                     xyCtr[0], xyCtr[1], maskWidth, ctrData.xyCtr[0], ctrData.xyCtr[1],
                     shapeData.fwhm, shapeData.ampl, shapeData.bkgnd, shapeData.chiSq,
                     fwhmErr, amplErr, bkgndErr,
                     shapeData.msgStr,
-                )
+                ))
                 fwhmStats.append(fwhmErr)
                 amplStats.append(amplErr)
                 bkgndStats.append(bkgndErr)
 
-print
-print "Error statistics (for %d points)" % fwhmStats.nPoints()
-print "            min      max    mean   stdDev"
-print "fwhm  %8.1f %8.1f %8.1f %8.1f" % (fwhmStats.min(), fwhmStats.max(), fwhmStats.mean(), fwhmStats.stdDev())
-print "ampl  %8.1f %8.1f %8.1f %8.1f" % (amplStats.min(), amplStats.max(), amplStats.mean(), amplStats.stdDev())
-print "bkgnd %8.1f %8.1f %8.1f %8.1f" % (bkgndStats.min(), bkgndStats.max(), bkgndStats.mean(), bkgndStats.stdDev())
+print()
+print("Error statistics (for %d points)" % fwhmStats.nPoints())
+print("            min      max    mean   stdDev")
+print("fwhm  %8.1f %8.1f %8.1f %8.1f" % (fwhmStats.min(), fwhmStats.max(), fwhmStats.mean(), fwhmStats.stdDev()))
+print("ampl  %8.1f %8.1f %8.1f %8.1f" % (amplStats.min(), amplStats.max(), amplStats.mean(), amplStats.stdDev()))
+print("bkgnd %8.1f %8.1f %8.1f %8.1f" % (bkgndStats.min(), bkgndStats.max(), bkgndStats.mean(), bkgndStats.stdDev()))
 
 if (nBad > 0) or (nBadCtr > 0):
-    print
-    print "number of shape fit failures =", nBad
+    print()
+    print("number of shape fit failures =", nBad)
     if DoCentroid:
-        print "number of centroid failures  =", nBadCtr
+        print("number of centroid failures  =", nBadCtr)

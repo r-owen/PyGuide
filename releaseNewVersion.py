@@ -4,6 +4,9 @@
 To use:
     ./releaseNewVersion.py
 """
+from __future__ import print_function
+from __future__ import unicode_literals
+
 from __future__ import with_statement
 import os
 import re
@@ -18,7 +21,7 @@ sys.path.insert(0, PythonDir)
 import Version  # noqa  must come after modifying sys.path
 
 queryStr = "Version from %s.Version = %s; is this OK? (y/[n]) " % (PkgName, Version.__version__,)
-versOK = raw_input(queryStr)
+versOK = input(queryStr)
 if not versOK.lower() == "y":
     sys.exit(0)
 
@@ -29,24 +32,24 @@ with file(os.path.join("docs", "VersionHistory.html")) as vhist:
         if versMatch:
             histVersStr = versMatch.groups()[0]
             if histVersStr == Version.__version__:
-                print "Version in VersionHistory.html matches"
+                print("Version in VersionHistory.html matches")
                 break
             else:
-                print "Error: version in VersionHistory.html = %s != %s" % (histVersStr, Version.__version__)
+                print("Error: version in VersionHistory.html = %s != %s" % (histVersStr, Version.__version__))
                 sys.exit(0)
 
-print "Status of git repository:"
+print("Status of git repository:")
 
 subprocess.call(["git", "status"])
 
-versOK = raw_input("Is the git repository up to date? (y/[n]) ")
+versOK = input("Is the git repository up to date? (y/[n]) ")
 if not versOK.lower() == "y":
     sys.exit(0)
 
-print "Git repository OK"
+print("Git repository OK")
 
 if UploadToPyPI:
-    print "Uploading to PyPI"
+    print("Uploading to PyPI")
     status = subprocess.call(["python", "setup.py", "sdist", "upload"])
     if status != 0:
-        print "Build and upload failed!"
+        print("Build and upload failed!")

@@ -1,4 +1,7 @@
 from __future__ import division, absolute_import, print_function
+from __future__ import unicode_literals
+
+
 """Image processing utilities.
 
 History:
@@ -65,7 +68,7 @@ def getQuartile(sortedData, qnum):
     return ((sortedData[ind0] * ratios[0]) + (sortedData[ind0+1] * ratios[1])) / (ratios[0] + ratios[1])
 
 
-class ImStats:
+class ImStats(object):
     """Information about an image
     (including the settings use to obtain that info).
 
@@ -166,7 +169,7 @@ def skyStats(
     )
 
 
-class SubFrame:
+class SubFrame(object):
     """Create a subframe and provide useful utility methods.
 
     Inputs:

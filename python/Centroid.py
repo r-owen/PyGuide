@@ -1,4 +1,5 @@
-from __future__ import division, absolute_import, print_function
+from __future__ import division, absolute_import, print_function, unicode_literals
+
 """Measure centroids.
 
 Note: as with all PyGuide routines, the coordinate system origin
@@ -131,7 +132,7 @@ _OuterRadAdd = 10   # amount to add to rad to get outerRad
 _MaxIter = 40       # max # of iterations
 _MinPixForStats = 20    # minimum # of pixels needed to measure med and std dev
 
-class CentroidData:
+class CentroidData(object):
     """Centroid data, including the following fields:
 
     flags; check before paying attention to the remaining data:

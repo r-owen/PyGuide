@@ -26,6 +26,7 @@ Acknowledgements:
   some of the subtleties.
 """
 from __future__ import absolute_import
+from __future__ import unicode_literals
 from .Version import __version__
 from .Constants import *
 from .Centroid import *

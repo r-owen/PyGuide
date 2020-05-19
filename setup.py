@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+
 from distutils.core import setup, Extension
 import sys
 import os

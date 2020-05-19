@@ -1,4 +1,11 @@
-from __future__ import division, absolute_import, print_function
+from __future__ import absolute_import, division, print_function, unicode_literals
+
+import numpy
+import numpy.random
+
+from . import ImUtil
+
+
 """Generates fake ccd data
 
 History:
@@ -12,12 +19,10 @@ History:
 2005-05-16 ROwen    Modified addNoise to take ccdInfo instead of 3 args.
 2009-11-20 ROwen    Modified to use numpy.
 """
+
 __all__ = ["fakeStar", "addNoise"]
 
-import numpy
-import numpy.random
 
-from . import ImUtil
 
 _MaxValUInt16 = 2**16 - 1
 

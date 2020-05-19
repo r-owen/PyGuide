@@ -1,11 +1,13 @@
 from __future__ import division, absolute_import, print_function
+from __future__ import unicode_literals
+
 
 import math
 
-class Stats:
+class Stats(object):
     def __init__(self):
         self.clear()
-    
+
     def append(self, val):
         """Append a value to the data set.
         """
@@ -17,7 +19,7 @@ class Stats:
             self._minVal = val
         if self._maxVal is None or val > self._maxVal:
             self._maxVal = val
-    
+
     def clear(self):
         """Clear the data.
         """
@@ -26,30 +28,30 @@ class Stats:
         self._sumSq = 0.0
         self._minVal = None
         self._maxVal = None
-    
+
     def min(self):
         """Return the minimum value.
         """
         self._checkPoints()
         return self._minVal
-        
+
     def max(self):
         """Return the maximum value.
         """
         self._checkPoints()
         return self._maxVal
-        
+
     def mean(self):
         """Return the mean value.
         """
         self._checkPoints()
         return self._sum / float(self._n)
-    
+
     def nPoints(self):
         """Return the number of points.
         """
         return self._n
-    
+
     def var(self):
         """Return the variance:
         (sum(val^2) - mean^2) / N-1
@@ -61,13 +63,13 @@ class Stats:
         """Return the stanard deviation: sqrt(var).
         """
         return math.sqrt(self.var())
-        
+
     def rms(self):
         """Return the RMS value.
         """
         self._checkPoints()
         return math.sqrt(self._sumSq / float(self._n))
-    
+
     def _checkPoints(self, minReq=1):
         """Check that we have enough data points.
         Raise a RuntimeError if we do not.
@@ -82,7 +84,7 @@ class Stats:
 if __name__ == "__main__":
     s = Stats()
     NaN = float("NaN")
-    
+
     def printRes():
         try:
             minVal = s.min()
@@ -113,10 +115,10 @@ if __name__ == "__main__":
             rms = s.rms()
         except RuntimeError:
             rms = NaN
-        
+
         print ("%2d %7.2f %7.2f %7.2f %7.2f %7.2f %7.2f" % \
             (s.nPoints(), minVal, maxVal, mean, stdDev, var, rms))
-    
+
     print (" N     min     max    mean  stdDev     var     RMS")
     testVals = (1, 2, 3, 4, 5, 6, 7, 8, 9)
     printRes()
