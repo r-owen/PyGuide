@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-from __future__ import division, absolute_import, print_function
+
 """Test PyGuide.centroid with masked data.
 
 History:
@@ -86,7 +86,7 @@ for arrShape, actCtr, sigma, ampl, scanRadFactor, maskLim in testData:
     nPts = ctrData.pix
     print("meas err   = %6.2f, %6.2f; est err = %.2f, %.2f; nCounts = %.0f; nPts = %d" %
         (measCtr[0] - actCtr[0], measCtr[1] - actCtr[1], ctrData.xyErr[0], ctrData.xyErr[1], nCounts, nPts))
-    mask = numpy.zeros(arrShape, numpy.bool)
+    mask = numpy.zeros(arrShape, numpy.bool_)
     for row in range(maskLim[0], maskLim[1]+1):
         mask[row,:] = 1
     ctrData = PyGuide.centroid(

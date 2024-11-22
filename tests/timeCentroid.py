@@ -28,8 +28,8 @@ FWHM = 2.5
 Ampl = 5000
 
 def timeCentroid(data, mask, xyGuess, niter, rad=20):
-    print "timeCentroid: xyGuess=%3.0f, %3.0f; niter=%2d; rad=%3d;" % \
-        (xyGuess[0], xyGuess[1], niter, rad),
+    print("timeCentroid: xyGuess=%3.0f, %3.0f; niter=%2d; rad=%3d;" % \
+        (xyGuess[0], xyGuess[1], niter, rad), end=' ')
     begTime = time.time()
     for ii in range(niter):
         PyGuide.centroid(
@@ -42,14 +42,14 @@ def timeCentroid(data, mask, xyGuess, niter, rad=20):
             ccdInfo = CCDInfo,
         )
     dTime = time.time() - begTime
-    print "time/iter=%.3f" % (dTime/niter,)
+    print("time/iter=%.3f" % (dTime/niter,))
 
 
 def timeRadAsymmWeighted(data, mask, niter, rad=20):
-    shape = data.getshape()
-    xc = shape[0]/2
-    yc = shape[1]/2
-    print "timeRadAsymmWeighted: niter=%2d; rad=%3d;" % (niter, rad),
+    shape = data.shape
+    xc = int(shape[0]/2)
+    yc = int(shape[1]/2)
+    print("timeRadAsymmWeighted: niter=%2d; rad=%3d;" % (niter, rad), end=' ')
     
     begTime = time.time()
     for ii in range(niter):
@@ -58,15 +58,15 @@ def timeRadAsymmWeighted(data, mask, niter, rad=20):
             CCDInfo.bias, CCDInfo.readNoise, CCDInfo.ccdGain,
         )
     dTime = time.time() - begTime
-    print "time/iter=%.3f" % (dTime/niter,)
+    print("time/iter=%.3f" % (dTime/niter,))
 
 
 def timeRadProf(data, mask, niter, rad):
     """Time radProf and radSqProf"""
-    shape = data.getshape()
-    xc = shape[0]/2
-    yc = shape[1]/2
-    print "timeRadProf: niter=%2d; rad=%3d;" % (niter, rad,),
+    shape = data.shape
+    xc = int(shape[0]/2)
+    yc = int(shape[1]/2)
+    print("timeRadProf: niter=%2d; rad=%3d;" % (niter, rad,), end=' ')
     
     radSqLen = rad**2 + 1
     radSqMean = numpy.zeros([radSqLen], numpy.float64)
@@ -82,15 +82,15 @@ def timeRadProf(data, mask, niter, rad):
     for ii in range(niter):
         PyGuide.radProf.radSqProf(data, mask, (xc, yc), rad, radSqMean, radSqVar, radSqNPts)
     dTime = time.time() - begTime
-    print "radSqProf time/iter=%.4f;" % (dTime/niter,),
+    print("radSqProf time/iter=%.4f;" % (dTime/niter,), end=' ')
     
     begTime = time.time()
     for ii in range(niter):
         PyGuide.radProf.radProf(data, mask, (xc, yc), rad, radMean, radVar, radNPts)
     dTime = time.time() - begTime
-    print "radProf time/iter=%.4f" % (dTime/niter,),
+    print("radProf time/iter=%.4f" % (dTime/niter,), end=' ')
     
-    print
+    print()
 
 
 def runTests():
@@ -109,21 +109,21 @@ def runTests():
     # let centroiding walk a bit to find the center
     xyGuess = numpy.add(xyCtr, (2, -2))
 
-    print "Time various parts of centroiding as a function of radius"
-    print
-    print "Settings:"
-    print "CCD Size      =", ImWidth, "x", ImWidth, "pix"
-    print "Star center   = %d, %d pix" % (xyCtr[0], xyCtr[1])
-    print "Initial guess = %d, %d pix" % (xyGuess[0], xyGuess[1])
-    print
-    print "Amplitude  =", Ampl, "ADU"
-    print "FWHM       =", FWHM, "pix"
-    print "Sky        =", Sky, "ADU"
-    print "Bias       =", CCDInfo.bias, "ADU"
-    print "Read Noise =", CCDInfo.readNoise, "e-"
-    print "CCD Gain   =", CCDInfo.ccdGain, "e-/ADU"
+    print("Time various parts of centroiding as a function of radius")
+    print()
+    print("Settings:")
+    print("CCD Size      =", ImWidth, "x", ImWidth, "pix")
+    print("Star center   = %d, %d pix" % (xyCtr[0], xyCtr[1]))
+    print("Initial guess = %d, %d pix" % (xyGuess[0], xyGuess[1]))
+    print()
+    print("Amplitude  =", Ampl, "ADU")
+    print("FWHM       =", FWHM, "pix")
+    print("Sky        =", Sky, "ADU")
+    print("Bias       =", CCDInfo.bias, "ADU")
+    print("Read Noise =", CCDInfo.readNoise, "e-")
+    print("CCD Gain   =", CCDInfo.ccdGain, "e-/ADU")
 
-    allZerosMask = data.astype(numpy.bool)
+    allZerosMask = data.astype(numpy.bool_)
     allZerosMask[:] = 0
     
     maskData = (
@@ -132,8 +132,8 @@ def runTests():
     )
     
     for mask, expl in maskData:
-        print
-        print expl
+        print()
+        print(expl)
         
         radNiterList = (
             ( 10, 20),
@@ -145,19 +145,19 @@ def runTests():
             (640, 10),
         )
     
-        print
+        print()
         for rad, niter in radNiterList:
             try:
                 timeRadProf(data, mask, niter, rad)
             except Exception as e:
-                print "timeRadProf(niter=%s, rad=%s) failed: %s" % (niter, rad, e)
+                print("timeRadProf(niter=%s, rad=%s) failed: %s" % (niter, rad, e))
         
-        print
+        print()
         for rad, niter in radNiterList:
             try:
                 timeRadAsymmWeighted(data, mask, niter, rad)
             except Exception as e:
-                print "timeRadAsymmWeighted(niter=%s, rad=%s) failed: %s" % (niter, rad, e)
+                print("timeRadAsymmWeighted(niter=%s, rad=%s) failed: %s" % (niter, rad, e))
 
         radNiterList = (
             ( 10, 10),
@@ -169,7 +169,7 @@ def runTests():
             (640, 1),
         )
         
-        print
+        print()
         for rad, niter in radNiterList:
             try:
                 timeCentroid(data, mask, xyGuess, niter, rad)
