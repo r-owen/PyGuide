@@ -579,9 +579,9 @@ def checkSignal(
             xyCtr = xyCtr,
             xySize = (outerRad, outerRad),
         )
-        subMask = subMaskObj.getSubFrame().astype(numpy.bool) # force type and copy
+        subMask = subMaskObj.getSubFrame().astype(numpy.bool_) # force type and copy
     else:
-        subMask = numpy.zeros(subData.shape, dtype=numpy.bool)
+        subMask = numpy.zeros(subData.shape, dtype=numpy.bool_)
 
     # create circleMask; a centered circle of radius rad
     # with 0s in the middle and 1s outside
@@ -656,7 +656,7 @@ def conditionMask(mask):
     """
     if mask is None:
         return None
-    return conditionArr(mask, numpy.bool)
+    return conditionArr(mask, numpy.bool_)
 
 def conditionArr(arr, desType):
     """Convert a sequence to a numpy array of the desired type.

@@ -64,7 +64,7 @@ def addNoise(
     - sky       sky level, in ADU
     - ccdInfo   a PyGuide.CCDInfo object
     """
-    outData = numpy.add(data, sky).astype(numpy.int)
+    outData = numpy.add(data, sky).astype(numpy.int32)
     outData = numpy.random.poisson(lam = outData * ccdInfo.ccdGain) / ccdInfo.ccdGain
     outData += numpy.random.normal(loc = ccdInfo.bias, scale = ccdInfo.readNoise/float(ccdInfo.ccdGain), size = data.shape)
     # truncate data and return as UInt16
