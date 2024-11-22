@@ -35,7 +35,7 @@ Thresh = 2.5
 
 imShape = (ImWidth, ImWidth)
 nomCtr = (ImWidth // 2, ImWidth // 2)
-mask = numpy.zeros(imShape, numpy.bool)
+mask = numpy.zeros(imShape, numpy.bool_)
 NaN = float("NaN")
 
 # settings
@@ -44,36 +44,36 @@ FWHMValues = (2.0, 3.0, 4.0)
 MaskWidthsPerFWHM = (0.0, 0.5, 1.0, 1.5, 2.0) # fractions of a FWHM
 NumTries = 20
 
-print "Compare centroid actual error vs estimated error"
-print "over a range of fake data"
-print
-print "Settings:"
-print "Thresh      =", Thresh
-print "Sky         =", Sky, "ADU"
-print "Read Noise  =", CCDInfo.readNoise, "e-"
-print "CCD Gain    =", CCDInfo.ccdGain, "e-/ADU"
-print "Bias        =", CCDInfo.bias, "ADU"
-print "Amplitudes  =", AmplValues, "ADU"
-print "FWHMs       =", FWHMValues, "pixels"
-print "Mask Widths =", MaskWidthsPerFWHM, "fractions of a FWHM"
-print "Num Ctrs    =", NumTries, "number of centroids per star shape"
-print "CCD Size    =", ImWidth, "x", ImWidth, "pixels"
-print
-print "the equation being minimized is:"
-print "   sum(var(r) * numPts(r))"
-print "though the final number reported is a normalized version:"
-print "   asymm = sum(var(r) * numPts(r)) / (pixNoise^2 * totPts)"
-print "where"
-print "   pixNoise is the noise/pixel due to read noise and sky"
-print "   totPts = sum(numPts(r))"
-print
-print "The centroids are randomly distributed over"
-print "a range of -FWHM/2, FWHM/2 with respect to the"
-print "center of the CCD = the center of the slit."
-print
-print "The slit is along y so the error along y should be smaller than x."
-print
-print "fwhm ampl    maskWid xErr    yErr    xUncert yUncert asymm   totPix  totCts  rad msgs"
+print("Compare centroid actual error vs estimated error")
+print("over a range of fake data")
+print()
+print("Settings:")
+print("Thresh      =", Thresh)
+print("Sky         =", Sky, "ADU")
+print("Read Noise  =", CCDInfo.readNoise, "e-")
+print("CCD Gain    =", CCDInfo.ccdGain, "e-/ADU")
+print("Bias        =", CCDInfo.bias, "ADU")
+print("Amplitudes  =", AmplValues, "ADU")
+print("FWHMs       =", FWHMValues, "pixels")
+print("Mask Widths =", MaskWidthsPerFWHM, "fractions of a FWHM")
+print("Num Ctrs    =", NumTries, "number of centroids per star shape")
+print("CCD Size    =", ImWidth, "x", ImWidth, "pixels")
+print()
+print("the equation being minimized is:")
+print("   sum(var(r) * numPts(r))")
+print("though the final number reported is a normalized version:")
+print("   asymm = sum(var(r) * numPts(r)) / (pixNoise^2 * totPts)")
+print("where")
+print("   pixNoise is the noise/pixel due to read noise and sky")
+print("   totPts = sum(numPts(r))")
+print()
+print("The centroids are randomly distributed over")
+print("a range of -FWHM/2, FWHM/2 with respect to the")
+print("center of the CCD = the center of the slit.")
+print()
+print("The slit is along y so the error along y should be smaller than x.")
+print()
+print("fwhm ampl    maskWid xErr    yErr    xUncert yUncert asymm   totPix  totCts  rad msgs")
 
 nBad = 0
 ctrXStats = Stats()
@@ -110,29 +110,29 @@ for ampl in AmplValues:
                     doSmooth = DoSmooth,
                 )
                 if not ctrData.isOK:
-                    print "%s   %s  %s  NaN NaN NaN NaN NaN NaN NaN %s  %r" % (
+                    print("%s   %s  %s  NaN NaN NaN NaN NaN NaN NaN %s  %r" % (
                         fwhm, ampl, maskWidth, ctrData.rad, ctrData.msgStr,
-                    )
+                    ))
                     nBad += 1
                     continue
                 
                 xyMeasErr = [ctrData.xyCtr[ii] - actCtr[ii] for ii in (0,1)]
-                print "%s   %s  %s  %.3f    %.3f    %.3f    %.3f    %.3f    %s  %s  %s  %r" % (
+                print("%s   %s  %s  %.3f    %.3f    %.3f    %.3f    %.3f    %s  %s  %s  %r" % (
                     fwhm, ampl, maskWidth,
                     xyMeasErr[0], xyMeasErr[1],
                     ctrData.xyErr[0], ctrData.xyErr[1],
                     ctrData.asymm, ctrData.pix, ctrData.counts,
                     ctrData.rad, ctrData.msgStr,
-                )
+                ))
                 ctrXStats.append(xyMeasErr[0])
                 ctrYStats.append(xyMeasErr[1])
 
-print
-print "Error statistics (for %d points)" % ctrXStats.nPoints()
-print "            min      max    mean   stdDev"
-print "xErr  %8.1f %8.1f %8.1f %8.1f" % (ctrXStats.min(), ctrXStats.max(), ctrXStats.mean(), ctrXStats.stdDev())
-print "yErr  %8.1f %8.1f %8.1f %8.1f" % (ctrYStats.min(), ctrYStats.max(), ctrYStats.mean(), ctrYStats.stdDev())
+print()
+print("Error statistics (for %d points)" % ctrXStats.nPoints())
+print("            min      max    mean   stdDev")
+print("xErr  %8.1f %8.1f %8.1f %8.1f" % (ctrXStats.min(), ctrXStats.max(), ctrXStats.mean(), ctrXStats.stdDev()))
+print("yErr  %8.1f %8.1f %8.1f %8.1f" % (ctrYStats.min(), ctrYStats.max(), ctrYStats.mean(), ctrYStats.stdDev()))
 
 if nBad > 0:
-    print
-    print "number of failures =", nBad
+    print()
+    print("number of failures =", nBad)

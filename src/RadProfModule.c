@@ -1103,12 +1103,41 @@ static PyMethodDef radProfMethods[] = {
     {NULL, NULL, 0, NULL} /* Sentinel */
 };
 
+
+#if PY_MAJOR_VERSION >= 3
+static struct PyModuleDef moduledef = {
+    PyModuleDef_HEAD_INIT,
+    "radProf",     		/* m_name */
+    radProfModule_doc,  /* m_doc */
+    -1,                 /* m_size */
+    radProfMethods,    	/* m_methods */
+    NULL,               /* m_reload */
+    NULL,               /* m_traverse */
+    NULL,               /* m_clear */
+    NULL,               /* m_free */
+};
+#endif
+
 // Module initialization function
-PyMODINIT_FUNC initradProf(void) {
+PyMODINIT_FUNC
+#if PY_MAJOR_VERSION >= 3
+PyInit_radProf(void)
+#else
+initradProf(void)
+#endif
+{
     PyObject *m;
+#if PY_MAJOR_VERSION >= 3
+	m = PyModule_Create(&moduledef);
+#else
     m = Py_InitModule3("radProf", radProfMethods, radProfModule_doc);
+#endif
     if (m == NULL)
-        return;
+        return m;
 
     import_array();
+
+#if PY_MAJOR_VERSION >= 3
+    return m;
+#endif
 }
